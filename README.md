@@ -6,6 +6,28 @@ CRM fullstack para relojoaria Queiroz Prime com cadastros, pedidos, envios e das
 - Backend: Laravel 12 (PHP 8.2+)
 - Banco: MySQL (via Docker) ou SQLite local (desenvolvimento)
 
+## Telas do Sistema
+### Dashboard
+![Dashboard](imagens-do-sistema/dashboard.png)
+
+### Pedidos
+![Pedidos](imagens-do-sistema/pedidos.png)
+
+### Fila de Envios
+![Fila de Envios](imagens-do-sistema/fila-de-envios.png)
+
+### Clientes
+![Clientes](imagens-do-sistema/clientes.png)
+
+### Produtos e Estoque
+![Produtos e Estoque](imagens-do-sistema/produtos-e-estoque.png)
+
+### Marcas
+![Marcas](imagens-do-sistema/marcas.png)
+
+### Modelos
+![Modelos](imagens-do-sistema/modelos.png)
+
 ## Estrutura do Projeto
 ```
 watch-crm/
@@ -46,30 +68,5 @@ watch-crm/
 - DELETE `/api/products/{id}`
 - GET `/api/orders`
 
-## Rodar em Desenvolvimento (Local)
-1. Backend
-   - `cd backend`
-   - `composer install`
-   - `php artisan migrate:fresh --seed`
-   - `php artisan serve` (http://localhost:8000)
-2. Frontend
-   - `cd frontend`
-   - `npm install`
-   - `npm run dev -- -p 4001` (http://localhost:4001)
-3. Variável do frontend
-   - `NEXT_PUBLIC_API_BASE_URL` (default: http://localhost:8000/api)
-
-## Rodar com Docker
-- `docker compose up --build`
-- Frontend: http://localhost:4001
-- Backend: http://localhost:8000/api
-- MySQL:
-  - Host: `localhost`
-  - Porta: `3306`
-  - Database: `queiroz_prime`
-  - User: `queiroz`
-  - Password: `secret`
-
 ## Observações
-- CORS permite `http://localhost:4001`.
 - Documentação completa em `DOCUMENTACAO.md`.
