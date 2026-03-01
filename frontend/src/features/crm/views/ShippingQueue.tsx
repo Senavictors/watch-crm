@@ -28,7 +28,7 @@ const ShippingQueue: React.FC<Props> = ({ orders, customers }) => {
     <div>
       <h2
         style={{
-          color: "#F8FAFC",
+          color: "var(--crm-text)",
           fontFamily: "'Inter', sans-serif",
           fontSize: 26,
           marginBottom: 8,
@@ -37,12 +37,12 @@ const ShippingQueue: React.FC<Props> = ({ orders, customers }) => {
       >
         Fila de Envios
       </h2>
-      <div style={{ color: "#94A3B8", fontSize: 13, marginBottom: 20 }}>
+      <div style={{ color: "var(--crm-text-muted)", fontSize: 13, marginBottom: 20 }}>
         Hoje é {dayName} —{" "}
         {isShippingDay ? (
-          <span style={{ color: "#60A5FA", fontWeight: 600 }}>✅ Dia de postagem!</span>
+          <span style={{ color: "var(--crm-primary)", fontWeight: 600 }}>✅ Dia de postagem!</span>
         ) : (
-          <span style={{ color: "#64748B" }}>
+          <span style={{ color: "var(--crm-text-soft)" }}>
             ⚠️ Próxima postagem: {nextShippingDay(new Date().toISOString().slice(0, 10))}
           </span>
         )}
@@ -50,7 +50,7 @@ const ShippingQueue: React.FC<Props> = ({ orders, customers }) => {
 
       {readyOrders.length === 0 ? (
         <Card>
-          <div style={{ textAlign: "center", color: "#64748B", padding: 30 }}>
+          <div style={{ textAlign: "center", color: "var(--crm-text-soft)", padding: 30 }}>
             Nenhum pedido pronto para envio
           </div>
         </Card>
@@ -68,12 +68,12 @@ const ShippingQueue: React.FC<Props> = ({ orders, customers }) => {
                     width: 40,
                     height: 40,
                     borderRadius: 8,
-                    background: "rgba(96, 165, 250, 0.16)",
-                    border: "1px solid rgba(96, 165, 250, 0.35)",
+                    background: "var(--crm-primary-soft)",
+                    border: "1px solid var(--crm-primary)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    color: "#93C5FD",
+                    color: "var(--crm-accent)",
                     fontSize: 18,
                     flexShrink: 0,
                   }}
@@ -81,25 +81,25 @@ const ShippingQueue: React.FC<Props> = ({ orders, customers }) => {
                   📦
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ color: "#F8FAFC", fontWeight: 600 }}>
+                  <div style={{ color: "var(--crm-text)", fontWeight: 600 }}>
                     #{o.id} — {o.productName}
                   </div>
-                  <div style={{ color: "#94A3B8", fontSize: 12 }}>
+                  <div style={{ color: "var(--crm-text-muted)", fontSize: 12 }}>
                     {customer?.name} · {o.shippingMethod} · {o.channel}
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ color: "#60A5FA", fontSize: 12, fontWeight: 600 }}>
+                  <div style={{ color: "var(--crm-primary)", fontSize: 12, fontWeight: 600 }}>
                     Postar em: {nextShippingDay(new Date().toISOString().slice(0, 10))}
                   </div>
-                  <div style={{ color: "#64748B", fontSize: 11 }}>{fmtBRL(o.freight)} frete</div>
+                  <div style={{ color: "var(--crm-text-soft)", fontSize: 11 }}>{fmtBRL(o.freight)} frete</div>
                 </div>
                 <div
                   style={{
                     width: 20,
                     height: 20,
                     borderRadius: 4,
-                    border: "2px solid #60A5FA",
+                    border: "2px solid var(--crm-primary)",
                     cursor: "pointer",
                     flexShrink: 0,
                   }}

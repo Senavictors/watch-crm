@@ -23,7 +23,7 @@ const OrderDetail: React.FC<Props> = ({ order, customers, onClose }) => {
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(2, 6, 23, 0.75)",
+        background: "var(--crm-overlay)",
         zIndex: 100,
         display: "flex",
         alignItems: "center",
@@ -32,21 +32,21 @@ const OrderDetail: React.FC<Props> = ({ order, customers, onClose }) => {
     >
       <div
         style={{
-          background: "rgba(255, 255, 255, 0.04)",
-          border: "1px solid rgba(255, 255, 255, 0.12)",
+          background: "var(--crm-modal-bg)",
+          border: "1px solid var(--crm-modal-border)",
           borderRadius: 20,
           padding: 32,
           width: 580,
           maxHeight: "85vh",
           overflowY: "auto",
-          boxShadow: "0 24px 60px rgba(0, 0, 0, 0.5)",
+          boxShadow: "0 24px 60px rgba(15, 23, 42, 0.35)",
           backdropFilter: "blur(10px)",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
           <h3
             style={{
-              color: "#F8FAFC",
+              color: "var(--crm-text)",
               fontFamily: "'Inter', sans-serif",
               fontSize: 22,
               fontWeight: 600,
@@ -56,7 +56,13 @@ const OrderDetail: React.FC<Props> = ({ order, customers, onClose }) => {
           </h3>
           <button
             onClick={onClose}
-            style={{ background: "none", border: "none", color: "#94A3B8", fontSize: 22, cursor: "pointer" }}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--crm-text-muted)",
+              fontSize: 22,
+              cursor: "pointer",
+            }}
           >
             ×
           </button>
@@ -66,8 +72,8 @@ const OrderDetail: React.FC<Props> = ({ order, customers, onClose }) => {
           <Badge status={order.status} />
           <span
             style={{
-              background: "rgba(255, 255, 255, 0.06)",
-              color: "#CBD5E1",
+              background: "var(--crm-button-secondary-bg)",
+              color: "var(--crm-text)",
               borderRadius: 999,
               padding: "4px 10px",
               fontSize: 11,
@@ -77,8 +83,8 @@ const OrderDetail: React.FC<Props> = ({ order, customers, onClose }) => {
           </span>
           <span
             style={{
-              background: "rgba(255, 255, 255, 0.06)",
-              color: "#CBD5E1",
+              background: "var(--crm-button-secondary-bg)",
+              color: "var(--crm-text)",
               borderRadius: 999,
               padding: "4px 10px",
               fontSize: 11,
@@ -91,12 +97,12 @@ const OrderDetail: React.FC<Props> = ({ order, customers, onClose }) => {
         {nextShip && (
           <div
             style={{
-              background: "rgba(96, 165, 250, 0.16)",
-              border: "1px solid rgba(96, 165, 250, 0.35)",
+              background: "var(--crm-primary-soft)",
+              border: "1px solid var(--crm-primary)",
               borderRadius: 12,
               padding: "10px 14px",
               marginBottom: 16,
-              color: "#93C5FD",
+              color: "var(--crm-accent)",
               fontSize: 13,
             }}
           >
@@ -107,12 +113,12 @@ const OrderDetail: React.FC<Props> = ({ order, customers, onClose }) => {
         {order.status === "Separação/Fornecedor" && (
           <div
             style={{
-              background: "rgba(248, 113, 113, 0.12)",
-              border: "1px solid rgba(248, 113, 113, 0.35)",
+              background: "rgba(239, 68, 68, 0.12)",
+              border: "1px solid var(--crm-danger)",
               borderRadius: 12,
               padding: "10px 14px",
               marginBottom: 16,
-              color: "#FCA5A5",
+              color: "var(--crm-danger)",
               fontSize: 13,
             }}
           >
@@ -122,43 +128,45 @@ const OrderDetail: React.FC<Props> = ({ order, customers, onClose }) => {
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
           <div>
-            <div style={{ color: "#64748B", fontSize: 11, marginBottom: 4, textTransform: "uppercase" }}>
+            <div style={{ color: "var(--crm-text-soft)", fontSize: 11, marginBottom: 4, textTransform: "uppercase" }}>
               Cliente
             </div>
-            <div style={{ color: "#F8FAFC", fontWeight: 600 }}>{customer?.name}</div>
-            <div style={{ color: "#94A3B8", fontSize: 12 }}>{customer?.phone}</div>
-            <div style={{ color: "#94A3B8", fontSize: 12 }}>{customer?.instagram}</div>
+            <div style={{ color: "var(--crm-text)", fontWeight: 600 }}>{customer?.name}</div>
+            <div style={{ color: "var(--crm-text-muted)", fontSize: 12 }}>{customer?.phone}</div>
+            <div style={{ color: "var(--crm-text-muted)", fontSize: 12 }}>{customer?.instagram}</div>
           </div>
           <div>
-            <div style={{ color: "#64748B", fontSize: 11, marginBottom: 4, textTransform: "uppercase" }}>
+            <div style={{ color: "var(--crm-text-soft)", fontSize: 11, marginBottom: 4, textTransform: "uppercase" }}>
               Produto
             </div>
-            <div style={{ color: "#F8FAFC", fontWeight: 600 }}>{order.productName}</div>
-            <div style={{ color: "#94A3B8", fontSize: 12 }}>Pagamento: {order.paymentMethod}</div>
-            <div style={{ color: "#94A3B8", fontSize: 12 }}>Envio: {order.shippingMethod}</div>
+            <div style={{ color: "var(--crm-text)", fontWeight: 600 }}>{order.productName}</div>
+            <div style={{ color: "var(--crm-text-muted)", fontSize: 12 }}>Pagamento: {order.paymentMethod}</div>
+            <div style={{ color: "var(--crm-text-muted)", fontSize: 12 }}>Envio: {order.shippingMethod}</div>
           </div>
         </div>
 
         <div
           style={{
-            background: "rgba(255, 255, 255, 0.03)",
+            background: "var(--crm-input-bg)",
             borderRadius: 14,
             padding: 16,
             marginBottom: 20,
-            border: "1px solid rgba(255, 255, 255, 0.06)",
+            border: "1px solid var(--crm-table-border)",
           }}
         >
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
             {[
-              { l: "Venda", v: fmtBRL(order.salePrice), c: "#F8FAFC" },
-              { l: "Desconto", v: fmtBRL(order.discount), c: "#94A3B8" },
-              { l: "Frete", v: fmtBRL(order.freight), c: "#94A3B8" },
-              { l: "Taxa Canal", v: fmtBRL(order.channelFee), c: "#94A3B8" },
-              { l: "Custo Produto", v: fmtBRL(order.cost), c: "#94A3B8" },
-              { l: "Lucro", v: fmtBRL(profit), c: profit > 0 ? "#38BDF8" : "#F87171" },
+              { l: "Venda", v: fmtBRL(order.salePrice), c: "var(--crm-text)" },
+              { l: "Desconto", v: fmtBRL(order.discount), c: "var(--crm-text-muted)" },
+              { l: "Frete", v: fmtBRL(order.freight), c: "var(--crm-text-muted)" },
+              { l: "Taxa Canal", v: fmtBRL(order.channelFee), c: "var(--crm-text-muted)" },
+              { l: "Custo Produto", v: fmtBRL(order.cost), c: "var(--crm-text-muted)" },
+              { l: "Lucro", v: fmtBRL(profit), c: profit > 0 ? "var(--crm-success)" : "var(--crm-danger)" },
             ].map((item) => (
               <div key={item.l}>
-                <div style={{ color: "#64748B", fontSize: 10, textTransform: "uppercase" }}>{item.l}</div>
+                <div style={{ color: "var(--crm-text-soft)", fontSize: 10, textTransform: "uppercase" }}>
+                  {item.l}
+                </div>
                 <div
                   style={{
                     color: item.c,
@@ -177,29 +185,29 @@ const OrderDetail: React.FC<Props> = ({ order, customers, onClose }) => {
             style={{
               marginTop: 12,
               paddingTop: 12,
-              borderTop: "1px solid rgba(255, 255, 255, 0.08)",
-              color: "#94A3B8",
+              borderTop: "1px solid var(--crm-table-border)",
+              color: "var(--crm-text-muted)",
               fontSize: 12,
             }}
           >
-            Margem: <span style={{ color: "#93C5FD", fontWeight: 600 }}>{margin}%</span>
+            Margem: <span style={{ color: "var(--crm-accent)", fontWeight: 600 }}>{margin}%</span>
           </div>
         </div>
 
         {order.trackingCode && (
-          <div style={{ color: "#94A3B8", fontSize: 13, marginBottom: 16 }}>
+          <div style={{ color: "var(--crm-text-muted)", fontSize: 13, marginBottom: 16 }}>
             🚚 Rastreio:{" "}
-            <span style={{ color: "#93C5FD", fontWeight: 600 }}>{order.trackingCode}</span>
+            <span style={{ color: "var(--crm-accent)", fontWeight: 600 }}>{order.trackingCode}</span>
           </div>
         )}
 
         {order.notes && (
           <div
             style={{
-              background: "rgba(255, 255, 255, 0.03)",
+              background: "var(--crm-input-bg)",
               borderRadius: 12,
               padding: 12,
-              color: "#94A3B8",
+              color: "var(--crm-text-muted)",
               fontSize: 13,
               marginBottom: 16,
             }}

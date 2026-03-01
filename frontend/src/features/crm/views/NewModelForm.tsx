@@ -29,7 +29,7 @@ const NewModelForm: React.FC<Props> = ({ brands, onSave, onClose }) => {
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(2, 6, 23, 0.75)",
+        background: "var(--crm-overlay)",
         zIndex: 100,
         display: "flex",
         alignItems: "center",
@@ -38,24 +38,30 @@ const NewModelForm: React.FC<Props> = ({ brands, onSave, onClose }) => {
     >
       <div
         style={{
-          background: "rgba(255, 255, 255, 0.04)",
-          border: "1px solid rgba(255, 255, 255, 0.12)",
+          background: "var(--crm-modal-bg)",
+          border: "1px solid var(--crm-modal-border)",
           borderRadius: 20,
           padding: 32,
           width: 520,
           maxHeight: "90vh",
           overflowY: "auto",
-          boxShadow: "0 24px 60px rgba(0, 0, 0, 0.5)",
+          boxShadow: "0 24px 60px rgba(15, 23, 42, 0.35)",
           backdropFilter: "blur(10px)",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-          <h3 style={{ color: "#F8FAFC", fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600 }}>
+          <h3 style={{ color: "var(--crm-text)", fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600 }}>
             Novo Modelo
           </h3>
           <button
             onClick={onClose}
-            style={{ background: "none", border: "none", color: "#94A3B8", fontSize: 22, cursor: "pointer" }}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--crm-text-muted)",
+              fontSize: 22,
+              cursor: "pointer",
+            }}
           >
             ×
           </button>
@@ -75,7 +81,7 @@ const NewModelForm: React.FC<Props> = ({ brands, onSave, onClose }) => {
             <label
               style={{
                 display: "block",
-                color: "#94A3B8",
+                color: "var(--crm-text-muted)",
                 fontSize: 11,
                 marginBottom: 5,
                 textTransform: "uppercase",
@@ -90,17 +96,17 @@ const NewModelForm: React.FC<Props> = ({ brands, onSave, onClose }) => {
               onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
               style={{
                 width: "100%",
-                background: "rgba(255, 255, 255, 0.03)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
+                background: "var(--crm-input-bg)",
+                border: "1px solid var(--crm-input-border)",
                 borderRadius: 12,
-                color: "#E2E8F0",
+                color: "var(--crm-input-text)",
                 padding: "8px 12px",
                 fontSize: 13,
                 outline: "none",
                 boxSizing: "border-box",
               }}
             />
-            <div style={{ color: "#64748B", fontSize: 11, marginTop: 6 }}>
+            <div style={{ color: "var(--crm-text-soft)", fontSize: 11, marginTop: 6 }}>
               PNG ou JPG. Recomendado 800x800.
             </div>
           </div>

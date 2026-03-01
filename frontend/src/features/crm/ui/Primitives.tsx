@@ -25,11 +25,11 @@ export const Card: React.FC<{ style?: React.CSSProperties; children: React.React
 }) => (
   <div
     style={{
-      background: "rgba(255, 255, 255, 0.04)",
-      border: "1px solid rgba(255, 255, 255, 0.08)",
+      background: "var(--crm-card-bg)",
+      border: "1px solid var(--crm-card-border)",
       borderRadius: 16,
       padding: 20,
-      boxShadow: "0 12px 30px rgba(0, 0, 0, 0.35)",
+      boxShadow: "var(--crm-card-shadow)",
       backdropFilter: "blur(6px)",
       ...style,
     }}
@@ -43,11 +43,11 @@ export const StatCard: React.FC<{
   value: React.ReactNode;
   sub?: React.ReactNode;
   color?: string;
-}> = ({ label, value, sub, color = "#93C5FD" }) => (
+}> = ({ label, value, sub, color = "var(--crm-accent)" }) => (
   <Card style={{ flex: 1, minWidth: 160 }}>
     <div
       style={{
-        color: "#94A3B8",
+        color: "var(--crm-text-muted)",
         fontSize: 12,
         marginBottom: 6,
         textTransform: "uppercase",
@@ -67,7 +67,7 @@ export const StatCard: React.FC<{
     >
       {value}
     </div>
-    {sub && <div style={{ color: "#64748B", fontSize: 12, marginTop: 6 }}>{sub}</div>}
+    {sub && <div style={{ color: "var(--crm-text-soft)", fontSize: 12, marginTop: 6 }}>{sub}</div>}
   </Card>
 );
 
@@ -80,7 +80,7 @@ export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { lab
       <label
         style={{
           display: "block",
-          color: "#94A3B8",
+          color: "var(--crm-text-muted)",
           fontSize: 11,
           marginBottom: 5,
           textTransform: "uppercase",
@@ -93,10 +93,10 @@ export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { lab
     <input
       style={{
         width: "100%",
-        background: "rgba(255, 255, 255, 0.03)",
-        border: "1px solid rgba(255, 255, 255, 0.08)",
+        background: "var(--crm-input-bg)",
+        border: "1px solid var(--crm-input-border)",
         borderRadius: 12,
-        color: "#E2E8F0",
+        color: "var(--crm-input-text)",
         padding: "8px 12px",
         fontSize: 14,
         outline: "none",
@@ -115,7 +115,7 @@ export const Select: React.FC<
       <label
         style={{
           display: "block",
-          color: "#94A3B8",
+          color: "var(--crm-text-muted)",
           fontSize: 11,
           marginBottom: 5,
           textTransform: "uppercase",
@@ -128,10 +128,10 @@ export const Select: React.FC<
     <select
       style={{
         width: "100%",
-        background: "rgba(255, 255, 255, 0.03)",
-        border: "1px solid rgba(255, 255, 255, 0.08)",
+        background: "var(--crm-input-bg)",
+        border: "1px solid var(--crm-input-border)",
         borderRadius: 12,
-        color: "#E2E8F0",
+        color: "var(--crm-input-text)",
         padding: "8px 12px",
         fontSize: 14,
         outline: "none",
@@ -160,20 +160,20 @@ export const Btn: React.FC<{
     style={{
       background:
         variant === "primary"
-          ? "#FFFFFF"
+          ? "var(--crm-button-primary-bg)"
           : variant === "danger"
-          ? "#EF4444"
+          ? "var(--crm-danger)"
           : variant === "success"
-          ? "#60A5FA"
-          : "rgba(255, 255, 255, 0.06)",
-      color: variant === "primary" ? "#0A0A0A" : "#E2E8F0",
-      border: "1px solid rgba(255, 255, 255, 0.12)",
+          ? "var(--crm-success)"
+          : "var(--crm-button-secondary-bg)",
+      color: variant === "primary" ? "var(--crm-button-primary-text)" : "var(--crm-button-secondary-text)",
+      border: "1px solid var(--crm-button-border)",
       borderRadius: 999,
       padding: small ? "5px 12px" : "9px 18px",
       fontSize: small ? 12 : 14,
       fontWeight: 600,
       cursor: "pointer",
-      boxShadow: "0 10px 20px rgba(0, 0, 0, 0.25)",
+      boxShadow: "var(--crm-button-shadow)",
       backdropFilter: "blur(8px)",
       ...style,
     }}

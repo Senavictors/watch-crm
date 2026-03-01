@@ -44,7 +44,7 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
     <div>
       <h2
         style={{
-          color: "#F8FAFC",
+          color: "var(--crm-text)",
           marginBottom: 20,
           fontFamily: "'Inter', sans-serif",
           fontSize: 26,
@@ -59,23 +59,23 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
           label="Faturamento"
           value={fmtBRL(totalRevenue)}
           sub={`${paid.length} pedidos`}
-          color="#93C5FD"
+          color="var(--crm-accent)"
         />
         <StatCard
           label="Lucro Líquido"
           value={fmtBRL(totalProfit)}
           sub={`Margem ${avgMargin}%`}
-          color="#60A5FA"
+          color="var(--crm-primary)"
         />
         <StatCard
           label="Ticket Médio"
           value={paid.length ? fmtBRL(totalRevenue / paid.length) : "—"}
-          color="#CBD5E1"
+          color="var(--crm-text)"
         />
         <StatCard
           label="Pedidos Ativos"
           value={orders.filter((o) => !["Entregue", "Cancelado"].includes(o.status)).length}
-          color="#93C5FD"
+          color="var(--crm-accent)"
         />
       </div>
 
@@ -83,7 +83,7 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
         <Card>
           <div
             style={{
-              color: "#94A3B8",
+              color: "var(--crm-text-muted)",
               fontSize: 12,
               marginBottom: 14,
               textTransform: "uppercase",
@@ -95,15 +95,15 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
           {byChannel.map((ch) => (
             <div key={ch.name} style={{ marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                <span style={{ color: "#CBD5E1", fontSize: 13 }}>{ch.name}</span>
-                <span style={{ color: "#F8FAFC", fontSize: 13, fontWeight: 600 }}>
+                <span style={{ color: "var(--crm-text)", fontSize: 13 }}>{ch.name}</span>
+                <span style={{ color: "var(--crm-text)", fontSize: 13, fontWeight: 600 }}>
                   {fmtBRL(ch.total)}
                 </span>
               </div>
-              <div style={{ background: "rgba(255, 255, 255, 0.06)", borderRadius: 999, height: 6 }}>
+              <div style={{ background: "var(--crm-table-header-bg)", borderRadius: 999, height: 6 }}>
                 <div
                   style={{
-                    background: "#60A5FA",
+                    background: "var(--crm-primary)",
                     borderRadius: 999,
                     height: 6,
                     width: `${(ch.total / maxRev) * 100}%`,
@@ -111,7 +111,7 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
                   }}
                 />
               </div>
-              <div style={{ color: "#64748B", fontSize: 11, marginTop: 4 }}>
+              <div style={{ color: "var(--crm-text-soft)", fontSize: 11, marginTop: 4 }}>
                 {ch.count} pedidos
               </div>
             </div>
@@ -121,7 +121,7 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
         <Card>
           <div
             style={{
-              color: "#94A3B8",
+              color: "var(--crm-text-muted)",
               fontSize: 12,
               marginBottom: 14,
               textTransform: "uppercase",
@@ -143,7 +143,7 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
               <Badge status={f.status} />
               <span
                 style={{
-                  color: "#F8FAFC",
+                  color: "var(--crm-text)",
                   fontWeight: 700,
                   fontFamily: "'Inter', sans-serif",
                   fontVariantNumeric: "tabular-nums",
@@ -159,7 +159,7 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
       <Card>
         <div
           style={{
-            color: "#94A3B8",
+            color: "var(--crm-text-muted)",
             fontSize: 12,
             marginBottom: 14,
             textTransform: "uppercase",
@@ -170,12 +170,12 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
         </div>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
           <thead>
-            <tr style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.08)" }}>
+            <tr style={{ borderBottom: "1px solid var(--crm-table-border)" }}>
               {["Vendedor", "Pedidos", "Faturamento", "Lucro"].map((h) => (
                 <th
                   key={h}
                   style={{
-                    color: "#94A3B8",
+                    color: "var(--crm-text-muted)",
                     fontWeight: 600,
                     padding: "6px 10px",
                     textAlign: "left",
@@ -189,15 +189,15 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
           </thead>
           <tbody>
             {bySeller.map((s) => (
-              <tr key={s.name} style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.06)" }}>
-                <td style={{ padding: "8px 10px", color: "#F8FAFC", fontWeight: 600 }}>
+              <tr key={s.name} style={{ borderBottom: "1px solid var(--crm-table-border)" }}>
+                <td style={{ padding: "8px 10px", color: "var(--crm-text)", fontWeight: 600 }}>
                   {s.name}
                 </td>
-                <td style={{ padding: "8px 10px", color: "#94A3B8" }}>{s.count}</td>
-                <td style={{ padding: "8px 10px", color: "#93C5FD", fontWeight: 600 }}>
+                <td style={{ padding: "8px 10px", color: "var(--crm-text-muted)" }}>{s.count}</td>
+                <td style={{ padding: "8px 10px", color: "var(--crm-accent)", fontWeight: 600 }}>
                   {fmtBRL(s.revenue)}
                 </td>
-                <td style={{ padding: "8px 10px", color: "#60A5FA", fontWeight: 600 }}>
+                <td style={{ padding: "8px 10px", color: "var(--crm-primary)", fontWeight: 600 }}>
                   {fmtBRL(s.profit)}
                 </td>
               </tr>

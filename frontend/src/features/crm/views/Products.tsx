@@ -13,11 +13,11 @@ const Products: React.FC<Props> = ({ products, onNew }) => {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-        <h2 style={{ color: "#F8FAFC", fontFamily: "'Inter', sans-serif", fontSize: 26, fontWeight: 600 }}>
+        <h2 style={{ color: "var(--crm-text)", fontFamily: "'Inter', sans-serif", fontSize: 26, fontWeight: 600 }}>
           Produtos & Estoque
         </h2>
         <Btn onClick={onNew} variant="primary">
-          Adicionar Produto
+          + Adicionar Produto
         </Btn>
       </div>
       <Card style={{ padding: 0, overflow: "hidden" }}>
@@ -25,15 +25,15 @@ const Products: React.FC<Props> = ({ products, onNew }) => {
           <thead>
             <tr
               style={{
-                background: "rgba(255, 255, 255, 0.04)",
-                borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+                background: "var(--crm-table-header-bg)",
+                borderBottom: "1px solid var(--crm-table-border)",
               }}
             >
               {["Marca / Modelo", "Custo", "Preço", "Margem", "Origem", "Estoque"].map((h) => (
                 <th
                   key={h}
                   style={{
-                    color: "#94A3B8",
+                    color: "var(--crm-text-muted)",
                     fontWeight: 600,
                     padding: "10px 14px",
                     textAlign: "left",
@@ -50,15 +50,15 @@ const Products: React.FC<Props> = ({ products, onNew }) => {
             {products.map((p) => {
               const margin = (((p.price - p.cost) / p.price) * 100).toFixed(0);
               return (
-                <tr key={p.id} style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.06)" }}>
+                <tr key={p.id} style={{ borderBottom: "1px solid var(--crm-table-border)" }}>
                   <td style={{ padding: "10px 14px" }}>
-                    <div style={{ color: "#F8FAFC", fontWeight: 600 }}>{p.brand || "—"}</div>
-                    <div style={{ color: "#94A3B8", fontSize: 12 }}>{p.model || "—"}</div>
+                    <div style={{ color: "var(--crm-text)", fontWeight: 600 }}>{p.brand || "—"}</div>
+                    <div style={{ color: "var(--crm-text-muted)", fontSize: 12 }}>{p.model || "—"}</div>
                   </td>
                   <td
                     style={{
                       padding: "10px 14px",
-                      color: "#64748B",
+                      color: "var(--crm-text-soft)",
                       fontFamily: "'Inter', sans-serif",
                       fontVariantNumeric: "tabular-nums",
                     }}
@@ -68,7 +68,7 @@ const Products: React.FC<Props> = ({ products, onNew }) => {
                   <td
                     style={{
                       padding: "10px 14px",
-                      color: "#93C5FD",
+                      color: "var(--crm-accent)",
                       fontFamily: "'Inter', sans-serif",
                       fontWeight: 600,
                       fontVariantNumeric: "tabular-nums",
@@ -79,7 +79,7 @@ const Products: React.FC<Props> = ({ products, onNew }) => {
                   <td
                     style={{
                       padding: "10px 14px",
-                      color: "#93C5FD",
+                      color: "var(--crm-accent)",
                       fontFamily: "'Inter', sans-serif",
                       fontVariantNumeric: "tabular-nums",
                     }}
@@ -90,8 +90,8 @@ const Products: React.FC<Props> = ({ products, onNew }) => {
                     <span
                       style={{
                         background:
-                          p.stock === "IN_STOCK" ? "rgba(96, 165, 250, 0.18)" : "rgba(148, 163, 184, 0.12)",
-                        color: p.stock === "IN_STOCK" ? "#93C5FD" : "#94A3B8",
+                          p.stock === "IN_STOCK" ? "var(--crm-pill-primary-bg)" : "var(--crm-pill-muted-bg)",
+                        color: p.stock === "IN_STOCK" ? "var(--crm-pill-primary-text)" : "var(--crm-pill-muted-text)",
                         borderRadius: 999,
                         padding: "4px 10px",
                         fontSize: 10,
@@ -104,7 +104,7 @@ const Products: React.FC<Props> = ({ products, onNew }) => {
                   <td
                     style={{
                       padding: "10px 14px",
-                      color: p.qty > 0 ? "#E2E8F0" : "#64748B",
+                      color: p.qty > 0 ? "var(--crm-text)" : "var(--crm-text-soft)",
                       fontFamily: "'Inter', sans-serif",
                       fontVariantNumeric: "tabular-nums",
                     }}

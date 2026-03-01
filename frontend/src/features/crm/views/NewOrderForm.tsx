@@ -92,7 +92,7 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose })
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(2, 6, 23, 0.75)",
+        background: "var(--crm-overlay)",
         zIndex: 100,
         display: "flex",
         alignItems: "center",
@@ -101,24 +101,30 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose })
     >
       <div
         style={{
-          background: "rgba(255, 255, 255, 0.04)",
-          border: "1px solid rgba(255, 255, 255, 0.12)",
+          background: "var(--crm-modal-bg)",
+          border: "1px solid var(--crm-modal-border)",
           borderRadius: 20,
           padding: 32,
           width: 540,
           maxHeight: "90vh",
           overflowY: "auto",
-          boxShadow: "0 24px 60px rgba(0, 0, 0, 0.5)",
+          boxShadow: "0 24px 60px rgba(15, 23, 42, 0.35)",
           backdropFilter: "blur(10px)",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-          <h3 style={{ color: "#F8FAFC", fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600 }}>
+          <h3 style={{ color: "var(--crm-text)", fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600 }}>
             Novo Pedido
           </h3>
           <button
             onClick={onClose}
-            style={{ background: "none", border: "none", color: "#94A3B8", fontSize: 22, cursor: "pointer" }}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--crm-text-muted)",
+              fontSize: 22,
+              cursor: "pointer",
+            }}
           >
             ×
           </button>
@@ -209,7 +215,7 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose })
           <div style={{ gridColumn: "1 / -1" }}>
             <label
               style={{
-                color: "#94A3B8",
+                color: "var(--crm-text-muted)",
                 fontSize: 11,
                 marginBottom: 5,
                 display: "block",
@@ -224,10 +230,10 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose })
               onChange={(e) => set("notes", e.target.value)}
               style={{
                 width: "100%",
-                background: "rgba(255, 255, 255, 0.03)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
+                background: "var(--crm-input-bg)",
+                border: "1px solid var(--crm-input-border)",
                 borderRadius: 12,
-                color: "#E2E8F0",
+                color: "var(--crm-input-text)",
                 padding: "8px 12px",
                 fontSize: 14,
                 outline: "none",
@@ -242,33 +248,43 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose })
         {selectedProduct && (
           <div
             style={{
-              background: "rgba(255, 255, 255, 0.03)",
+              background: "var(--crm-input-bg)",
               borderRadius: 14,
               padding: 12,
               marginBottom: 16,
               display: "flex",
               gap: 20,
-              border: "1px solid rgba(255, 255, 255, 0.06)",
+              border: "1px solid var(--crm-table-border)",
             }}
           >
             <div>
-              <span style={{ color: "#64748B", fontSize: 11 }}>CUSTO</span>
+              <span style={{ color: "var(--crm-text-soft)", fontSize: 11 }}>CUSTO</span>
               <br />
-              <span style={{ color: "#94A3B8", fontWeight: 700 }}>{fmtBRL(selectedProduct.cost)}</span>
+              <span style={{ color: "var(--crm-text-muted)", fontWeight: 700 }}>
+                {fmtBRL(selectedProduct.cost)}
+              </span>
             </div>
             <div>
-              <span style={{ color: "#64748B", fontSize: 11 }}>LUCRO EST.</span>
+              <span style={{ color: "var(--crm-text-soft)", fontSize: 11 }}>LUCRO EST.</span>
               <br />
-              <span style={{ color: estProfit > 0 ? "#38BDF8" : "#F87171", fontWeight: 700 }}>
+              <span
+                style={{
+                  color: estProfit > 0 ? "var(--crm-success)" : "var(--crm-danger)",
+                  fontWeight: 700,
+                }}
+              >
                 {fmtBRL(estProfit)}
               </span>
             </div>
             <div>
-              <span style={{ color: "#64748B", fontSize: 11 }}>ORIGEM</span>
+              <span style={{ color: "var(--crm-text-soft)", fontSize: 11 }}>ORIGEM</span>
               <br />
               <span
                 style={{
-                  color: selectedProduct.stock === "IN_STOCK" ? "#93C5FD" : "#94A3B8",
+                  color:
+                    selectedProduct.stock === "IN_STOCK"
+                      ? "var(--crm-pill-primary-text)"
+                      : "var(--crm-text-muted)",
                   fontWeight: 700,
                 }}
               >

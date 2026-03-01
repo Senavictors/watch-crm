@@ -12,11 +12,11 @@ const Brands: React.FC<Props> = ({ brands, onNew }) => {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-        <h2 style={{ color: "#F8FAFC", fontFamily: "'Inter', sans-serif", fontSize: 26, fontWeight: 600 }}>
+        <h2 style={{ color: "var(--crm-text)", fontFamily: "'Inter', sans-serif", fontSize: 26, fontWeight: 600 }}>
           Marcas
         </h2>
         <Btn onClick={onNew} variant="primary">
-          Adicionar Marca
+          + Adicionar Marca
         </Btn>
       </div>
       <Card style={{ padding: 0, overflow: "hidden" }}>
@@ -24,15 +24,15 @@ const Brands: React.FC<Props> = ({ brands, onNew }) => {
           <thead>
             <tr
               style={{
-                background: "rgba(255, 255, 255, 0.04)",
-                borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+                background: "var(--crm-table-header-bg)",
+                borderBottom: "1px solid var(--crm-table-border)",
               }}
             >
               {["Marca", "ID"].map((h) => (
                 <th
                   key={h}
                   style={{
-                    color: "#94A3B8",
+                    color: "var(--crm-text-muted)",
                     fontWeight: 600,
                     padding: "10px 14px",
                     textAlign: "left",
@@ -47,9 +47,9 @@ const Brands: React.FC<Props> = ({ brands, onNew }) => {
           </thead>
           <tbody>
             {brands.map((b) => (
-              <tr key={b.id} style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.06)" }}>
-                <td style={{ padding: "10px 14px", color: "#F8FAFC", fontWeight: 600 }}>{b.name}</td>
-                <td style={{ padding: "10px 14px", color: "#94A3B8" }}>#{b.id}</td>
+              <tr key={b.id} style={{ borderBottom: "1px solid var(--crm-table-border)" }}>
+                <td style={{ padding: "10px 14px", color: "var(--crm-text)", fontWeight: 600 }}>{b.name}</td>
+                <td style={{ padding: "10px 14px", color: "var(--crm-text-muted)" }}>#{b.id}</td>
               </tr>
             ))}
           </tbody>

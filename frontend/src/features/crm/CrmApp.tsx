@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import Dashboard from "./views/Dashboard";
 import OrderList from "./views/OrderList";
 import ShippingQueue from "./views/ShippingQueue";
@@ -31,8 +31,34 @@ const CrmApp: React.FC = () => {
   const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [showNewBrand, setShowNewBrand] = useState(false);
   const [showNewModel, setShowNewModel] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
 
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api";
+
+  useLayoutEffect(() => {
+    const stored = localStorage.getItem("crm-theme");
+    if (stored === "light" || stored === "dark" || stored === "system") {
+      setTheme(stored);
+    }
+  }, []);
+
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const resolvedTheme = theme === "system" ? (media.matches ? "dark" : "light") : theme;
+    root.dataset.theme = resolvedTheme;
+    localStorage.setItem("crm-theme", theme);
+    if (theme !== "system") return;
+    const handleChange = () => {
+      root.dataset.theme = media.matches ? "dark" : "light";
+    };
+    if (media.addEventListener) {
+      media.addEventListener("change", handleChange);
+      return () => media.removeEventListener("change", handleChange);
+    }
+    media.addListener(handleChange);
+    return () => media.removeListener(handleChange);
+  }, [theme]);
 
   useEffect(() => {
     let alive = true;
@@ -202,18 +228,18 @@ const CrmApp: React.FC = () => {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #0A0A0A; color: #F8FAFC; font-family: 'Inter', sans-serif; }
+        body { background: var(--crm-bg); color: var(--crm-text); font-family: 'Inter', sans-serif; }
         button, input, select, textarea { font-family: inherit; }
-        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #0A0A0A; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-        select option { background: #0A0A0A; color: #E2E8F0; }
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--crm-scrollbar-track); }
+        ::-webkit-scrollbar-thumb { background: var(--crm-scrollbar-thumb); border-radius: 3px; }
+        select option { background: var(--crm-bg); color: var(--crm-input-text); }
       `}</style>
 
       <div
         style={{
           position: "fixed",
           inset: 0,
-          background: "#0A0A0A",
+          background: "var(--crm-bg)",
           zIndex: -2,
         }}
       />
@@ -221,8 +247,7 @@ const CrmApp: React.FC = () => {
         style={{
           position: "fixed",
           inset: 0,
-          background:
-            "radial-gradient(60% 60% at 20% 10%, rgba(59, 130, 246, 0.14), transparent 55%), radial-gradient(50% 50% at 80% 0%, rgba(59, 130, 246, 0.1), transparent 60%)",
+          background: "var(--crm-bg-gradient)",
           zIndex: -2,
         }}
       />
@@ -231,7 +256,7 @@ const CrmApp: React.FC = () => {
           position: "fixed",
           inset: 0,
           backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
+            "linear-gradient(var(--crm-grid) 1px, transparent 1px), linear-gradient(90deg, var(--crm-grid) 1px, transparent 1px)",
           backgroundSize: "64px 64px",
           opacity: 0.15,
           zIndex: -1,
@@ -242,8 +267,8 @@ const CrmApp: React.FC = () => {
         <div
           style={{
             width: 220,
-            background: "rgba(10, 10, 10, 0.85)",
-            borderRight: "1px solid rgba(255, 255, 255, 0.08)",
+            background: "var(--crm-panel-bg)",
+            borderRight: "1px solid var(--crm-panel-border)",
             padding: "28px 16px",
             display: "flex",
             flexDirection: "column",
@@ -254,7 +279,7 @@ const CrmApp: React.FC = () => {
           <div style={{ marginBottom: 32, paddingLeft: 8 }}>
             <div
               style={{
-                color: "#60A5FA",
+                color: "var(--crm-primary)",
                 fontSize: 11,
                 letterSpacing: 3,
                 textTransform: "uppercase",
@@ -265,7 +290,7 @@ const CrmApp: React.FC = () => {
             </div>
             <div
               style={{
-                color: "#F8FAFC",
+                color: "var(--crm-text)",
                 fontFamily: "'Inter', sans-serif",
                 fontSize: 20,
                 fontWeight: 700,
@@ -289,12 +314,12 @@ const CrmApp: React.FC = () => {
                 cursor: "pointer",
                 marginBottom: 4,
                 width: "100%",
-                background: page === n.id ? "rgba(96, 165, 250, 0.16)" : "transparent",
+                background: page === n.id ? "var(--crm-primary-soft)" : "transparent",
                 boxShadow:
                   page === n.id
-                    ? "0 12px 24px rgba(15, 23, 42, 0.45)"
-                    : "0 8px 16px rgba(15, 23, 42, 0.25)",
-                color: page === n.id ? "#F8FAFC" : "#94A3B8",
+                    ? "0 12px 24px rgba(15, 23, 42, 0.25)"
+                    : "0 8px 16px rgba(15, 23, 42, 0.14)",
+                color: page === n.id ? "var(--crm-text)" : "var(--crm-text-muted)",
                 fontFamily: "'Inter', sans-serif",
                 fontSize: 14,
                 fontWeight: page === n.id ? 700 : 400,
@@ -307,8 +332,8 @@ const CrmApp: React.FC = () => {
                 <span
                   style={{
                     marginLeft: "auto",
-                    background: "#60A5FA",
-                    color: "#0A0A0A",
+                    background: "var(--crm-primary)",
+                    color: "var(--crm-primary-contrast)",
                     borderRadius: 10,
                     padding: "1px 7px",
                     fontSize: 11,
@@ -322,13 +347,168 @@ const CrmApp: React.FC = () => {
           ))}
 
           <div style={{ marginTop: "auto", paddingLeft: 8 }}>
-            <div style={{ color: "#64748B", fontSize: 11 }}>MVP v1.0</div>
+            <div
+              style={{
+                color: "var(--crm-text-soft)",
+                fontSize: 11,
+                textTransform: "uppercase",
+                letterSpacing: 1,
+                marginBottom: 8,
+              }}
+            >
+              Tema
+            </div>
+            <div
+              style={{
+                position: "relative",
+                display: "inline-flex",
+                alignItems: "center",
+                height: 18,
+                padding: "1px",
+                borderRadius: 999,
+                border: "1px solid var(--crm-button-border)",
+                background: "var(--crm-button-secondary-bg)",
+                gap: 2,
+                marginBottom: 12,
+                alignSelf: "flex-start",
+              }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  top: 1,
+                  left: 1,
+                  height: 16,
+                  width: 20,
+                  borderRadius: 999,
+                  background: "var(--crm-card-bg)",
+                  boxShadow: "0 6px 14px rgba(15, 23, 42, 0.18)",
+                  transform:
+                    theme === "light"
+                      ? "translateX(0px)"
+                      : theme === "system"
+                      ? "translateX(22px)"
+                      : "translateX(44px)",
+                  transition: "transform 0.2s ease",
+                }}
+              />
+              <button
+                onClick={() => setTheme("light")}
+                aria-label="Light mode"
+                type="button"
+                style={{
+                  position: "relative",
+                  zIndex: 1,
+                  width: 20,
+                  height: 16,
+                  borderRadius: 999,
+                  border: "none",
+                  background: "transparent",
+                  color: theme === "light" ? "var(--crm-text)" : "var(--crm-text-muted)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2" />
+                  <path d="M12 20v2" />
+                  <path d="m4.93 4.93 1.41 1.41" />
+                  <path d="m17.66 17.66 1.41 1.41" />
+                  <path d="M2 12h2" />
+                  <path d="M20 12h2" />
+                  <path d="m6.34 17.66-1.41 1.41" />
+                  <path d="m19.07 4.93-1.41 1.41" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setTheme("system")}
+                aria-label="System theme"
+                type="button"
+                style={{
+                  position: "relative",
+                  zIndex: 1,
+                  width: 20,
+                  height: 16,
+                  borderRadius: 999,
+                  border: "none",
+                  background: "transparent",
+                  color: theme === "system" ? "var(--crm-text)" : "var(--crm-text-muted)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect width="20" height="14" x="2" y="3" rx="2" />
+                  <line x1="8" x2="16" y1="21" y2="21" />
+                  <line x1="12" x2="12" y1="17" y2="21" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setTheme("dark")}
+                aria-label="Dark mode"
+                type="button"
+                style={{
+                  position: "relative",
+                  zIndex: 1,
+                  width: 20,
+                  height: 16,
+                  borderRadius: 999,
+                  border: "none",
+                  background: "transparent",
+                  color: theme === "dark" ? "var(--crm-text)" : "var(--crm-text-muted)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                </svg>
+              </button>
+            </div>
+            <div style={{ color: "var(--crm-text-soft)", fontSize: 11 }}>MVP v1.0</div>
           </div>
         </div>
 
         <div style={{ flex: 1, padding: "36px 32px", maxWidth: "calc(100vw - 220px)", overflowX: "auto" }}>
-          {loading && <div style={{ color: "#94A3B8" }}>Carregando dados...</div>}
-          {error && !loading && <div style={{ color: "#F87171" }}>{error}</div>}
+          {loading && <div style={{ color: "var(--crm-text-muted)" }}>Carregando dados...</div>}
+          {error && !loading && <div style={{ color: "var(--crm-danger)" }}>{error}</div>}
           {!loading && !error && (
             <>
               {page === "dashboard" && <Dashboard orders={orders} />}

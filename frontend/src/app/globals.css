@@ -1,12 +1,134 @@
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --crm-bg: #f4f6fb;
+  --crm-text: #0f172a;
+  --crm-text-muted: #475569;
+  --crm-text-soft: #64748b;
+  --crm-text-inverse: #f8fafc;
+  --crm-primary: #2563eb;
+  --crm-primary-strong: #1d4ed8;
+  --crm-primary-soft: rgba(37, 99, 235, 0.14);
+  --crm-primary-contrast: #ffffff;
+  --crm-accent: #3b82f6;
+  --crm-accent-soft: rgba(59, 130, 246, 0.12);
+  --crm-danger: #ef4444;
+  --crm-success: #0ea5e9;
+  --crm-card-bg: rgba(255, 255, 255, 0.92);
+  --crm-card-border: rgba(15, 23, 42, 0.08);
+  --crm-card-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+  --crm-panel-bg: rgba(255, 255, 255, 0.82);
+  --crm-panel-border: rgba(15, 23, 42, 0.08);
+  --crm-grid: rgba(15, 23, 42, 0.06);
+  --crm-overlay: rgba(15, 23, 42, 0.45);
+  --crm-input-bg: rgba(15, 23, 42, 0.04);
+  --crm-input-border: rgba(15, 23, 42, 0.12);
+  --crm-input-text: #0f172a;
+  --crm-table-header-bg: rgba(15, 23, 42, 0.04);
+  --crm-table-border: rgba(15, 23, 42, 0.08);
+  --crm-scrollbar-track: #e2e8f0;
+  --crm-scrollbar-thumb: #94a3b8;
+  --crm-pill-primary-bg: rgba(37, 99, 235, 0.12);
+  --crm-pill-primary-text: #2563eb;
+  --crm-pill-muted-bg: rgba(15, 23, 42, 0.08);
+  --crm-pill-muted-text: #64748b;
+  --crm-modal-bg: rgba(255, 255, 255, 0.95);
+  --crm-modal-border: rgba(15, 23, 42, 0.16);
+  --crm-button-primary-bg: #2563eb;
+  --crm-button-primary-text: #ffffff;
+  --crm-button-secondary-bg: rgba(15, 23, 42, 0.06);
+  --crm-button-secondary-text: #0f172a;
+  --crm-button-border: rgba(15, 23, 42, 0.12);
+  --crm-button-shadow: 0 10px 20px rgba(15, 23, 42, 0.15);
+  --crm-bg-gradient: radial-gradient(60% 60% at 20% 10%, rgba(59, 130, 246, 0.18), transparent 55%),
+    radial-gradient(50% 50% at 80% 0%, rgba(59, 130, 246, 0.14), transparent 60%);
+}
+
+:root[data-theme="dark"] {
+  --crm-bg: #0a0a0a;
+  --crm-text: #f8fafc;
+  --crm-text-muted: #94a3b8;
+  --crm-text-soft: #64748b;
+  --crm-text-inverse: #0a0a0a;
+  --crm-primary: #60a5fa;
+  --crm-primary-strong: #3b82f6;
+  --crm-primary-soft: rgba(96, 165, 250, 0.16);
+  --crm-primary-contrast: #0a0a0a;
+  --crm-accent: #93c5fd;
+  --crm-accent-soft: rgba(147, 197, 253, 0.16);
+  --crm-danger: #f87171;
+  --crm-success: #60a5fa;
+  --crm-card-bg: rgba(255, 255, 255, 0.04);
+  --crm-card-border: rgba(255, 255, 255, 0.08);
+  --crm-card-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  --crm-panel-bg: rgba(10, 10, 10, 0.85);
+  --crm-panel-border: rgba(255, 255, 255, 0.08);
+  --crm-grid: rgba(255, 255, 255, 0.04);
+  --crm-overlay: rgba(2, 6, 23, 0.75);
+  --crm-input-bg: rgba(255, 255, 255, 0.03);
+  --crm-input-border: rgba(255, 255, 255, 0.08);
+  --crm-input-text: #e2e8f0;
+  --crm-table-header-bg: rgba(255, 255, 255, 0.04);
+  --crm-table-border: rgba(255, 255, 255, 0.06);
+  --crm-scrollbar-track: #0a0a0a;
+  --crm-scrollbar-thumb: #334155;
+  --crm-pill-primary-bg: rgba(96, 165, 250, 0.18);
+  --crm-pill-primary-text: #93c5fd;
+  --crm-pill-muted-bg: rgba(148, 163, 184, 0.12);
+  --crm-pill-muted-text: #94a3b8;
+  --crm-modal-bg: rgba(255, 255, 255, 0.04);
+  --crm-modal-border: rgba(255, 255, 255, 0.12);
+  --crm-button-primary-bg: #ffffff;
+  --crm-button-primary-text: #0a0a0a;
+  --crm-button-secondary-bg: rgba(255, 255, 255, 0.06);
+  --crm-button-secondary-text: #e2e8f0;
+  --crm-button-border: rgba(255, 255, 255, 0.12);
+  --crm-button-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+  --crm-bg-gradient: radial-gradient(60% 60% at 20% 10%, rgba(59, 130, 246, 0.14), transparent 55%),
+    radial-gradient(50% 50% at 80% 0%, rgba(59, 130, 246, 0.1), transparent 60%);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root[data-theme="system"] {
+    --crm-bg: #0a0a0a;
+    --crm-text: #f8fafc;
+    --crm-text-muted: #94a3b8;
+    --crm-text-soft: #64748b;
+    --crm-text-inverse: #0a0a0a;
+    --crm-primary: #60a5fa;
+    --crm-primary-strong: #3b82f6;
+    --crm-primary-soft: rgba(96, 165, 250, 0.16);
+    --crm-primary-contrast: #0a0a0a;
+    --crm-accent: #93c5fd;
+    --crm-accent-soft: rgba(147, 197, 253, 0.16);
+    --crm-danger: #f87171;
+    --crm-success: #60a5fa;
+    --crm-card-bg: rgba(255, 255, 255, 0.04);
+    --crm-card-border: rgba(255, 255, 255, 0.08);
+    --crm-card-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+    --crm-panel-bg: rgba(10, 10, 10, 0.85);
+    --crm-panel-border: rgba(255, 255, 255, 0.08);
+    --crm-grid: rgba(255, 255, 255, 0.04);
+    --crm-overlay: rgba(2, 6, 23, 0.75);
+    --crm-input-bg: rgba(255, 255, 255, 0.03);
+    --crm-input-border: rgba(255, 255, 255, 0.08);
+    --crm-input-text: #e2e8f0;
+    --crm-table-header-bg: rgba(255, 255, 255, 0.04);
+    --crm-table-border: rgba(255, 255, 255, 0.06);
+    --crm-scrollbar-track: #0a0a0a;
+    --crm-scrollbar-thumb: #334155;
+    --crm-pill-primary-bg: rgba(96, 165, 250, 0.18);
+    --crm-pill-primary-text: #93c5fd;
+    --crm-pill-muted-bg: rgba(148, 163, 184, 0.12);
+    --crm-pill-muted-text: #94a3b8;
+    --crm-modal-bg: rgba(255, 255, 255, 0.04);
+    --crm-modal-border: rgba(255, 255, 255, 0.12);
+    --crm-button-primary-bg: #ffffff;
+    --crm-button-primary-text: #0a0a0a;
+    --crm-button-secondary-bg: rgba(255, 255, 255, 0.06);
+    --crm-button-secondary-text: #e2e8f0;
+    --crm-button-border: rgba(255, 255, 255, 0.12);
+    --crm-button-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+    --crm-bg-gradient: radial-gradient(60% 60% at 20% 10%, rgba(59, 130, 246, 0.14), transparent 55%),
+      radial-gradient(50% 50% at 80% 0%, rgba(59, 130, 246, 0.1), transparent 60%);
   }
 }
 
@@ -17,8 +139,8 @@ body {
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
+  color: var(--crm-text);
+  background: var(--crm-bg);
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -35,8 +157,20 @@ a {
   text-decoration: none;
 }
 
+html {
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html[data-theme="system"] {
+  color-scheme: light;
+}
+
 @media (prefers-color-scheme: dark) {
-  html {
+  html[data-theme="system"] {
     color-scheme: dark;
   }
 }

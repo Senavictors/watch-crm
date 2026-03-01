@@ -38,7 +38,7 @@ const OrderList: React.FC<Props> = ({ orders, customers, onView, onNew, onUpdate
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <h2 style={{ color: "#F8FAFC", fontFamily: "'Inter', sans-serif", fontSize: 26, fontWeight: 600 }}>
+        <h2 style={{ color: "var(--crm-text)", fontFamily: "'Inter', sans-serif", fontSize: 26, fontWeight: 600 }}>
           Pedidos
         </h2>
         <Btn onClick={onNew}>+ Novo Pedido</Btn>
@@ -50,10 +50,10 @@ const OrderList: React.FC<Props> = ({ orders, customers, onView, onNew, onUpdate
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar pedido..."
           style={{
-            background: "rgba(255, 255, 255, 0.03)",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
+            background: "var(--crm-input-bg)",
+            border: "1px solid var(--crm-input-border)",
             borderRadius: 12,
-            color: "#E2E8F0",
+            color: "var(--crm-input-text)",
             padding: "7px 12px",
             fontSize: 13,
             outline: "none",
@@ -65,10 +65,10 @@ const OrderList: React.FC<Props> = ({ orders, customers, onView, onNew, onUpdate
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value as OrderStatus | "")}
           style={{
-            background: "rgba(255, 255, 255, 0.03)",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
+            background: "var(--crm-input-bg)",
+            border: "1px solid var(--crm-input-border)",
             borderRadius: 12,
-            color: filterStatus ? "#E2E8F0" : "#64748B",
+            color: filterStatus ? "var(--crm-input-text)" : "var(--crm-text-soft)",
             padding: "7px 12px",
             fontSize: 13,
             outline: "none",
@@ -83,10 +83,10 @@ const OrderList: React.FC<Props> = ({ orders, customers, onView, onNew, onUpdate
           value={filterChannel}
           onChange={(e) => setFilterChannel(e.target.value)}
           style={{
-            background: "rgba(255, 255, 255, 0.03)",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
+            background: "var(--crm-input-bg)",
+            border: "1px solid var(--crm-input-border)",
             borderRadius: 12,
-            color: filterChannel ? "#E2E8F0" : "#64748B",
+            color: filterChannel ? "var(--crm-input-text)" : "var(--crm-text-soft)",
             padding: "7px 12px",
             fontSize: 13,
             outline: "none",
@@ -101,10 +101,10 @@ const OrderList: React.FC<Props> = ({ orders, customers, onView, onNew, onUpdate
           value={filterSeller}
           onChange={(e) => setFilterSeller(e.target.value)}
           style={{
-            background: "rgba(255, 255, 255, 0.03)",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
+            background: "var(--crm-input-bg)",
+            border: "1px solid var(--crm-input-border)",
             borderRadius: 12,
-            color: filterSeller ? "#E2E8F0" : "#64748B",
+            color: filterSeller ? "var(--crm-input-text)" : "var(--crm-text-soft)",
             padding: "7px 12px",
             fontSize: 13,
             outline: "none",
@@ -122,8 +122,8 @@ const OrderList: React.FC<Props> = ({ orders, customers, onView, onNew, onUpdate
           <thead>
             <tr
               style={{
-                borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-                background: "rgba(255, 255, 255, 0.04)",
+                borderBottom: "1px solid var(--crm-table-border)",
+                background: "var(--crm-table-header-bg)",
               }}
             >
               {["#", "Data", "Cliente", "Produto", "Canal", "Vendedor", "Total", "Lucro", "Status", "Ações"].map(
@@ -131,7 +131,7 @@ const OrderList: React.FC<Props> = ({ orders, customers, onView, onNew, onUpdate
                   <th
                     key={h}
                     style={{
-                      color: "#94A3B8",
+                    color: "var(--crm-text-muted)",
                       fontWeight: 600,
                       padding: "10px 14px",
                       textAlign: "left",
@@ -150,26 +150,26 @@ const OrderList: React.FC<Props> = ({ orders, customers, onView, onNew, onUpdate
             {filtered.map((o) => (
               <tr
                 key={o.id}
-                style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.06)", cursor: "pointer" }}
+                style={{ borderBottom: "1px solid var(--crm-table-border)", cursor: "pointer" }}
                 onClick={() => onView(o)}
               >
-                <td style={{ padding: "10px 14px", color: "#93C5FD", fontWeight: 700 }}>
+                <td style={{ padding: "10px 14px", color: "var(--crm-accent)", fontWeight: 700 }}>
                   #{o.id}
                 </td>
-                <td style={{ padding: "10px 14px", color: "#94A3B8" }}>{fmtDate(o.saleDate)}</td>
-                <td style={{ padding: "10px 14px", color: "#CBD5E1" }}>
+                <td style={{ padding: "10px 14px", color: "var(--crm-text-muted)" }}>{fmtDate(o.saleDate)}</td>
+                <td style={{ padding: "10px 14px", color: "var(--crm-text)" }}>
                   {customers.find((c) => c.id === o.customerId)?.name || "—"}
                 </td>
-                <td style={{ padding: "10px 14px", color: "#F8FAFC" }}>{o.productName}</td>
-                <td style={{ padding: "10px 14px", color: "#94A3B8" }}>{o.channel}</td>
-                <td style={{ padding: "10px 14px", color: "#94A3B8" }}>{o.seller}</td>
-                <td style={{ padding: "10px 14px", color: "#93C5FD", fontWeight: 600 }}>
+                <td style={{ padding: "10px 14px", color: "var(--crm-text)" }}>{o.productName}</td>
+                <td style={{ padding: "10px 14px", color: "var(--crm-text-muted)" }}>{o.channel}</td>
+                <td style={{ padding: "10px 14px", color: "var(--crm-text-muted)" }}>{o.seller}</td>
+                <td style={{ padding: "10px 14px", color: "var(--crm-accent)", fontWeight: 600 }}>
                   {fmtBRL(o.salePrice - o.discount)}
                 </td>
                 <td
                   style={{
                     padding: "10px 14px",
-                    color: calcProfit(o) > 0 ? "#38BDF8" : "#F87171",
+                    color: calcProfit(o) > 0 ? "var(--crm-success)" : "var(--crm-danger)",
                     fontWeight: 600,
                   }}
                 >
@@ -183,10 +183,10 @@ const OrderList: React.FC<Props> = ({ orders, customers, onView, onNew, onUpdate
                     value={o.status}
                     onChange={(e) => onUpdateStatus(o.id, e.target.value as OrderStatus)}
                     style={{
-                      background: "rgba(255, 255, 255, 0.03)",
-                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      background: "var(--crm-input-bg)",
+                      border: "1px solid var(--crm-input-border)",
                       borderRadius: 10,
-                      color: "#CBD5E1",
+                      color: "var(--crm-input-text)",
                       padding: "4px 6px",
                       fontSize: 11,
                       outline: "none",
@@ -203,7 +203,9 @@ const OrderList: React.FC<Props> = ({ orders, customers, onView, onNew, onUpdate
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <div style={{ padding: 40, textAlign: "center", color: "#64748B" }}>Nenhum pedido encontrado</div>
+          <div style={{ padding: 40, textAlign: "center", color: "var(--crm-text-soft)" }}>
+            Nenhum pedido encontrado
+          </div>
         )}
       </Card>
     </div>

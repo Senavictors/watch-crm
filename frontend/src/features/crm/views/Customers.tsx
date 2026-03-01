@@ -16,11 +16,11 @@ const Customers: React.FC<Props> = ({ customers, onNew }) => {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-        <h2 style={{ color: "#F8FAFC", fontFamily: "'Inter', sans-serif", fontSize: 26, fontWeight: 600 }}>
+        <h2 style={{ color: "var(--crm-text)", fontFamily: "'Inter', sans-serif", fontSize: 26, fontWeight: 600 }}>
           Clientes
         </h2>
         <Btn onClick={onNew} variant="primary">
-          Adicionar Cliente
+          + Adicionar Cliente
         </Btn>
       </div>
       <input
@@ -28,10 +28,10 @@ const Customers: React.FC<Props> = ({ customers, onNew }) => {
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Buscar cliente..."
         style={{
-          background: "rgba(255, 255, 255, 0.03)",
-          border: "1px solid rgba(255, 255, 255, 0.08)",
+          background: "var(--crm-input-bg)",
+          border: "1px solid var(--crm-input-border)",
           borderRadius: 12,
-          color: "#E2E8F0",
+          color: "var(--crm-input-text)",
           padding: "8px 14px",
           fontSize: 13,
           outline: "none",
@@ -43,10 +43,18 @@ const Customers: React.FC<Props> = ({ customers, onNew }) => {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
         {filtered.map((c) => (
           <Card key={c.id}>
-            <div style={{ color: "#F8FAFC", fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{c.name}</div>
-            <div style={{ color: "#94A3B8", fontSize: 12, marginBottom: 2 }}>📱 {c.phone}</div>
-            {c.email && <div style={{ color: "#94A3B8", fontSize: 12, marginBottom: 2 }}>✉️ {c.email}</div>}
-            {c.instagram && <div style={{ color: "#93C5FD", fontSize: 12 }}>{c.instagram}</div>}
+            <div style={{ color: "var(--crm-text)", fontWeight: 700, fontSize: 15, marginBottom: 6 }}>
+              {c.name}
+            </div>
+            <div style={{ color: "var(--crm-text-muted)", fontSize: 12, marginBottom: 2 }}>
+              📱 {c.phone}
+            </div>
+            {c.email && (
+              <div style={{ color: "var(--crm-text-muted)", fontSize: 12, marginBottom: 2 }}>
+                ✉️ {c.email}
+              </div>
+            )}
+            {c.instagram && <div style={{ color: "var(--crm-accent)", fontSize: 12 }}>{c.instagram}</div>}
           </Card>
         ))}
       </div>
