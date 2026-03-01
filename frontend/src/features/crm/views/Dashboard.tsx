@@ -39,6 +39,12 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
   }));
 
   const maxRev = Math.max(...byChannel.map((c) => c.total), 1);
+  const channelPalette = [
+    "var(--crm-primary)",
+    "var(--crm-accent)",
+    "var(--crm-success)",
+    "var(--crm-danger)",
+  ];
 
   return (
     <div>
@@ -80,42 +86,135 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
-        <Card>
+        <Card style={{ position: "relative", overflow: "hidden" }}>
           <div
             style={{
-              color: "var(--crm-text-muted)",
-              fontSize: 12,
-              marginBottom: 14,
-              textTransform: "uppercase",
-              letterSpacing: 1,
+              position: "absolute",
+              inset: 0,
+              background:
+                "radial-gradient(60% 60% at 0% 0%, var(--crm-primary-soft), transparent 70%)",
+              opacity: 0.8,
             }}
-          >
-            Vendas por Canal
-          </div>
-          {byChannel.map((ch) => (
-            <div key={ch.name} style={{ marginBottom: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                <span style={{ color: "var(--crm-text)", fontSize: 13 }}>{ch.name}</span>
-                <span style={{ color: "var(--crm-text)", fontSize: 13, fontWeight: 600 }}>
-                  {fmtBRL(ch.total)}
-                </span>
+          />
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              opacity: 0.15,
+              backgroundImage: "radial-gradient(var(--crm-text-soft) 1px, transparent 1px)",
+              backgroundSize: "26px 26px",
+            }}
+          />
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 18,
+              }}
+            >
+              <div
+                style={{
+                  color: "var(--crm-text)",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  letterSpacing: 0.2,
+                }}
+              >
+                Vendas por Canal
               </div>
-              <div style={{ background: "var(--crm-table-header-bg)", borderRadius: 999, height: 6 }}>
-                <div
-                  style={{
-                    background: "var(--crm-primary)",
-                    borderRadius: 999,
-                    height: 6,
-                    width: `${(ch.total / maxRev) * 100}%`,
-                    transition: "width 0.6s",
-                  }}
-                />
-              </div>
-              <div style={{ color: "var(--crm-text-soft)", fontSize: 11, marginTop: 4 }}>
-                {ch.count} pedidos
-              </div>
+              <button
+                type="button"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  borderRadius: 999,
+                  border: "1px solid var(--crm-button-border)",
+                  background: "var(--crm-button-secondary-bg)",
+                  padding: "6px 10px",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: "var(--crm-text-muted)",
+                  cursor: "pointer",
+                }}
+              >
+                Últimos 30d
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ opacity: 0.7 }}
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
             </div>
-          ))}
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {byChannel.map((ch, index) => {
+                const delay = 0.1 + index * 0.12;
+                return (
+                  <div key={ch.name} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <span
+                        style={{
+                          width: 110,
+                          flexShrink: 0,
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: "var(--crm-text-muted)",
+                        }}
+                      >
+                        {ch.name}
+                      </span>
+                      <div
+                        style={{
+                          flex: 1,
+                          height: 8,
+                          borderRadius: 999,
+                          background: "var(--crm-table-header-bg)",
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div
+                          className="crm-animate-width"
+                          style={{
+                            height: "100%",
+                            borderRadius: 999,
+                            background: channelPalette[index % channelPalette.length],
+                            width: `${(ch.total / maxRev) * 100}%`,
+                            animationDelay: `${delay}s`,
+                          }}
+                        />
+                      </div>
+                      <span
+                        className="crm-animate-fade"
+                        style={{
+                          width: 86,
+                          textAlign: "right",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: "var(--crm-text)",
+                          fontVariantNumeric: "tabular-nums",
+                          animationDelay: `${delay}s`,
+                        }}
+                      >
+                        {fmtBRL(ch.total)}
+                      </span>
+                    </div>
+                    <div style={{ color: "var(--crm-text-soft)", fontSize: 11 }}>{ch.count} pedidos</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </Card>
 
         <Card>

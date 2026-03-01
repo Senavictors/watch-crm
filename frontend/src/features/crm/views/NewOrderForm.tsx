@@ -38,6 +38,8 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose })
     shippingMethod: SHIPPING_METHODS[0],
     notes: "",
   });
+  const [cancelHover, setCancelHover] = useState(false);
+  const [saveHover, setSaveHover] = useState(false);
 
   const selectedProduct = products.find((p) => p.id === Number(form.productId));
 
@@ -295,10 +297,42 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose })
         )}
 
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <Btn onClick={onClose} variant="secondary">
+          <Btn
+            onClick={onClose}
+            variant="secondary"
+            onMouseEnter={() => setCancelHover(true)}
+            onMouseLeave={() => setCancelHover(false)}
+            style={{
+              background: "var(--crm-button-secondary-bg)",
+              color: "var(--crm-button-secondary-text)",
+              padding: "9px 18px",
+              fontSize: 13,
+              fontWeight: 600,
+              boxShadow:
+                "0 1px 0 0 rgba(255, 255, 255, 0.4) inset, 0 1px 2px rgba(15, 23, 42, 0.2)",
+              transform: cancelHover ? "translateY(-2px)" : "translateY(0)",
+              transition: "all 0.2s ease",
+            }}
+          >
             Cancelar
           </Btn>
-          <Btn onClick={handleSubmit} variant="primary">
+          <Btn
+            onClick={handleSubmit}
+            variant="primary"
+            onMouseEnter={() => setSaveHover(true)}
+            onMouseLeave={() => setSaveHover(false)}
+            style={{
+              background: "var(--crm-button-primary-bg)",
+              color: "var(--crm-button-primary-text)",
+              padding: "9px 18px",
+              fontSize: 13,
+              fontWeight: 600,
+              boxShadow:
+                "0 1px 0 0 rgba(255, 255, 255, 0.4) inset, 0 1px 2px rgba(15, 23, 42, 0.2)",
+              transform: saveHover ? "translateY(-2px)" : "translateY(0)",
+              transition: "all 0.2s ease",
+            }}
+          >
             Salvar Pedido
           </Btn>
         </div>

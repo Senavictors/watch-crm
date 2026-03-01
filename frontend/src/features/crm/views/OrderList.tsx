@@ -18,6 +18,7 @@ const OrderList: React.FC<Props> = ({ orders, customers, onView, onNew, onUpdate
   const [filterStatus, setFilterStatus] = useState<OrderStatus | "">("");
   const [filterChannel, setFilterChannel] = useState("");
   const [filterSeller, setFilterSeller] = useState("");
+  const [addHover, setAddHover] = useState(false);
 
   const filtered = useMemo(
     () =>
@@ -41,7 +42,25 @@ const OrderList: React.FC<Props> = ({ orders, customers, onView, onNew, onUpdate
         <h2 style={{ color: "var(--crm-text)", fontFamily: "'Inter', sans-serif", fontSize: 26, fontWeight: 600 }}>
           Pedidos
         </h2>
-        <Btn onClick={onNew}>+ Novo Pedido</Btn>
+        <Btn
+          onClick={onNew}
+          variant="primary"
+          onMouseEnter={() => setAddHover(true)}
+          onMouseLeave={() => setAddHover(false)}
+          style={{
+            background: "var(--crm-button-primary-bg)",
+            color: "var(--crm-button-primary-text)",
+            padding: "9px 18px",
+            fontSize: 13,
+            fontWeight: 600,
+            boxShadow:
+              "0 1px 0 0 rgba(255, 255, 255, 0.4) inset, 0 1px 2px rgba(15, 23, 42, 0.2)",
+            transform: addHover ? "translateY(-2px)" : "translateY(0)",
+            transition: "all 0.2s ease",
+          }}
+        >
+          + Novo Pedido
+        </Btn>
       </div>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>

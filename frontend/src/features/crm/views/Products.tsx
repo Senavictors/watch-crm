@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { Product } from "../types";
 import { Btn, Card } from "../ui/Primitives";
 import { fmtBRL } from "../helpers";
@@ -10,13 +10,30 @@ type Props = {
 };
 
 const Products: React.FC<Props> = ({ products, onNew }) => {
+  const [addHover, setAddHover] = useState(false);
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <h2 style={{ color: "var(--crm-text)", fontFamily: "'Inter', sans-serif", fontSize: 26, fontWeight: 600 }}>
           Produtos & Estoque
         </h2>
-        <Btn onClick={onNew} variant="primary">
+        <Btn
+          onClick={onNew}
+          variant="primary"
+          onMouseEnter={() => setAddHover(true)}
+          onMouseLeave={() => setAddHover(false)}
+          style={{
+            background: "var(--crm-button-primary-bg)",
+            color: "var(--crm-button-primary-text)",
+            padding: "9px 18px",
+            fontSize: 13,
+            fontWeight: 600,
+            boxShadow:
+              "0 1px 0 0 rgba(255, 255, 255, 0.4) inset, 0 1px 2px rgba(15, 23, 42, 0.2)",
+            transform: addHover ? "translateY(-2px)" : "translateY(0)",
+            transition: "all 0.2s ease",
+          }}
+        >
           + Adicionar Produto
         </Btn>
       </div>

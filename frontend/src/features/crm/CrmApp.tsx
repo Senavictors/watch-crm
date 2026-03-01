@@ -233,6 +233,10 @@ const CrmApp: React.FC = () => {
         ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--crm-scrollbar-track); }
         ::-webkit-scrollbar-thumb { background: var(--crm-scrollbar-thumb); border-radius: 3px; }
         select option { background: var(--crm-bg); color: var(--crm-input-text); }
+        .crm-animate-width { transform-origin: left; transform: scaleX(0); animation: crm-grow 0.9s ease forwards; }
+        .crm-animate-fade { opacity: 0; transform: translateY(4px); animation: crm-fade-up 0.6s ease forwards; }
+        @keyframes crm-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+        @keyframes crm-fade-up { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
 
       <div

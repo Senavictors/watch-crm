@@ -10,6 +10,7 @@ type Props = {
 
 const Customers: React.FC<Props> = ({ customers, onNew }) => {
   const [search, setSearch] = useState("");
+  const [addHover, setAddHover] = useState(false);
   const filtered = customers.filter(
     (c) => !search || `${c.name} ${c.phone} ${c.instagram}`.toLowerCase().includes(search.toLowerCase())
   );
@@ -19,7 +20,23 @@ const Customers: React.FC<Props> = ({ customers, onNew }) => {
         <h2 style={{ color: "var(--crm-text)", fontFamily: "'Inter', sans-serif", fontSize: 26, fontWeight: 600 }}>
           Clientes
         </h2>
-        <Btn onClick={onNew} variant="primary">
+        <Btn
+          onClick={onNew}
+          variant="primary"
+          onMouseEnter={() => setAddHover(true)}
+          onMouseLeave={() => setAddHover(false)}
+          style={{
+            background: "var(--crm-button-primary-bg)",
+            color: "var(--crm-button-primary-text)",
+            padding: "9px 18px",
+            fontSize: 13,
+            fontWeight: 600,
+            boxShadow:
+              "0 1px 0 0 rgba(255, 255, 255, 0.4) inset, 0 1px 2px rgba(15, 23, 42, 0.2)",
+            transform: addHover ? "translateY(-2px)" : "translateY(0)",
+            transition: "all 0.2s ease",
+          }}
+        >
           + Adicionar Cliente
         </Btn>
       </div>
