@@ -12,11 +12,17 @@ class WatchModel extends Model
     protected $fillable = [
         'brand_id',
         'name',
+        'quality_id',
         'image_path',
     ];
 
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class, 'brand_id');
+    }
+
+    public function quality(): BelongsTo
+    {
+        return $this->belongsTo(Quality::class, 'quality_id');
     }
 }

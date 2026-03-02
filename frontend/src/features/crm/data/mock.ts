@@ -250,6 +250,6 @@ export const NAV = [
   { id: "shipping", label: "Envios" },
   { id: "customers", label: "Clientes" },
   { id: "products", label: "Produtos" },
-  { id: "brands", label: "Marcas" },
   { id: "models", label: "Modelos" },
+  { id: "settings", label: "Configurações" },
 ];

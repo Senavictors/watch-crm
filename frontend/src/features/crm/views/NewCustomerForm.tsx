@@ -6,9 +6,10 @@ import { Customer } from "../types";
 type Props = {
   onSave: (customer: Omit<Customer, "id">) => void;
   onClose: () => void;
+  onToast: (message: string, variant?: "success" | "error") => void;
 };
 
-const NewCustomerForm: React.FC<Props> = ({ onSave, onClose }) => {
+const NewCustomerForm: React.FC<Props> = ({ onSave, onClose, onToast }) => {
   const [form, setForm] = useState<{
     name: string;
     phone: string;
@@ -29,7 +30,7 @@ const NewCustomerForm: React.FC<Props> = ({ onSave, onClose }) => {
 
   function handleSubmit() {
     if (!form.name || !form.phone) {
-      alert("Preencha nome e celular.");
+      onToast("Preencha nome e celular.", "error");
       return;
     }
     onSave({

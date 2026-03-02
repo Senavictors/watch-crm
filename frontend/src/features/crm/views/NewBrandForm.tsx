@@ -6,16 +6,17 @@ import { Brand } from "../types";
 type Props = {
   onSave: (brand: Omit<Brand, "id">) => void;
   onClose: () => void;
+  onToast: (message: string, variant?: "success" | "error") => void;
 };
 
-const NewBrandForm: React.FC<Props> = ({ onSave, onClose }) => {
+const NewBrandForm: React.FC<Props> = ({ onSave, onClose, onToast }) => {
   const [name, setName] = useState("");
   const [cancelHover, setCancelHover] = useState(false);
   const [saveHover, setSaveHover] = useState(false);
 
   function handleSubmit() {
     if (!name.trim()) {
-      alert("Preencha a marca.");
+      onToast("Preencha a marca.", "error");
       return;
     }
     onSave({ name: name.trim() });

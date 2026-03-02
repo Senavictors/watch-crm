@@ -9,12 +9,11 @@ import OrderDetail from "./views/OrderDetail";
 import NewOrderForm from "./views/NewOrderForm";
 import NewProductForm from "./views/NewProductForm";
 import NewCustomerForm from "./views/NewCustomerForm";
-import Brands from "./views/Brands";
 import Models from "./views/Models";
-import NewBrandForm from "./views/NewBrandForm";
 import NewModelForm from "./views/NewModelForm";
+import Settings from "./views/Settings";
 import { NAV } from "./data/mock";
-import { Brand, Customer, Order, OrderStatus, Product, ProductInput, WatchModel } from "./types";
+import { Brand, Customer, Order, OrderStatus, Product, ProductInput, Quality, WatchModel } from "./types";
 
 const CrmApp: React.FC = () => {
   const [page, setPage] = useState("dashboard");
@@ -23,13 +22,15 @@ const CrmApp: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [models, setModels] = useState<WatchModel[]>([]);
+  const [qualities, setQualities] = useState<Quality[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<
+    { id: number; message: string; variant: "success" | "error" }[]
+  >([]);
   const [viewOrder, setViewOrder] = useState<Order | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [showNewProduct, setShowNewProduct] = useState(false);
   const [showNewCustomer, setShowNewCustomer] = useState(false);
-  const [showNewBrand, setShowNewBrand] = useState(false);
   const [showNewModel, setShowNewModel] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
 
@@ -60,28 +61,44 @@ const CrmApp: React.FC = () => {
     return () => media.removeListener(handleChange);
   }, [theme]);
 
+  function pushToast(message: string, variant: "success" | "error" = "success") {
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    setToasts((ts) => [...ts, { id, message, variant }]);
+    window.setTimeout(() => {
+      setToasts((ts) => ts.filter((t) => t.id !== id));
+    }, 4200);
+  }
+
   useEffect(() => {
     let alive = true;
     async function load() {
       try {
         setLoading(true);
-        setError(null);
-        const [customersRes, productsRes, ordersRes, brandsRes, modelsRes] = await Promise.all([
+        const [customersRes, productsRes, ordersRes, brandsRes, modelsRes, qualitiesRes] = await Promise.all([
           fetch(`${apiBaseUrl}/customers`),
           fetch(`${apiBaseUrl}/products`),
           fetch(`${apiBaseUrl}/orders`),
           fetch(`${apiBaseUrl}/brands`),
           fetch(`${apiBaseUrl}/models`),
+          fetch(`${apiBaseUrl}/qualities`),
         ]);
-        if (!customersRes.ok || !productsRes.ok || !ordersRes.ok || !brandsRes.ok || !modelsRes.ok) {
+        if (
+          !customersRes.ok ||
+          !productsRes.ok ||
+          !ordersRes.ok ||
+          !brandsRes.ok ||
+          !modelsRes.ok ||
+          !qualitiesRes.ok
+        ) {
           throw new Error("Falha ao carregar dados da API.");
         }
-        const [customersData, productsData, ordersData, brandsData, modelsData] = await Promise.all([
+        const [customersData, productsData, ordersData, brandsData, modelsData, qualitiesData] = await Promise.all([
           customersRes.json(),
           productsRes.json(),
           ordersRes.json(),
           brandsRes.json(),
           modelsRes.json(),
+          qualitiesRes.json(),
         ]);
         if (!alive) return;
         setCustomers(customersData);
@@ -89,9 +106,10 @@ const CrmApp: React.FC = () => {
         setOrders(ordersData);
         setBrands(brandsData);
         setModels(modelsData);
+        setQualities(qualitiesData);
       } catch (err) {
         if (!alive) return;
-        setError(err instanceof Error ? err.message : "Erro desconhecido.");
+        pushToast(err instanceof Error ? err.message : "Erro desconhecido.", "error");
       } finally {
         if (alive) setLoading(false);
       }
@@ -110,11 +128,11 @@ const CrmApp: React.FC = () => {
     const id = Math.max(...orders.map((o) => o.id)) + 1;
     setOrders((os) => [{ ...data, id }, ...os]);
     setShowNew(false);
+    pushToast("Pedido criado com sucesso.", "success");
   }
 
   async function handleSaveProduct(data: ProductInput) {
     try {
-      setError(null);
       const response = await fetch(`${apiBaseUrl}/products`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -135,14 +153,14 @@ const CrmApp: React.FC = () => {
       const created = (await response.json()) as Product;
       setProducts((ps) => [created, ...ps]);
       setShowNewProduct(false);
+      pushToast("Produto cadastrado com sucesso.", "success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro desconhecido.");
+      pushToast(err instanceof Error ? err.message : "Erro desconhecido.", "error");
     }
   }
 
   async function handleSaveCustomer(data: Omit<Customer, "id">) {
     try {
-      setError(null);
       const response = await fetch(`${apiBaseUrl}/customers`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -154,18 +172,18 @@ const CrmApp: React.FC = () => {
       const created = (await response.json()) as Customer;
       setCustomers((cs) => [created, ...cs]);
       setShowNewCustomer(false);
+      pushToast("Cliente cadastrado com sucesso.", "success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro desconhecido.");
+      pushToast(err instanceof Error ? err.message : "Erro desconhecido.", "error");
     }
   }
 
-  async function handleSaveBrand(data: Omit<Brand, "id">) {
+  async function handleSaveBrand(name: string) {
     try {
-      setError(null);
       const response = await fetch(`${apiBaseUrl}/brands`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ name }),
       });
       if (!response.ok) {
         let message = "Falha ao cadastrar marca.";
@@ -181,18 +199,45 @@ const CrmApp: React.FC = () => {
       }
       const created = (await response.json()) as Brand;
       setBrands((bs) => [created, ...bs]);
-      setShowNewBrand(false);
+      pushToast("Marca cadastrada com sucesso.", "success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro desconhecido.");
+      pushToast(err instanceof Error ? err.message : "Erro desconhecido.", "error");
+    }
+  }
+
+  async function handleSaveQuality(name: string) {
+    try {
+      const response = await fetch(`${apiBaseUrl}/qualities`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (!response.ok) {
+        let message = "Falha ao cadastrar qualidade.";
+        try {
+          const payload = await response.json();
+          if (payload?.message) message = payload.message;
+          if (payload?.errors && typeof payload.errors === "object") {
+            const first = Object.values(payload.errors)[0];
+            if (Array.isArray(first) && first[0]) message = first[0];
+          }
+        } catch {}
+        throw new Error(message);
+      }
+      const created = (await response.json()) as Quality;
+      setQualities((qs) => [created, ...qs]);
+      pushToast("Qualidade cadastrada com sucesso.", "success");
+    } catch (err) {
+      pushToast(err instanceof Error ? err.message : "Erro desconhecido.", "error");
     }
   }
 
   async function handleSaveModel(data: Omit<WatchModel, "id" | "imageUrl"> & { imageFile?: File | null }) {
     try {
-      setError(null);
       const formData = new FormData();
       formData.append("name", data.name);
       formData.append("brandId", String(data.brandId));
+      formData.append("qualityId", String(data.qualityId));
       if (data.imageFile) {
         formData.append("image", data.imageFile);
       }
@@ -216,8 +261,9 @@ const CrmApp: React.FC = () => {
       const created = (await response.json()) as WatchModel;
       setModels((ms) => [created, ...ms]);
       setShowNewModel(false);
+      pushToast("Modelo cadastrado com sucesso.", "success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro desconhecido.");
+      pushToast(err instanceof Error ? err.message : "Erro desconhecido.", "error");
     }
   }
 
@@ -512,8 +558,7 @@ const CrmApp: React.FC = () => {
 
         <div style={{ flex: 1, padding: "36px 32px", maxWidth: "calc(100vw - 220px)", overflowX: "auto" }}>
           {loading && <div style={{ color: "var(--crm-text-muted)" }}>Carregando dados...</div>}
-          {error && !loading && <div style={{ color: "var(--crm-danger)" }}>{error}</div>}
-          {!loading && !error && (
+          {!loading && (
             <>
               {page === "dashboard" && <Dashboard orders={orders} />}
               {page === "orders" && (
@@ -528,8 +573,16 @@ const CrmApp: React.FC = () => {
               {page === "shipping" && <ShippingQueue orders={orders} customers={customers} />}
               {page === "customers" && <Customers customers={customers} onNew={() => setShowNewCustomer(true)} />}
               {page === "products" && <Products products={products} onNew={() => setShowNewProduct(true)} />}
-              {page === "brands" && <Brands brands={brands} onNew={() => setShowNewBrand(true)} />}
               {page === "models" && <Models models={models} brands={brands} onNew={() => setShowNewModel(true)} />}
+              {page === "settings" && (
+                <Settings
+                  brands={brands}
+                  qualities={qualities}
+                  onAddBrand={handleSaveBrand}
+                  onAddQuality={handleSaveQuality}
+                  onToast={pushToast}
+                />
+              )}
             </>
           )}
         </div>
@@ -544,6 +597,7 @@ const CrmApp: React.FC = () => {
           customers={customers}
           onSave={handleSaveOrder}
           onClose={() => setShowNew(false)}
+          onToast={pushToast}
         />
       )}
       {showNewProduct && (
@@ -552,18 +606,64 @@ const CrmApp: React.FC = () => {
           models={models}
           onSave={handleSaveProduct}
           onClose={() => setShowNewProduct(false)}
+          onToast={pushToast}
         />
       )}
       {showNewCustomer && (
-        <NewCustomerForm onSave={handleSaveCustomer} onClose={() => setShowNewCustomer(false)} />
+        <NewCustomerForm
+          onSave={handleSaveCustomer}
+          onClose={() => setShowNewCustomer(false)}
+          onToast={pushToast}
+        />
       )}
-      {showNewBrand && <NewBrandForm onSave={handleSaveBrand} onClose={() => setShowNewBrand(false)} />}
       {showNewModel && (
         <NewModelForm
           brands={brands}
+          qualities={qualities}
           onSave={handleSaveModel}
           onClose={() => setShowNewModel(false)}
+          onToast={pushToast}
         />
+      )}
+      {toasts.length > 0 && (
+        <div
+          style={{
+            position: "fixed",
+            top: 24,
+            right: 24,
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+            zIndex: 200,
+            maxWidth: 360,
+          }}
+        >
+          {toasts.map((toast) => {
+            const tone = toast.variant === "success" ? "var(--crm-success)" : "var(--crm-danger)";
+            return (
+              <div
+                key={toast.id}
+                onClick={() => setToasts((ts) => ts.filter((t) => t.id !== toast.id))}
+                role="status"
+                style={{
+                  background: "var(--crm-card-bg)",
+                  border: `1px solid ${tone}55`,
+                  borderRadius: 14,
+                  padding: "12px 14px",
+                  color: "var(--crm-text)",
+                  boxShadow: "0 16px 32px rgba(15, 23, 42, 0.24)",
+                  cursor: "pointer",
+                  backdropFilter: "blur(6px)",
+                }}
+              >
+                <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, color: tone }}>
+                  {toast.variant === "success" ? "Sucesso" : "Erro"}
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 600, marginTop: 4 }}>{toast.message}</div>
+              </div>
+            );
+          })}
+        </div>
       )}
     </>
   );

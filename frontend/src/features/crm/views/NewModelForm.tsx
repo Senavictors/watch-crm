@@ -1,29 +1,33 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { Btn, Input, Select } from "../ui/Primitives";
-import { Brand, WatchModel } from "../types";
+import { Brand, Quality, WatchModel } from "../types";
 
 type Props = {
   brands: Brand[];
+  qualities: Quality[];
   onSave: (model: Omit<WatchModel, "id" | "imageUrl"> & { imageFile?: File | null }) => void;
   onClose: () => void;
+  onToast: (message: string, variant?: "success" | "error") => void;
 };
 
-const NewModelForm: React.FC<Props> = ({ brands, onSave, onClose }) => {
+const NewModelForm: React.FC<Props> = ({ brands, qualities, onSave, onClose, onToast }) => {
   const [name, setName] = useState("");
   const [brandId, setBrandId] = useState("");
+  const [qualityId, setQualityId] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [cancelHover, setCancelHover] = useState(false);
   const [saveHover, setSaveHover] = useState(false);
 
   const brandOptions = useMemo(() => brands, [brands]);
+  const qualityOptions = useMemo(() => qualities, [qualities]);
 
   function handleSubmit() {
-    if (!name.trim() || !brandId) {
-      alert("Preencha o modelo e a marca.");
+    if (!name.trim() || !brandId || !qualityId) {
+      onToast("Preencha o modelo, a marca e a qualidade.", "error");
       return;
     }
-    onSave({ name: name.trim(), brandId: Number(brandId), imageFile });
+    onSave({ name: name.trim(), brandId: Number(brandId), qualityId: Number(qualityId), imageFile });
   }
 
   return (
@@ -76,6 +80,14 @@ const NewModelForm: React.FC<Props> = ({ brands, onSave, onClose }) => {
             {brandOptions.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
+              </option>
+            ))}
+          </Select>
+          <Select label="Qualidade" value={qualityId} onChange={(e) => setQualityId(e.target.value)}>
+            <option value="">Selecionar qualidade...</option>
+            {qualityOptions.map((q) => (
+              <option key={q.id} value={q.id}>
+                {q.name}
               </option>
             ))}
           </Select>

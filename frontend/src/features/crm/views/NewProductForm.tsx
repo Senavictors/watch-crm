@@ -8,9 +8,10 @@ type Props = {
   models: WatchModel[];
   onSave: (product: ProductInput) => void;
   onClose: () => void;
+  onToast: (message: string, variant?: "success" | "error") => void;
 };
 
-const NewProductForm: React.FC<Props> = ({ brands, models, onSave, onClose }) => {
+const NewProductForm: React.FC<Props> = ({ brands, models, onSave, onClose, onToast }) => {
   const [form, setForm] = useState<{
     brandId: string;
     modelId: string;
@@ -47,7 +48,7 @@ const NewProductForm: React.FC<Props> = ({ brands, models, onSave, onClose }) =>
 
   function handleSubmit() {
     if (!form.modelId || !form.brandId || !form.cost || !form.price) {
-      alert("Preencha modelo, marca, custo e preço.");
+      onToast("Preencha modelo, marca, custo e preço.", "error");
       return;
     }
     const qty = Math.max(0, Number(form.qty || 0));
@@ -109,7 +110,7 @@ const NewProductForm: React.FC<Props> = ({ brands, models, onSave, onClose }) =>
             <option value="">Selecionar modelo...</option>
             {models.map((m) => (
               <option key={m.id} value={m.id}>
-                {m.name}
+                {m.name} — {m.qualityName ?? "—"}
               </option>
             ))}
           </Select>

@@ -23,10 +23,17 @@ export type Brand = {
   name: string;
 };
 
+export type Quality = {
+  id: number;
+  name: string;
+};
+
 export type WatchModel = {
   id: number;
   brandId: number;
   name: string;
+  qualityId: number;
+  qualityName?: string | null;
   imageUrl?: string | null;
 };
 
@@ -44,6 +51,7 @@ export type Product = {
   modelId: number;
   brand?: string;
   model?: string;
+  modelQualityName?: string | null;
   cost: number;
   price: number;
   stock: StockOrigin;

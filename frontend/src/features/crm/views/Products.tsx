@@ -70,7 +70,10 @@ const Products: React.FC<Props> = ({ products, onNew }) => {
                 <tr key={p.id} style={{ borderBottom: "1px solid var(--crm-table-border)" }}>
                   <td style={{ padding: "10px 14px" }}>
                     <div style={{ color: "var(--crm-text)", fontWeight: 600 }}>{p.brand || "—"}</div>
-                    <div style={{ color: "var(--crm-text-muted)", fontSize: 12 }}>{p.model || "—"}</div>
+                    <div style={{ color: "var(--crm-text-muted)", fontSize: 12 }}>
+                      {p.model || "—"}
+                      {p.modelQualityName ? ` · ${p.modelQualityName}` : ""}
+                    </div>
                   </td>
                   <td
                     style={{

@@ -101,6 +101,7 @@ const Models: React.FC<Props> = ({ models, brands, onNew }) => {
                 <div style={{ color: "var(--crm-text-muted)", fontSize: 12 }}>
                   {brandById.get(m.brandId) || "—"}
                 </div>
+                <div style={{ color: "var(--crm-text-soft)", fontSize: 12 }}>{m.qualityName ?? "—"}</div>
                 <div
                   style={{
                     color: "var(--crm-primary)",

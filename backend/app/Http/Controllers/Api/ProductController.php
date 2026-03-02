@@ -12,7 +12,7 @@ class ProductController extends Controller
     public function index()
     {
         $products = Product::query()
-            ->with(['brand', 'watchModel'])
+            ->with(['brand', 'watchModel.quality'])
             ->orderBy('id')
             ->get()
             ->map(fn (Product $product) => $this->toPayload($product));
@@ -43,7 +43,7 @@ class ProductController extends Controller
             'stock' => $data['stock'],
             'qty' => $data['qty'],
         ]);
-        $product->load(['brand', 'watchModel']);
+        $product->load(['brand', 'watchModel.quality']);
 
         return response()->json($this->toPayload($product), 201);
     }
@@ -87,7 +87,7 @@ class ProductController extends Controller
 
         $product->fill($data);
         $product->save();
-        $product->load(['brand', 'watchModel']);
+        $product->load(['brand', 'watchModel.quality']);
 
         return response()->json($this->toPayload($product));
     }
@@ -113,6 +113,7 @@ class ProductController extends Controller
             'modelId' => $product->model_id,
             'brand' => $product->brand?->name,
             'model' => $product->watchModel?->name,
+            'modelQualityName' => $product->watchModel?->quality?->name,
             'cost' => (float) $product->cost,
             'price' => (float) $product->price,
             'stock' => $product->stock,

@@ -13,6 +13,7 @@ class ModelController extends Controller
     public function index()
     {
         $models = WatchModel::query()
+            ->with('quality')
             ->orderBy('id')
             ->get()
             ->map(fn (WatchModel $model) => $this->toPayload($model));
@@ -27,9 +28,12 @@ class ModelController extends Controller
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('models', 'name')->where('brand_id', $request->input('brandId')),
+                Rule::unique('models', 'name')
+                    ->where('brand_id', $request->input('brandId'))
+                    ->where('quality_id', $request->input('qualityId')),
             ],
             'brandId' => ['required', 'integer', 'exists:brands,id'],
+            'qualityId' => ['required', 'integer', 'exists:qualities,id'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
         ]);
 
@@ -41,8 +45,10 @@ class ModelController extends Controller
         $model = WatchModel::create([
             'name' => $data['name'],
             'brand_id' => $data['brandId'],
+            'quality_id' => $data['qualityId'],
             'image_path' => $imagePath,
         ]);
+        $model->load('quality');
 
         return response()->json($this->toPayload($model), 201);
     }
@@ -56,15 +62,20 @@ class ModelController extends Controller
         }
 
         $brandId = $request->input('brandId', $model->brand_id);
+        $qualityId = $request->input('qualityId', $model->quality_id);
 
         $data = $request->validate([
             'name' => [
                 'sometimes',
                 'string',
                 'max:255',
-                Rule::unique('models', 'name')->where('brand_id', $brandId)->ignore($model->id),
+                Rule::unique('models', 'name')
+                    ->where('brand_id', $brandId)
+                    ->where('quality_id', $qualityId)
+                    ->ignore($model->id),
             ],
             'brandId' => ['sometimes', 'integer', 'exists:brands,id'],
+            'qualityId' => ['sometimes', 'integer', 'exists:qualities,id'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
         ]);
 
@@ -79,9 +90,14 @@ class ModelController extends Controller
             $data['brand_id'] = $data['brandId'];
             unset($data['brandId']);
         }
+        if (array_key_exists('qualityId', $data)) {
+            $data['quality_id'] = $data['qualityId'];
+            unset($data['qualityId']);
+        }
 
         $model->fill($data);
         $model->save();
+        $model->load('quality');
 
         return response()->json($this->toPayload($model));
     }
@@ -105,6 +121,8 @@ class ModelController extends Controller
             'id' => $model->id,
             'brandId' => $model->brand_id,
             'name' => $model->name,
+            'qualityId' => $model->quality_id,
+            'qualityName' => $model->quality?->name,
             'imageUrl' => $model->image_path ? url(Storage::url($model->image_path)) : null,
         ];
     }

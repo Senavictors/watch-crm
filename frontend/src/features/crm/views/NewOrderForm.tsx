@@ -10,9 +10,10 @@ type Props = {
   customers: Customer[];
   onSave: (order: Omit<Order, "id">) => void;
   onClose: () => void;
+  onToast: (message: string, variant?: "success" | "error") => void;
 };
 
-const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose }) => {
+const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose, onToast }) => {
   const [form, setForm] = useState<{
     customerId: string;
     channel: Channel;
@@ -55,18 +56,19 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose })
 
   function handleSubmit() {
     if (!form.customerId || !form.productId || !form.salePrice) {
-      alert("Preencha cliente, produto e valor.");
+      onToast("Preencha cliente, produto e valor.", "error");
       return;
     }
     const product = products.find((p) => p.id === Number(form.productId))!;
     const brandLabel = product.brand || "—";
     const modelLabel = product.model || "—";
+    const modelFull = `${modelLabel}${product.modelQualityName ? ` · ${product.modelQualityName}` : ""}`;
     onSave({
       customerId: Number(form.customerId),
       channel: form.channel,
       seller: form.seller,
       productId: product.id,
-      productName: `${brandLabel} ${modelLabel}`,
+      productName: `${brandLabel} ${modelFull}`,
       salePrice: Number(form.salePrice),
       cost: product.cost,
       discount: Number(form.discount),
@@ -166,7 +168,9 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose })
               <option value="">Selecionar produto...</option>
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {(p.brand || "—")} {(p.model || "—")} — {fmtBRL(p.price)}{" "}
+                  {(p.brand || "—")} {(p.model || "—")}
+                {p.modelQualityName ? ` · ${p.modelQualityName}` : ""} —{" "}
+                  {fmtBRL(p.price)}{" "}
                   {p.stock === "SUPPLIER" ? "⚠️ Fornecedor" : "✅ Estoque"}
                 </option>
               ))}
