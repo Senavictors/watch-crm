@@ -1,0 +1,53 @@
+.modal {
+  width: 520px;
+}
+
+.fileField {
+  margin-bottom: 14px;
+}
+
+.label {
+  display: block;
+  color: var(--crm-text-muted);
+  font-size: 11px;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fileInput {
+  width: 100%;
+  background: var(--crm-input-bg);
+  border: 1px solid var(--crm-input-border);
+  border-radius: 12px;
+  color: var(--crm-input-text);
+  padding: 8px 12px;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.hint {
+  color: var(--crm-text-soft);
+  font-size: 11px;
+  margin-top: 6px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.actionButton {
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.4) inset, 0 1px 2px rgba(15, 23, 42, 0.2);
+  transition: all 0.2s ease;
+}
+
+.actionButton:hover {
+  transform: translateY(-2px);
+}

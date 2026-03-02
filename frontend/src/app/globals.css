@@ -141,7 +141,7 @@ body {
 body {
   color: var(--crm-text);
   background: var(--crm-bg);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -172,5 +172,57 @@ html[data-theme="system"] {
 @media (prefers-color-scheme: dark) {
   html[data-theme="system"] {
     color-scheme: dark;
+  }
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+select option {
+  background: var(--crm-bg);
+  color: var(--crm-input-text);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--crm-scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--crm-scrollbar-thumb);
+  border-radius: 3px;
+}
+
+.crm-animate-width {
+  transform-origin: left;
+  transform: scaleX(0);
+  animation: crm-grow 0.9s ease forwards;
+}
+.crm-animate-fade {
+  opacity: 0;
+  transform: translateY(4px);
+  animation: crm-fade-up 0.6s ease forwards;
+}
+@keyframes crm-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes crm-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

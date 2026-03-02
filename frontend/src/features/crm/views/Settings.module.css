@@ -1,0 +1,89 @@
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.title {
+  color: var(--crm-text);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.subtitle {
+  color: var(--crm-text-soft);
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.cardTitle {
+  color: var(--crm-text);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.cardSubtitle {
+  color: var(--crm-text-soft);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.actionButton {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.4) inset, 0 1px 2px rgba(15, 23, 42, 0.2);
+  transition: all 0.2s ease;
+}
+
+.actionButton:hover {
+  transform: translateY(-2px);
+}
+
+.tableWrap {
+  margin-top: 16px;
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  padding: 8px 12px;
+  color: var(--crm-text-muted);
+  font-size: 11px;
+  border-bottom: 1px solid var(--crm-table-border);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.tableRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--crm-table-border);
+}
+
+.rowName {
+  color: var(--crm-text);
+  font-weight: 600;
+}
+
+.rowId {
+  color: var(--crm-text-muted);
+}

@@ -1,0 +1,99 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--crm-overlay);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background: var(--crm-modal-bg);
+  border: 1px solid var(--crm-modal-border);
+  border-radius: 20px;
+  padding: 32px;
+  width: 580px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(10px);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.title {
+  color: var(--crm-text);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.close {
+  background: none;
+  border: none;
+  color: var(--crm-text-muted);
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.formGridTwo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.formGridOne {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.actionsRow {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.summaryStrip {
+  background: var(--crm-input-bg);
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 16px;
+  display: flex;
+  gap: 20px;
+  border: 1px solid var(--crm-table-border);
+}
+
+.summaryBlockLabel {
+  color: var(--crm-text-soft);
+  font-size: 11px;
+}
+
+.summaryBlockValue {
+  color: var(--crm-text-muted);
+  font-weight: 700;
+}
+
+.summaryBlockValueAccent {
+  font-weight: 700;
+}
+
+.notes {
+  width: 100%;
+  background: var(--crm-input-bg);
+  border: 1px solid var(--crm-input-border);
+  border-radius: 12px;
+  color: var(--crm-input-text);
+  padding: 8px 12px;
+  font-size: 14px;
+  outline: none;
+  resize: vertical;
+  min-height: 60px;
+  box-sizing: border-box;
+}

@@ -4,6 +4,8 @@ import { Btn, Input, Select } from "../ui/Primitives";
 import { CHANNELS, PAYMENT_METHODS, SHIPPING_METHODS, SELLERS } from "../data/mock";
 import { Channel, Customer, Order, PaymentMethod, Product, Seller, ShippingMethod } from "../types";
 import { fmtBRL } from "../helpers";
+import modalStyles from "../components/Modal/Modal.module.css";
+import styles from "./NewOrderForm.module.css";
 
 type Props = {
   products: Product[];
@@ -39,9 +41,6 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose, o
     shippingMethod: SHIPPING_METHODS[0],
     notes: "",
   });
-  const [cancelHover, setCancelHover] = useState(false);
-  const [saveHover, setSaveHover] = useState(false);
-
   const selectedProduct = products.find((p) => p.id === Number(form.productId));
 
   function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
@@ -92,50 +91,17 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose, o
     : 0;
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "var(--crm-overlay)",
-        zIndex: 100,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <div
-        style={{
-          background: "var(--crm-modal-bg)",
-          border: "1px solid var(--crm-modal-border)",
-          borderRadius: 20,
-          padding: 32,
-          width: 540,
-          maxHeight: "90vh",
-          overflowY: "auto",
-          boxShadow: "0 24px 60px rgba(15, 23, 42, 0.35)",
-          backdropFilter: "blur(10px)",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-          <h3 style={{ color: "var(--crm-text)", fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 600 }}>
-            Novo Pedido
-          </h3>
-          <button
-            onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--crm-text-muted)",
-              fontSize: 22,
-              cursor: "pointer",
-            }}
-          >
+    <div className={modalStyles.overlay}>
+      <div className={`${modalStyles.modal} ${styles.modal}`}>
+        <div className={modalStyles.header}>
+          <h3 className={modalStyles.title}>Novo Pedido</h3>
+          <button onClick={onClose} className={modalStyles.close}>
             ×
           </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <div style={{ gridColumn: "1 / -1" }}>
+        <div className={modalStyles.formGridTwo}>
+          <div className={styles.fullSpan}>
             <Select label="Cliente" value={form.customerId} onChange={(e) => set("customerId", e.target.value)}>
               <option value="">Selecionar cliente...</option>
               {customers.map((c) => (
@@ -163,13 +129,13 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose, o
               <option key={s}>{s}</option>
             ))}
           </Select>
-          <div style={{ gridColumn: "1 / -1" }}>
+          <div className={styles.fullSpan}>
             <Select label="Produto" value={form.productId} onChange={(e) => handleProductChange(e.target.value)}>
               <option value="">Selecionar produto...</option>
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
                   {(p.brand || "—")} {(p.model || "—")}
-                {p.modelQualityName ? ` · ${p.modelQualityName}` : ""} —{" "}
+                  {p.modelQualityName ? ` · ${p.modelQualityName}` : ""} —{" "}
                   {fmtBRL(p.price)}{" "}
                   {p.stock === "SUPPLIER" ? "⚠️ Fornecedor" : "✅ Estoque"}
                 </option>
@@ -218,72 +184,33 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose, o
               <option key={s}>{s}</option>
             ))}
           </Select>
-          <div style={{ gridColumn: "1 / -1" }}>
-            <label
-              style={{
-                color: "var(--crm-text-muted)",
-                fontSize: 11,
-                marginBottom: 5,
-                display: "block",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-              }}
-            >
-              Observações
-            </label>
-            <textarea
-              value={form.notes}
-              onChange={(e) => set("notes", e.target.value)}
-              style={{
-                width: "100%",
-                background: "var(--crm-input-bg)",
-                border: "1px solid var(--crm-input-border)",
-                borderRadius: 12,
-                color: "var(--crm-input-text)",
-                padding: "8px 12px",
-                fontSize: 14,
-                outline: "none",
-                resize: "vertical",
-                minHeight: 60,
-                boxSizing: "border-box",
-              }}
-            />
+          <div className={styles.fullSpan}>
+            <label className={styles.label}>Observações</label>
+            <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} className={modalStyles.notes} />
           </div>
         </div>
 
         {selectedProduct && (
-          <div
-            style={{
-              background: "var(--crm-input-bg)",
-              borderRadius: 14,
-              padding: 12,
-              marginBottom: 16,
-              display: "flex",
-              gap: 20,
-              border: "1px solid var(--crm-table-border)",
-            }}
-          >
+          <div className={modalStyles.summaryStrip}>
             <div>
-              <span style={{ color: "var(--crm-text-soft)", fontSize: 11 }}>CUSTO</span>
+              <span className={modalStyles.summaryBlockLabel}>CUSTO</span>
               <br />
-              <span style={{ color: "var(--crm-text-muted)", fontWeight: 700 }}>
-                {fmtBRL(selectedProduct.cost)}
-              </span>
+              <span className={styles.summaryValueMuted}>{fmtBRL(selectedProduct.cost)}</span>
             </div>
             <div>
-              <span style={{ color: "var(--crm-text-soft)", fontSize: 11 }}>LUCRO EST.</span>
+              <span className={modalStyles.summaryBlockLabel}>LUCRO EST.</span>
               <br />
               <span
                 style={{
                   color: estProfit > 0 ? "var(--crm-success)" : "var(--crm-danger)",
-                  fontWeight: 700,
                 }}
+                className={styles.summaryValueAccent}
               >
                 {fmtBRL(estProfit)}
               </span>
             </div>
             <div>
-              <span style={{ color: "var(--crm-text-soft)", fontSize: 11 }}>ORIGEM</span>
+              <span className={modalStyles.summaryBlockLabel}>ORIGEM</span>
               <br />
               <span
                 style={{
@@ -291,8 +218,8 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose, o
                     selectedProduct.stock === "IN_STOCK"
                       ? "var(--crm-pill-primary-text)"
                       : "var(--crm-text-muted)",
-                  fontWeight: 700,
                 }}
+                className={styles.summaryValueAccent}
               >
                 {selectedProduct.stock === "IN_STOCK" ? "✅ Em estoque" : "⚠️ Fornecedor"}
               </span>
@@ -300,43 +227,11 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose, o
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <Btn
-            onClick={onClose}
-            variant="secondary"
-            onMouseEnter={() => setCancelHover(true)}
-            onMouseLeave={() => setCancelHover(false)}
-            style={{
-              background: "var(--crm-button-secondary-bg)",
-              color: "var(--crm-button-secondary-text)",
-              padding: "9px 18px",
-              fontSize: 13,
-              fontWeight: 600,
-              boxShadow:
-                "0 1px 0 0 rgba(255, 255, 255, 0.4) inset, 0 1px 2px rgba(15, 23, 42, 0.2)",
-              transform: cancelHover ? "translateY(-2px)" : "translateY(0)",
-              transition: "all 0.2s ease",
-            }}
-          >
+        <div className={styles.actions}>
+          <Btn onClick={onClose} variant="secondary" className={styles.actionButton}>
             Cancelar
           </Btn>
-          <Btn
-            onClick={handleSubmit}
-            variant="primary"
-            onMouseEnter={() => setSaveHover(true)}
-            onMouseLeave={() => setSaveHover(false)}
-            style={{
-              background: "var(--crm-button-primary-bg)",
-              color: "var(--crm-button-primary-text)",
-              padding: "9px 18px",
-              fontSize: 13,
-              fontWeight: 600,
-              boxShadow:
-                "0 1px 0 0 rgba(255, 255, 255, 0.4) inset, 0 1px 2px rgba(15, 23, 42, 0.2)",
-              transform: saveHover ? "translateY(-2px)" : "translateY(0)",
-              transition: "all 0.2s ease",
-            }}
-          >
+          <Btn onClick={handleSubmit} variant="primary" className={styles.actionButton}>
             Salvar Pedido
           </Btn>
         </div>

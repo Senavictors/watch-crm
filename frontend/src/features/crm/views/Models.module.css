@@ -1,0 +1,95 @@
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.title {
+  color: var(--crm-text);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.subtitle {
+  color: var(--crm-text-soft);
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.actionButton {
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.4) inset, 0 1px 2px rgba(15, 23, 42, 0.2);
+  transition: all 0.2s ease;
+}
+
+.actionButton:hover {
+  transform: translateY(-2px);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--crm-card-border);
+}
+
+.media {
+  padding: 12px;
+  background: linear-gradient(180deg, var(--crm-table-header-bg) 0%, rgba(255, 255, 255, 0) 100%);
+  border-bottom: 1px solid var(--crm-card-border);
+}
+
+.mediaBox {
+  height: 180px;
+  border-radius: 12px;
+  background: var(--crm-input-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.image {
+  object-fit: contain;
+}
+
+.cardBody {
+  padding: 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.name {
+  color: var(--crm-text);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.brand {
+  color: var(--crm-text-muted);
+  font-size: 12px;
+}
+
+.quality {
+  color: var(--crm-text-soft);
+  font-size: 12px;
+}
+
+.meta {
+  color: var(--crm-primary);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}

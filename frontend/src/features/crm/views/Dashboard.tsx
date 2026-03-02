@@ -3,6 +3,7 @@ import { CHANNELS, SELLERS, STATUS_FLOW } from "../data/mock";
 import { calcProfit, fmtBRL } from "../helpers";
 import { Order } from "../types";
 import { Badge, Card, StatCard } from "../ui/Primitives";
+import styles from "./Dashboard.module.css";
 
 type Props = {
   orders: Order[];
@@ -48,19 +49,9 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
 
   return (
     <div>
-      <h2
-        style={{
-          color: "var(--crm-text)",
-          marginBottom: 20,
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 26,
-          fontWeight: 600,
-        }}
-      >
-        Dashboard
-      </h2>
+      <h2 className={styles.title}>Dashboard</h2>
 
-      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 24 }}>
+      <div className={styles.statsRow}>
         <StatCard
           label="Faturamento"
           value={fmtBRL(totalRevenue)}
@@ -85,61 +76,14 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
         />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
-        <Card style={{ position: "relative", overflow: "hidden" }}>
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background:
-                "radial-gradient(60% 60% at 0% 0%, var(--crm-primary-soft), transparent 70%)",
-              opacity: 0.8,
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              opacity: 0.15,
-              backgroundImage: "radial-gradient(var(--crm-text-soft) 1px, transparent 1px)",
-              backgroundSize: "26px 26px",
-            }}
-          />
-          <div style={{ position: "relative", zIndex: 1 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 18,
-              }}
-            >
-              <div
-                style={{
-                  color: "var(--crm-text)",
-                  fontSize: 15,
-                  fontWeight: 700,
-                  letterSpacing: 0.2,
-                }}
-              >
-                Vendas por Canal
-              </div>
-              <button
-                type="button"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  borderRadius: 999,
-                  border: "1px solid var(--crm-button-border)",
-                  background: "var(--crm-button-secondary-bg)",
-                  padding: "6px 10px",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: "var(--crm-text-muted)",
-                  cursor: "pointer",
-                }}
-              >
+      <div className={styles.gridTwo}>
+        <Card className={styles.cardRelative}>
+          <div className={styles.cardGlow} />
+          <div className={styles.cardPattern} />
+          <div className={styles.cardContent}>
+            <div className={styles.cardHeader}>
+              <div className={styles.cardHeaderTitle}>Vendas por Canal</div>
+              <button type="button" className={styles.pillButton}>
                 Últimos 30d
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -151,43 +95,23 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  style={{ opacity: 0.7 }}
+                  className={styles.pillIcon}
                 >
                   <path d="m6 9 6 6 6-6" />
                 </svg>
               </button>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div className={styles.channelList}>
               {byChannel.map((ch, index) => {
                 const delay = 0.1 + index * 0.12;
                 return (
-                  <div key={ch.name} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <span
-                        style={{
-                          width: 110,
-                          flexShrink: 0,
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: "var(--crm-text-muted)",
-                        }}
-                      >
-                        {ch.name}
-                      </span>
-                      <div
-                        style={{
-                          flex: 1,
-                          height: 8,
-                          borderRadius: 999,
-                          background: "var(--crm-table-header-bg)",
-                          overflow: "hidden",
-                        }}
-                      >
+                  <div key={ch.name} className={styles.channelRow}>
+                    <div className={styles.channelLine}>
+                      <span className={styles.channelLabel}>{ch.name}</span>
+                      <div className={styles.channelTrack}>
                         <div
-                          className="crm-animate-width"
+                          className={`crm-animate-width ${styles.channelBar}`}
                           style={{
-                            height: "100%",
-                            borderRadius: 999,
                             background: channelPalette[index % channelPalette.length],
                             width: `${(ch.total / maxRev) * 100}%`,
                             animationDelay: `${delay}s`,
@@ -195,21 +119,13 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
                         />
                       </div>
                       <span
-                        className="crm-animate-fade"
-                        style={{
-                          width: 86,
-                          textAlign: "right",
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: "var(--crm-text)",
-                          fontVariantNumeric: "tabular-nums",
-                          animationDelay: `${delay}s`,
-                        }}
+                        className={`crm-animate-fade ${styles.channelValue}`}
+                        style={{ animationDelay: `${delay}s` }}
                       >
                         {fmtBRL(ch.total)}
                       </span>
                     </div>
-                    <div style={{ color: "var(--crm-text-soft)", fontSize: 11 }}>{ch.count} pedidos</div>
+                    <div className={styles.channelMeta}>{ch.count} pedidos</div>
                   </div>
                 );
               })}
@@ -218,69 +134,23 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
         </Card>
 
         <Card>
-          <div
-            style={{
-              color: "var(--crm-text-muted)",
-              fontSize: 12,
-              marginBottom: 14,
-              textTransform: "uppercase",
-              letterSpacing: 1,
-            }}
-          >
-            Funil de Pedidos
-          </div>
+          <div className={styles.sectionLabel}>Funil de Pedidos</div>
           {funnel.map((f) => (
-            <div
-              key={f.status}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 10,
-              }}
-            >
+            <div key={f.status} className={styles.funnelRow}>
               <Badge status={f.status} />
-              <span
-                style={{
-                  color: "var(--crm-text)",
-                  fontWeight: 700,
-                  fontFamily: "'Inter', sans-serif",
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {f.count}
-              </span>
+              <span className={styles.funnelValue}>{f.count}</span>
             </div>
           ))}
         </Card>
       </div>
 
       <Card>
-        <div
-          style={{
-            color: "var(--crm-text-muted)",
-            fontSize: 12,
-            marginBottom: 14,
-            textTransform: "uppercase",
-            letterSpacing: 1,
-          }}
-        >
-          Performance por Vendedor
-        </div>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+        <div className={styles.sectionLabel}>Performance por Vendedor</div>
+        <table className={styles.table}>
           <thead>
-            <tr style={{ borderBottom: "1px solid var(--crm-table-border)" }}>
+            <tr className={styles.tableHeadRow}>
               {["Vendedor", "Pedidos", "Faturamento", "Lucro"].map((h) => (
-                <th
-                  key={h}
-                  style={{
-                    color: "var(--crm-text-muted)",
-                    fontWeight: 600,
-                    padding: "6px 10px",
-                    textAlign: "left",
-                    fontSize: 12,
-                  }}
-                >
+                <th key={h} className={styles.tableHeadCell}>
                   {h}
                 </th>
               ))}
@@ -288,17 +158,11 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
           </thead>
           <tbody>
             {bySeller.map((s) => (
-              <tr key={s.name} style={{ borderBottom: "1px solid var(--crm-table-border)" }}>
-                <td style={{ padding: "8px 10px", color: "var(--crm-text)", fontWeight: 600 }}>
-                  {s.name}
-                </td>
-                <td style={{ padding: "8px 10px", color: "var(--crm-text-muted)" }}>{s.count}</td>
-                <td style={{ padding: "8px 10px", color: "var(--crm-accent)", fontWeight: 600 }}>
-                  {fmtBRL(s.revenue)}
-                </td>
-                <td style={{ padding: "8px 10px", color: "var(--crm-primary)", fontWeight: 600 }}>
-                  {fmtBRL(s.profit)}
-                </td>
+              <tr key={s.name} className={styles.tableRow}>
+                <td className={styles.tableCellName}>{s.name}</td>
+                <td className={styles.tableCellMuted}>{s.count}</td>
+                <td className={styles.tableCellAccent}>{fmtBRL(s.revenue)}</td>
+                <td className={styles.tableCellPrimary}>{fmtBRL(s.profit)}</td>
               </tr>
             ))}
           </tbody>

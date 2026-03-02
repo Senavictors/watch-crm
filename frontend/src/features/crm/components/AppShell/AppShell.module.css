@@ -1,0 +1,24 @@
+.root {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+.sidebar {
+  width: 220px;
+  background: var(--crm-panel-bg);
+  border-right: 1px solid var(--crm-panel-border);
+  padding: 28px 16px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  backdrop-filter: blur(10px);
+}
+
+.content {
+  flex: 1;
+  padding: 36px 32px;
+  max-width: calc(100vw - 220px);
+  overflow-x: auto;
+}

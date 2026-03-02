@@ -1,0 +1,84 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.header {
+  margin-bottom: 32px;
+  padding-left: 8px;
+}
+
+.headerOverline {
+  color: var(--crm-primary);
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.headerTitle {
+  color: var(--crm-text);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.navButton {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  margin-bottom: 4px;
+  width: 100%;
+  background: transparent;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.14);
+  color: var(--crm-text-muted);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  transition: all 0.15s;
+  text-align: left;
+}
+
+.navButtonActive {
+  background: var(--crm-primary-soft);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.25);
+  color: var(--crm-text);
+  font-weight: 700;
+}
+
+.navLabel {
+  font-size: 16px;
+}
+
+.badge {
+  margin-left: auto;
+  background: var(--crm-primary);
+  color: var(--crm-primary-contrast);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.footer {
+  margin-top: auto;
+  padding-left: 8px;
+}
+
+.footerLabel {
+  color: var(--crm-text-soft);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.footerVersion {
+  color: var(--crm-text-soft);
+  font-size: 11px;
+}

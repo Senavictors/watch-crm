@@ -1,0 +1,48 @@
+.container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 200;
+  max-width: 360px;
+}
+
+.toast {
+  background: var(--crm-card-bg);
+  border-radius: 14px;
+  padding: 12px 14px;
+  color: var(--crm-text);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.24);
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+
+.toastSuccess {
+  border: 1px solid color-mix(in srgb, var(--crm-success) 35%, transparent);
+}
+
+.toastError {
+  border: 1px solid color-mix(in srgb, var(--crm-danger) 35%, transparent);
+}
+
+.toastLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.toastLabelSuccess {
+  color: var(--crm-success);
+}
+
+.toastLabelError {
+  color: var(--crm-danger);
+}
+
+.toastMessage {
+  font-size: 14px;
+  font-weight: 600;
+}

@@ -1,0 +1,123 @@
+.modal {
+  max-height: 85vh;
+}
+
+.badges {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  background: var(--crm-button-secondary-bg);
+  color: var(--crm-text);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.alertInfo {
+  background: var(--crm-primary-soft);
+  border: 1px solid var(--crm-primary);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  color: var(--crm-accent);
+  font-size: 13px;
+}
+
+.alertDanger {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid var(--crm-danger);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  color: var(--crm-danger);
+  font-size: 13px;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.infoLabel {
+  color: var(--crm-text-soft);
+  font-size: 11px;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.infoValue {
+  color: var(--crm-text);
+  font-weight: 600;
+}
+
+.infoMuted {
+  color: var(--crm-text-muted);
+  font-size: 12px;
+}
+
+.finance {
+  background: var(--crm-input-bg);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid var(--crm-table-border);
+}
+
+.financeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.financeLabel {
+  color: var(--crm-text-soft);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.financeValue {
+  font-weight: 700;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.financeDivider {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--crm-table-border);
+  color: var(--crm-text-muted);
+  font-size: 12px;
+}
+
+.accent {
+  color: var(--crm-accent);
+  font-weight: 600;
+}
+
+.tracking {
+  color: var(--crm-text-muted);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.notes {
+  background: var(--crm-input-bg);
+  border-radius: 12px;
+  padding: 12px;
+  color: var(--crm-text-muted);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}

@@ -2,6 +2,7 @@ import React from "react";
 import { fmtBRL, nextShippingDay } from "../helpers";
 import { Customer, Order } from "../types";
 import { Card } from "../ui/Primitives";
+import styles from "./ShippingQueue.module.css";
 
 type Props = {
   orders: Order[];
@@ -26,23 +27,13 @@ const ShippingQueue: React.FC<Props> = ({ orders, customers }) => {
 
   return (
     <div>
-      <h2
-        style={{
-          color: "var(--crm-text)",
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 26,
-          marginBottom: 8,
-          fontWeight: 600,
-        }}
-      >
-        Fila de Envios
-      </h2>
-      <div style={{ color: "var(--crm-text-muted)", fontSize: 13, marginBottom: 20 }}>
+      <h2 className={styles.title}>Fila de Envios</h2>
+      <div className={styles.subtitle}>
         Hoje é {dayName} —{" "}
         {isShippingDay ? (
-          <span style={{ color: "var(--crm-primary)", fontWeight: 600 }}>✅ Dia de postagem!</span>
+          <span className={styles.subtitleHighlight}>✅ Dia de postagem!</span>
         ) : (
-          <span style={{ color: "var(--crm-text-soft)" }}>
+          <span className={styles.subtitleMuted}>
             ⚠️ Próxima postagem: {nextShippingDay(new Date().toISOString().slice(0, 10))}
           </span>
         )}
@@ -50,61 +41,30 @@ const ShippingQueue: React.FC<Props> = ({ orders, customers }) => {
 
       {readyOrders.length === 0 ? (
         <Card>
-          <div style={{ textAlign: "center", color: "var(--crm-text-soft)", padding: 30 }}>
-            Nenhum pedido pronto para envio
-          </div>
+          <div className={styles.empty}>Nenhum pedido pronto para envio</div>
         </Card>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div className={styles.list}>
           {readyOrders.map((o) => {
             const customer = customers.find((c) => c.id === o.customerId);
             return (
-              <Card
-                key={o.id}
-                style={{ display: "flex", alignItems: "center", gap: 16, padding: 16 }}
-              >
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 8,
-                    background: "var(--crm-primary-soft)",
-                    border: "1px solid var(--crm-primary)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "var(--crm-accent)",
-                    fontSize: 18,
-                    flexShrink: 0,
-                  }}
-                >
-                  📦
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: "var(--crm-text)", fontWeight: 600 }}>
+              <Card key={o.id} className={styles.item}>
+                <div className={styles.iconBox}>📦</div>
+                <div className={styles.info}>
+                  <div className={styles.infoTitle}>
                     #{o.id} — {o.productName}
                   </div>
-                  <div style={{ color: "var(--crm-text-muted)", fontSize: 12 }}>
+                  <div className={styles.infoMeta}>
                     {customer?.name} · {o.shippingMethod} · {o.channel}
                   </div>
                 </div>
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ color: "var(--crm-primary)", fontSize: 12, fontWeight: 600 }}>
+                <div className={styles.right}>
+                  <div className={styles.rightTitle}>
                     Postar em: {nextShippingDay(new Date().toISOString().slice(0, 10))}
                   </div>
-                  <div style={{ color: "var(--crm-text-soft)", fontSize: 11 }}>{fmtBRL(o.freight)} frete</div>
+                  <div className={styles.rightSub}>{fmtBRL(o.freight)} frete</div>
                 </div>
-                <div
-                  style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: 4,
-                    border: "2px solid var(--crm-primary)",
-                    cursor: "pointer",
-                    flexShrink: 0,
-                  }}
-                  title="Marcar como postado"
-                />
+                <div className={styles.check} title="Marcar como postado" />
               </Card>
             );
           })}

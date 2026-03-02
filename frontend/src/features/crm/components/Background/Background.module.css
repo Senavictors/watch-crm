@@ -1,0 +1,23 @@
+.base {
+  position: fixed;
+  inset: 0;
+  background: var(--crm-bg);
+  z-index: -2;
+}
+
+.gradient {
+  position: fixed;
+  inset: 0;
+  background: var(--crm-bg-gradient);
+  z-index: -2;
+}
+
+.grid {
+  position: fixed;
+  inset: 0;
+  background-image: linear-gradient(var(--crm-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--crm-grid) 1px, transparent 1px);
+  background-size: 64px 64px;
+  opacity: 0.15;
+  z-index: -1;
+}
