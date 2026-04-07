@@ -68,8 +68,10 @@ return new class extends Migration
             $table->foreign('model_id')->references('id')->on('models')->cascadeOnDelete();
         });
 
-        DB::statement('ALTER TABLE products MODIFY brand_id BIGINT UNSIGNED NOT NULL');
-        DB::statement('ALTER TABLE products MODIFY model_id BIGINT UNSIGNED NOT NULL');
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement('ALTER TABLE products MODIFY brand_id BIGINT UNSIGNED NOT NULL');
+            DB::statement('ALTER TABLE products MODIFY model_id BIGINT UNSIGNED NOT NULL');
+        }
 
         Schema::table('products', function (Blueprint $table) {
             $table->dropColumn(['brand', 'model']);

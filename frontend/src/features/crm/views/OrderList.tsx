@@ -1,6 +1,5 @@
 "use client";
 import React, { useMemo, useState } from "react";
-import { CHANNELS, SELLERS, STATUS_FLOW } from "../data/mock";
 import { calcProfit, fmtBRL, fmtDate } from "../helpers";
 import { Customer, Order, OrderStatus } from "../types";
 import { Badge, Btn, Card } from "../ui/Primitives";
@@ -9,12 +8,28 @@ import styles from "./OrderList.module.css";
 type Props = {
   orders: Order[];
   customers: Customer[];
+  channels: string[];
+  sellers: string[];
+  statuses: string[];
+  canCreate: boolean;
+  canUpdateStatus: boolean;
   onView: (order: Order) => void;
   onNew: () => void;
   onUpdateStatus: (id: number, status: OrderStatus) => void;
 };
 
-const OrderList: React.FC<Props> = ({ orders, customers, onView, onNew, onUpdateStatus }) => {
+const OrderList: React.FC<Props> = ({
+  orders,
+  customers,
+  channels,
+  sellers,
+  statuses,
+  canCreate,
+  canUpdateStatus,
+  onView,
+  onNew,
+  onUpdateStatus,
+}) => {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<OrderStatus | "">("");
   const [filterChannel, setFilterChannel] = useState("");
@@ -40,9 +55,11 @@ const OrderList: React.FC<Props> = ({ orders, customers, onView, onNew, onUpdate
     <div>
       <div className={styles.headerRow}>
         <h2 className={styles.title}>Pedidos</h2>
-        <Btn onClick={onNew} variant="primary" className={styles.actionButton}>
-          + Novo Pedido
-        </Btn>
+        {canCreate && (
+          <Btn onClick={onNew} variant="primary" className={styles.actionButton}>
+            + Novo Pedido
+          </Btn>
+        )}
       </div>
 
       <div className={styles.filters}>
@@ -59,7 +76,7 @@ const OrderList: React.FC<Props> = ({ orders, customers, onView, onNew, onUpdate
           style={{ color: filterStatus ? "var(--crm-input-text)" : "var(--crm-text-soft)" }}
         >
           <option value="">Todos status</option>
-          {[...STATUS_FLOW, "Cancelado"].map((s) => (
+          {statuses.map((s) => (
             <option key={s}>{s}</option>
           ))}
         </select>
@@ -70,7 +87,7 @@ const OrderList: React.FC<Props> = ({ orders, customers, onView, onNew, onUpdate
           style={{ color: filterChannel ? "var(--crm-input-text)" : "var(--crm-text-soft)" }}
         >
           <option value="">Todos canais</option>
-          {CHANNELS.map((c) => (
+          {channels.map((c) => (
             <option key={c}>{c}</option>
           ))}
         </select>
@@ -81,7 +98,7 @@ const OrderList: React.FC<Props> = ({ orders, customers, onView, onNew, onUpdate
           style={{ color: filterSeller ? "var(--crm-input-text)" : "var(--crm-text-soft)" }}
         >
           <option value="">Todos vendedores</option>
-          {SELLERS.map((s) => (
+          {sellers.map((s) => (
             <option key={s}>{s}</option>
           ))}
         </select>
@@ -128,15 +145,19 @@ const OrderList: React.FC<Props> = ({ orders, customers, onView, onNew, onUpdate
                   <Badge status={o.status} />
                 </td>
                 <td className={styles.cell} onClick={(e) => e.stopPropagation()}>
-                  <select
-                    value={o.status}
-                    onChange={(e) => onUpdateStatus(o.id, e.target.value as OrderStatus)}
-                    className={styles.statusSelect}
-                  >
-                    {[...STATUS_FLOW, "Cancelado"].map((s) => (
-                      <option key={s}>{s}</option>
-                    ))}
-                  </select>
+                  {canUpdateStatus ? (
+                    <select
+                      value={o.status}
+                      onChange={(e) => onUpdateStatus(o.id, e.target.value as OrderStatus)}
+                      className={styles.statusSelect}
+                    >
+                      {statuses.map((s) => (
+                        <option key={s}>{s}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className={styles.cellMuted}>Sem ação</span>
+                  )}
                 </td>
               </tr>
             ))}

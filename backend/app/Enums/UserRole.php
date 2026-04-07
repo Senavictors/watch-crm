@@ -10,6 +10,14 @@ enum UserRole: string
     case Manager = 'gerente';
     case Seller = 'vendedor';
 
+    public static function values(): array
+    {
+        return array_map(
+            static fn (self $role) => $role->value,
+            self::cases()
+        );
+    }
+
     public static function permissionMap(): array
     {
         return [

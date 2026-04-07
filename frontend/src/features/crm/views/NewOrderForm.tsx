@@ -1,8 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { Btn, Input, Select } from "../ui/Primitives";
-import { CHANNELS, PAYMENT_METHODS, SHIPPING_METHODS, SELLERS } from "../data/mock";
-import { Channel, Customer, Order, PaymentMethod, Product, Seller, ShippingMethod } from "../types";
+import { Channel, Customer, OrderInput, OrderMetadata, PaymentMethod, Product, ShippingMethod } from "../types";
 import { fmtBRL } from "../helpers";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./NewOrderForm.module.css";
@@ -10,16 +9,17 @@ import styles from "./NewOrderForm.module.css";
 type Props = {
   products: Product[];
   customers: Customer[];
-  onSave: (order: Omit<Order, "id">) => void;
+  metadata: OrderMetadata;
+  onSave: (order: OrderInput) => void;
   onClose: () => void;
   onToast: (message: string, variant?: "success" | "error") => void;
 };
 
-const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose, onToast }) => {
+const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, onSave, onClose, onToast }) => {
   const [form, setForm] = useState<{
     customerId: string;
+    sellerUserId: string;
     channel: Channel;
-    seller: Seller;
     productId: string;
     salePrice: string;
     discount: number;
@@ -30,15 +30,15 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose, o
     notes: string;
   }>({
     customerId: "",
-    channel: CHANNELS[0],
-    seller: SELLERS[0] as Seller,
+    sellerUserId: metadata.assignableSellers[0] ? String(metadata.assignableSellers[0].id) : "",
+    channel: metadata.channels[0] ?? "",
     productId: "",
     salePrice: "",
     discount: 0,
     freight: 0,
     channelFee: 0,
-    paymentMethod: PAYMENT_METHODS[0],
-    shippingMethod: SHIPPING_METHODS[0],
+    paymentMethod: metadata.paymentMethods[0] ?? "",
+    shippingMethod: metadata.shippingMethods[0] ?? "",
     notes: "",
   });
   const selectedProduct = products.find((p) => p.id === Number(form.productId));
@@ -54,22 +54,17 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose, o
   }
 
   function handleSubmit() {
-    if (!form.customerId || !form.productId || !form.salePrice) {
-      onToast("Preencha cliente, produto e valor.", "error");
+    if (!form.customerId || !form.sellerUserId || !form.productId || !form.salePrice) {
+      onToast("Preencha cliente, vendedor, produto e valor.", "error");
       return;
     }
     const product = products.find((p) => p.id === Number(form.productId))!;
-    const brandLabel = product.brand || "—";
-    const modelLabel = product.model || "—";
-    const modelFull = `${modelLabel}${product.modelQualityName ? ` · ${product.modelQualityName}` : ""}`;
     onSave({
       customerId: Number(form.customerId),
+      sellerUserId: Number(form.sellerUserId),
       channel: form.channel,
-      seller: form.seller,
       productId: product.id,
-      productName: `${brandLabel} ${modelFull}`,
       salePrice: Number(form.salePrice),
-      cost: product.cost,
       discount: Number(form.discount),
       freight: Number(form.freight),
       channelFee: Number(form.channelFee),
@@ -116,17 +111,19 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose, o
             value={form.channel}
             onChange={(e) => set("channel", e.target.value as Channel)}
           >
-            {CHANNELS.map((c) => (
+            {metadata.channels.map((c) => (
               <option key={c}>{c}</option>
             ))}
           </Select>
           <Select
             label="Vendedor"
-            value={form.seller}
-            onChange={(e) => set("seller", e.target.value as Seller)}
+            value={form.sellerUserId}
+            onChange={(e) => set("sellerUserId", e.target.value)}
           >
-            {SELLERS.map((s) => (
-              <option key={s}>{s}</option>
+            {metadata.assignableSellers.map((seller) => (
+              <option key={seller.id} value={seller.id}>
+                {seller.name}
+              </option>
             ))}
           </Select>
           <div className={styles.fullSpan}>
@@ -171,7 +168,7 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose, o
             value={form.paymentMethod}
             onChange={(e) => set("paymentMethod", e.target.value as PaymentMethod)}
           >
-            {PAYMENT_METHODS.map((p) => (
+            {metadata.paymentMethods.map((p) => (
               <option key={p}>{p}</option>
             ))}
           </Select>
@@ -180,7 +177,7 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, onSave, onClose, o
             value={form.shippingMethod}
             onChange={(e) => set("shippingMethod", e.target.value as ShippingMethod)}
           >
-            {SHIPPING_METHODS.map((s) => (
+            {metadata.shippingMethods.map((s) => (
               <option key={s}>{s}</option>
             ))}
           </Select>

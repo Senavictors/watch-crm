@@ -1,5 +1,4 @@
 import React from "react";
-import { CHANNELS, SELLERS, STATUS_FLOW } from "../data/mock";
 import { calcProfit, fmtBRL } from "../helpers";
 import { Order } from "../types";
 import { Badge, Card, StatCard } from "../ui/Primitives";
@@ -7,9 +6,11 @@ import styles from "./Dashboard.module.css";
 
 type Props = {
   orders: Order[];
+  channels: string[];
+  statuses: string[];
 };
 
-const Dashboard: React.FC<Props> = ({ orders }) => {
+const Dashboard: React.FC<Props> = ({ orders, channels, statuses }) => {
   const paid = orders.filter(
     (o) => !["Novo", "Aguardando Pagamento", "Cancelado"].includes(o.status)
   );
@@ -17,7 +18,9 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
   const totalProfit = paid.reduce((s, o) => s + calcProfit(o), 0);
   const avgMargin = paid.length ? ((totalProfit / totalRevenue) * 100).toFixed(1) : "0";
 
-  const byChannel = CHANNELS.map((ch) => ({
+  const sellerNames = Array.from(new Set(orders.map((order) => order.seller).filter(Boolean)));
+
+  const byChannel = channels.map((ch) => ({
     name: ch,
     total: paid
       .filter((o) => o.channel === ch)
@@ -25,7 +28,7 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
     count: paid.filter((o) => o.channel === ch).length,
   })).sort((a, b) => b.total - a.total);
 
-  const bySeller = SELLERS.map((s) => ({
+  const bySeller = sellerNames.map((s) => ({
     name: s,
     revenue: paid
       .filter((o) => o.seller === s)
@@ -34,7 +37,7 @@ const Dashboard: React.FC<Props> = ({ orders }) => {
     count: paid.filter((o) => o.seller === s).length,
   }));
 
-  const funnel = STATUS_FLOW.map((st) => ({
+  const funnel = statuses.map((st) => ({
     status: st,
     count: orders.filter((o) => o.status === st).length,
   }));

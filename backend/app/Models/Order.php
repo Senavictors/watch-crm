@@ -13,6 +13,7 @@ class Order extends Model
     protected $fillable = [
         'customer_id',
         'created_by_user_id',
+        'seller_user_id',
         'product_id',
         'product_name',
         'channel',
@@ -44,5 +45,10 @@ class Order extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_user_id');
+    }
+
+    public function sellerUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'seller_user_id');
     }
 }

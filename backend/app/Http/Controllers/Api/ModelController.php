@@ -13,7 +13,7 @@ class ModelController extends Controller
     public function index()
     {
         $models = WatchModel::query()
-            ->with('quality')
+            ->with(['brand', 'quality'])
             ->orderBy('id')
             ->get()
             ->map(fn (WatchModel $model) => $this->toPayload($model));
@@ -48,7 +48,7 @@ class ModelController extends Controller
             'quality_id' => $data['qualityId'],
             'image_path' => $imagePath,
         ]);
-        $model->load('quality');
+        $model->load(['brand', 'quality']);
         $this->audit('models.created', 'Modelo criado.', $model);
 
         return response()->json($this->toPayload($model), 201);
@@ -98,7 +98,7 @@ class ModelController extends Controller
 
         $model->fill($data);
         $model->save();
-        $model->load('quality');
+        $model->load(['brand', 'quality']);
         $this->audit('models.updated', 'Modelo atualizado.', $model);
 
         return response()->json($this->toPayload($model));
@@ -123,6 +123,7 @@ class ModelController extends Controller
         return [
             'id' => $model->id,
             'brandId' => $model->brand_id,
+            'brandName' => $model->brand?->name,
             'name' => $model->name,
             'qualityId' => $model->quality_id,
             'qualityName' => $model->quality?->name,

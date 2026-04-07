@@ -1,21 +1,8 @@
-export type Channel = "Instagram" | "Site" | "Mercado Livre" | "WhatsApp";
-export type Seller = "Ana Karolina" | "Josue" | "Amanda" | "Victor";
-export type PaymentMethod =
-  | "PIX"
-  | "Cartão Crédito"
-  | "Cartão Débito"
-  | "Dinheiro"
-  | "Boleto";
-export type ShippingMethod = "Sedex" | "Jadlog" | "Correios PAC" | "Retirada";
-export type OrderStatus =
-  | "Novo"
-  | "Aguardando Pagamento"
-  | "Pago"
-  | "Separação/Fornecedor"
-  | "Pronto para Envio"
-  | "Enviado"
-  | "Entregue"
-  | "Cancelado";
+export type Channel = string;
+export type Seller = string;
+export type PaymentMethod = string;
+export type ShippingMethod = string;
+export type OrderStatus = string;
 export type StockOrigin = "IN_STOCK" | "SUPPLIER";
 
 export type Brand = {
@@ -64,6 +51,11 @@ export type AuthUser = {
   twoFactorEnabled: boolean;
 };
 
+export type UserOption = {
+  id: number;
+  name: string;
+};
+
 export type Quality = {
   id: number;
   name: string;
@@ -72,6 +64,7 @@ export type Quality = {
 export type WatchModel = {
   id: number;
   brandId: number;
+  brandName?: string | null;
   name: string;
   qualityId: number;
   qualityName?: string | null;
@@ -113,6 +106,8 @@ export type Order = {
   id: number;
   customerId: number;
   createdByUserId?: number | null;
+  sellerUserId?: number | null;
+  sellerUserName?: string | null;
   channel: Channel;
   seller: Seller;
   status: OrderStatus;
@@ -129,4 +124,30 @@ export type Order = {
   saleDate: string;
   shippedDate: string;
   notes: string;
+};
+
+export type OrderMetadata = {
+  channels: Channel[];
+  statuses: OrderStatus[];
+  paymentMethods: PaymentMethod[];
+  shippingMethods: ShippingMethod[];
+  assignableSellers: UserOption[];
+};
+
+export type OrderInput = {
+  customerId: number;
+  sellerUserId: number;
+  channel: Channel;
+  productId: number;
+  salePrice: number;
+  discount: number;
+  freight: number;
+  channelFee: number;
+  paymentMethod: PaymentMethod | "";
+  shippingMethod: ShippingMethod;
+  trackingCode: string;
+  saleDate: string;
+  shippedDate: string;
+  notes: string;
+  status?: OrderStatus;
 };

@@ -45,7 +45,9 @@ return new class extends Migration
             $table->foreign('quality_id')->references('id')->on('qualities')->cascadeOnDelete();
         });
 
-        DB::statement('ALTER TABLE models MODIFY quality_id BIGINT UNSIGNED NOT NULL');
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement('ALTER TABLE models MODIFY quality_id BIGINT UNSIGNED NOT NULL');
+        }
     }
 
     public function down(): void

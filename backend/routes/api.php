@@ -49,6 +49,11 @@ Route::middleware('web')->group(function () {
         Route::patch('/models/{id}', [ModelController::class, 'update'])->middleware('permission:models.update');
         Route::delete('/models/{id}', [ModelController::class, 'destroy'])->middleware('permission:models.delete');
 
+        Route::get('/orders/metadata', [OrderController::class, 'metadata'])->middleware('permission:orders.view');
         Route::get('/orders', [OrderController::class, 'index'])->middleware('permission:orders.view');
+        Route::post('/orders', [OrderController::class, 'store'])->middleware('permission:orders.create');
+        Route::put('/orders/{id}', [OrderController::class, 'update'])->middleware('permission:orders.update');
+        Route::patch('/orders/{id}', [OrderController::class, 'update'])->middleware('permission:orders.update');
+        Route::delete('/orders/{id}', [OrderController::class, 'destroy'])->middleware('permission:orders.delete');
     });
 });

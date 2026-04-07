@@ -7,23 +7,29 @@ import styles from "./Products.module.css";
 
 type Props = {
   products: Product[];
+  canCreate: boolean;
+  compact: boolean;
   onNew: () => void;
 };
 
-const Products: React.FC<Props> = ({ products, onNew }) => {
+const Products: React.FC<Props> = ({ products, canCreate, compact, onNew }) => {
   return (
     <div>
       <div className={styles.headerRow}>
         <h2 className={styles.title}>Produtos & Estoque</h2>
-        <Btn onClick={onNew} variant="primary" className={styles.actionButton}>
-          + Adicionar Produto
-        </Btn>
+        {canCreate && (
+          <Btn onClick={onNew} variant="primary" className={styles.actionButton}>
+            + Adicionar Produto
+          </Btn>
+        )}
       </div>
       <Card className={styles.tableCard}>
         <table className={styles.table}>
           <thead>
             <tr className={styles.theadRow}>
-              {["Marca / Modelo", "Custo", "Preço", "Margem", "Origem", "Estoque"].map((h) => (
+              {(compact
+                ? ["Preço", "Origem", "Estoque"]
+                : ["Marca / Modelo", "Custo", "Preço", "Margem", "Origem", "Estoque"]).map((h) => (
                 <th key={h} className={styles.theadCell}>
                   {h}
                 </th>
@@ -35,16 +41,18 @@ const Products: React.FC<Props> = ({ products, onNew }) => {
               const margin = (((p.price - p.cost) / p.price) * 100).toFixed(0);
               return (
                 <tr key={p.id} className={styles.row}>
-                  <td className={styles.cell}>
-                    <div className={styles.name}>{p.brand || "—"}</div>
-                    <div className={styles.sub}>
-                      {p.model || "—"}
-                      {p.modelQualityName ? ` · ${p.modelQualityName}` : ""}
-                    </div>
-                  </td>
-                  <td className={styles.numericSoft}>{fmtBRL(p.cost)}</td>
+                  {!compact && (
+                    <td className={styles.cell}>
+                      <div className={styles.name}>{p.brand || "—"}</div>
+                      <div className={styles.sub}>
+                        {p.model || "—"}
+                        {p.modelQualityName ? ` · ${p.modelQualityName}` : ""}
+                      </div>
+                    </td>
+                  )}
+                  {!compact && <td className={styles.numericSoft}>{fmtBRL(p.cost)}</td>}
                   <td className={styles.numericAccentStrong}>{fmtBRL(p.price)}</td>
-                  <td className={styles.numericAccent}>{margin}%</td>
+                  {!compact && <td className={styles.numericAccent}>{margin}%</td>}
                   <td className={styles.cell}>
                     <span
                       className={`${styles.pill} ${

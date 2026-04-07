@@ -20,10 +20,11 @@ class OrderFactory extends Factory
         return [
             'customer_id' => Customer::factory(),
             'created_by_user_id' => User::factory(),
+            'seller_user_id' => User::factory()->state(['role' => 'vendedor']),
             'product_id' => Product::factory(),
             'product_name' => fake()->word(),
             'channel' => 'Instagram',
-            'seller' => 'Victor',
+            'seller' => 'Josue Vendedor',
             'status' => 'Novo',
             'sale_price' => 100,
             'cost' => 70,

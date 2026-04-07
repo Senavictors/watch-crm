@@ -9,7 +9,7 @@ class OrderPolicy
 {
     public function view(User $user, Order $order): bool
     {
-        return $user->canAccessAllRecords() || $order->created_by_user_id === $user->id;
+        return $user->canAccessAllRecords() || $order->seller_user_id === $user->id;
     }
 
     public function update(User $user, Order $order): bool

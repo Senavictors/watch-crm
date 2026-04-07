@@ -4,7 +4,7 @@ import { STATUS_COLORS } from "../data/mock";
 import styles from "./Primitives.module.css";
 
 export const Badge: React.FC<{ status: OrderStatus }> = ({ status }) => {
-  const color = STATUS_COLORS[status];
+  const color = STATUS_COLORS[status as keyof typeof STATUS_COLORS] ?? "var(--crm-text-soft)";
   const style: React.CSSProperties & { ["--badge-color"]?: string } = {
     "--badge-color": color,
   };

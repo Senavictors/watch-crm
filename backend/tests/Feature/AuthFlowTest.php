@@ -66,16 +66,16 @@ class AuthFlowTest extends TestCase
         $vendor = User::factory()->create(['role' => UserRole::Seller->value]);
         $other = User::factory()->create(['role' => UserRole::Seller->value]);
 
-        Customer::factory()->create(['owner_user_id' => $vendor->id]);
-        Customer::factory()->create(['owner_user_id' => $other->id]);
+        $vendorCustomer = Customer::factory()->create(['owner_user_id' => $vendor->id]);
+        $otherCustomer = Customer::factory()->create(['owner_user_id' => $other->id]);
 
-        Order::factory()->create(['created_by_user_id' => $vendor->id]);
-        Order::factory()->create(['created_by_user_id' => $other->id]);
+        Order::factory()->create(['seller_user_id' => $vendor->id, 'customer_id' => $vendorCustomer->id]);
+        Order::factory()->create(['seller_user_id' => $other->id, 'customer_id' => $otherCustomer->id]);
 
         $this->actingAs($vendor)
             ->getJson('/api/customers')
             ->assertOk()
-            ->assertJsonCount(1);
+            ->assertJsonCount(2);
 
         $this->actingAs($vendor)
             ->getJson('/api/orders')

@@ -6,10 +6,11 @@ import styles from "./Customers.module.css";
 
 type Props = {
   customers: Customer[];
+  canCreate: boolean;
   onNew: () => void;
 };
 
-const Customers: React.FC<Props> = ({ customers, onNew }) => {
+const Customers: React.FC<Props> = ({ customers, canCreate, onNew }) => {
   const [search, setSearch] = useState("");
   const filtered = customers.filter(
     (c) => !search || `${c.name} ${c.phone} ${c.instagram}`.toLowerCase().includes(search.toLowerCase())
@@ -18,9 +19,11 @@ const Customers: React.FC<Props> = ({ customers, onNew }) => {
     <div>
       <div className={styles.headerRow}>
         <h2 className={styles.title}>Clientes</h2>
-        <Btn onClick={onNew} variant="primary" className={styles.actionButton}>
-          + Adicionar Cliente
-        </Btn>
+        {canCreate && (
+          <Btn onClick={onNew} variant="primary" className={styles.actionButton}>
+            + Adicionar Cliente
+          </Btn>
+        )}
       </div>
       <input
         value={search}

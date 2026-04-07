@@ -20,6 +20,8 @@ import {
   Brand,
   Customer,
   Order,
+  OrderInput,
+  OrderMetadata,
   OrderStatus,
   Permission,
   Product,
@@ -33,6 +35,14 @@ import Sidebar from "./components/Sidebar/Sidebar";
 import Toasts from "./components/Toasts/Toasts";
 import styles from "./CrmApp.module.css";
 
+const EMPTY_ORDER_METADATA: OrderMetadata = {
+  channels: [],
+  statuses: [],
+  paymentMethods: [],
+  shippingMethods: [],
+  assignableSellers: [],
+};
+
 const CrmApp: React.FC = () => {
   const [sessionStatus, setSessionStatus] = useState<"unknown" | "authenticated" | "unauthenticated">("unknown");
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -44,6 +54,7 @@ const CrmApp: React.FC = () => {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [models, setModels] = useState<WatchModel[]>([]);
   const [qualities, setQualities] = useState<Quality[]>([]);
+  const [orderMetadata, setOrderMetadata] = useState<OrderMetadata>(EMPTY_ORDER_METADATA);
   const [loading, setLoading] = useState(true);
   const [toasts, setToasts] = useState<
     { id: number; message: string; variant: "success" | "error" }[]
@@ -128,63 +139,71 @@ const CrmApp: React.FC = () => {
     };
   }, [apiBaseUrl]);
 
+  function hasPermission(permission: Permission) {
+    return currentUser?.permissions.includes(permission) ?? false;
+  }
+
   useEffect(() => {
-    if (sessionStatus !== "authenticated") {
+    if (sessionStatus !== "authenticated" || !currentUser) {
       setLoading(false);
       return;
     }
 
+    const user = currentUser;
     let alive = true;
 
     async function loadData() {
       try {
         setLoading(true);
-        const [customersRes, productsRes, ordersRes, brandsRes, modelsRes, qualitiesRes] = await Promise.all([
-          apiFetch(`${apiBaseUrl}/customers`),
-          apiFetch(`${apiBaseUrl}/products`),
-          apiFetch(`${apiBaseUrl}/orders`),
-          apiFetch(`${apiBaseUrl}/brands`),
-          apiFetch(`${apiBaseUrl}/models`),
-          apiFetch(`${apiBaseUrl}/qualities`),
-        ]);
+        const requests: Array<{ key: string; request: Promise<Response> }> = [];
 
-        if (
-          !customersRes.ok ||
-          !productsRes.ok ||
-          !ordersRes.ok ||
-          !brandsRes.ok ||
-          !modelsRes.ok ||
-          !qualitiesRes.ok
-        ) {
-          const hasAuthError = [customersRes, productsRes, ordersRes, brandsRes, modelsRes, qualitiesRes].some(
-            (response) => response.status === 401
-          );
+        if (user.permissions.includes("customers.view")) {
+          requests.push({ key: "customers", request: apiFetch(`${apiBaseUrl}/customers`) });
+        }
+        if (user.permissions.includes("products.view")) {
+          requests.push({ key: "products", request: apiFetch(`${apiBaseUrl}/products`) });
+        }
+        if (user.permissions.includes("orders.view")) {
+          requests.push({ key: "orders", request: apiFetch(`${apiBaseUrl}/orders`) });
+          requests.push({ key: "orderMetadata", request: apiFetch(`${apiBaseUrl}/orders/metadata`) });
+        }
+        if (user.permissions.includes("brands.view")) {
+          requests.push({ key: "brands", request: apiFetch(`${apiBaseUrl}/brands`) });
+        }
+        if (user.permissions.includes("models.view")) {
+          requests.push({ key: "models", request: apiFetch(`${apiBaseUrl}/models`) });
+        }
+        if (user.permissions.includes("qualities.view")) {
+          requests.push({ key: "qualities", request: apiFetch(`${apiBaseUrl}/qualities`) });
+        }
 
-          if (hasAuthError) {
-            setCurrentUser(null);
-            setSessionStatus("unauthenticated");
-            throw new Error("Sua sessão expirou. Entre novamente.");
-          }
+        const responses = await Promise.all(requests.map((item) => item.request));
 
+        if (responses.some((response) => response.status === 401)) {
+          setCurrentUser(null);
+          setSessionStatus("unauthenticated");
+          throw new Error("Sua sessão expirou. Entre novamente.");
+        }
+
+        if (responses.some((response) => !response.ok)) {
           throw new Error("Falha ao carregar dados da API.");
         }
 
-        const [customersData, productsData, ordersData, brandsData, modelsData, qualitiesData] = await Promise.all([
-          customersRes.json(),
-          productsRes.json(),
-          ordersRes.json(),
-          brandsRes.json(),
-          modelsRes.json(),
-          qualitiesRes.json(),
-        ]);
+        const payloads = await Promise.all(responses.map((response) => response.json()));
+        const data = new Map<string, unknown>();
+        requests.forEach((request, index) => {
+          data.set(request.key, payloads[index]);
+        });
 
         if (!alive) return;
-        setCustomers(customersData);
-        setProducts(productsData);
-        setOrders(ordersData);
-        setBrands(brandsData);
-        setModels(modelsData);
-        setQualities(qualitiesData);
+
+        setCustomers((data.get("customers") as Customer[] | undefined) ?? []);
+        setProducts((data.get("products") as Product[] | undefined) ?? []);
+        setOrders((data.get("orders") as Order[] | undefined) ?? []);
+        setBrands((data.get("brands") as Brand[] | undefined) ?? []);
+        setModels((data.get("models") as WatchModel[] | undefined) ?? []);
+        setQualities((data.get("qualities") as Quality[] | undefined) ?? []);
+        setOrderMetadata((data.get("orderMetadata") as OrderMetadata | undefined) ?? EMPTY_ORDER_METADATA);
       } catch (err) {
         if (!alive) return;
         pushToast(err instanceof Error ? err.message : "Erro desconhecido.", "error");
@@ -198,7 +217,7 @@ const CrmApp: React.FC = () => {
     return () => {
       alive = false;
     };
-  }, [apiBaseUrl, sessionStatus]);
+  }, [apiBaseUrl, currentUser, sessionStatus]);
 
   async function handleLogin(email: string, password: string) {
     try {
@@ -251,13 +270,10 @@ const CrmApp: React.FC = () => {
       setBrands([]);
       setModels([]);
       setQualities([]);
+      setOrderMetadata(EMPTY_ORDER_METADATA);
     } catch (err) {
       pushToast(err instanceof Error ? err.message : "Erro ao sair.", "error");
     }
-  }
-
-  function hasPermission(permission: Permission) {
-    return currentUser?.permissions.includes(permission) ?? false;
   }
 
   async function createJson<T>(path: string, body: unknown, fallbackMessage: string): Promise<T> {
@@ -290,15 +306,52 @@ const CrmApp: React.FC = () => {
     return response.json() as Promise<T>;
   }
 
-  function handleUpdateStatus(id: number, status: OrderStatus) {
-    setOrders((os) => os.map((o) => (o.id === id ? { ...o, status } : o)));
+  async function updateJson<T>(path: string, body: unknown, fallbackMessage: string): Promise<T> {
+    await ensureCsrfCookie(apiBaseUrl);
+    const response = await apiFetch(
+      `${apiBaseUrl}${path}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+      { csrf: true }
+    );
+
+    if (!response.ok) {
+      let message = fallbackMessage;
+      try {
+        const payload = await response.json();
+        if (payload?.message) message = payload.message;
+      } catch {
+        // noop
+      }
+      throw new Error(message);
+    }
+
+    return response.json() as Promise<T>;
   }
 
-  function handleSaveOrder(data: Omit<Order, "id">) {
-    const nextId = orders.length ? Math.max(...orders.map((o) => o.id)) + 1 : 1;
-    setOrders((os) => [{ ...data, id: nextId }, ...os]);
-    setShowNew(false);
-    pushToast("Pedido criado com sucesso.", "success");
+  async function handleUpdateStatus(id: number, status: OrderStatus) {
+    try {
+      const updated = await updateJson<Order>(`/orders/${id}`, { status }, "Falha ao atualizar status.");
+      setOrders((os) => os.map((o) => (o.id === id ? updated : o)));
+      setViewOrder((current) => (current?.id === id ? updated : current));
+      pushToast("Status do pedido atualizado com sucesso.", "success");
+    } catch (err) {
+      pushToast(err instanceof Error ? err.message : "Erro desconhecido.", "error");
+    }
+  }
+
+  async function handleSaveOrder(data: OrderInput) {
+    try {
+      const created = await createJson<Order>("/orders", data, "Falha ao cadastrar pedido.");
+      setOrders((os) => [created, ...os]);
+      setShowNew(false);
+      pushToast("Pedido criado com sucesso.", "success");
+    } catch (err) {
+      pushToast(err instanceof Error ? err.message : "Erro desconhecido.", "error");
+    }
   }
 
   async function handleSaveProduct(data: ProductInput) {
@@ -404,6 +457,26 @@ const CrmApp: React.FC = () => {
   }, [nav, page]);
 
   const readyCount = orders.filter((o) => o.status === "Pronto para Envio").length;
+  const canCreateOrders = hasPermission("orders.create");
+  const canUpdateOrders = hasPermission("orders.update");
+  const canCreateCustomers = hasPermission("customers.create");
+  const canCreateProducts = hasPermission("products.create");
+  const canCreateModels = hasPermission("models.create");
+  const canManageCatalog = hasPermission("settings.view");
+  const dashboardChannels = orderMetadata.channels.length
+    ? orderMetadata.channels
+    : Array.from(new Set(orders.map((order) => order.channel)));
+  const dashboardStatuses = orderMetadata.statuses.length
+    ? orderMetadata.statuses
+    : Array.from(new Set(orders.map((order) => order.status)));
+  const orderSellers = Array.from(
+    new Set(
+      [
+        ...orderMetadata.assignableSellers.map((seller) => seller.name),
+        ...orders.map((order) => order.seller).filter(Boolean),
+      ].filter(Boolean)
+    )
+  );
 
   if (sessionStatus === "unknown") {
     return (
@@ -444,20 +517,36 @@ const CrmApp: React.FC = () => {
         {loading && <div className={styles.loading}>Carregando dados...</div>}
         {!loading && (
           <>
-            {page === "dashboard" && <Dashboard orders={orders} />}
+            {page === "dashboard" && <Dashboard orders={orders} channels={dashboardChannels} statuses={dashboardStatuses} />}
             {page === "orders" && (
               <OrderList
                 orders={orders}
                 customers={customers}
+                channels={orderMetadata.channels}
+                sellers={orderSellers}
+                statuses={orderMetadata.statuses}
+                canCreate={canCreateOrders}
+                canUpdateStatus={canUpdateOrders}
                 onView={(o) => setViewOrder(o)}
                 onNew={() => setShowNew(true)}
                 onUpdateStatus={handleUpdateStatus}
               />
             )}
             {page === "shipping" && <ShippingQueue orders={orders} customers={customers} />}
-            {page === "customers" && <Customers customers={customers} onNew={() => setShowNewCustomer(true)} />}
-            {page === "products" && <Products products={products} onNew={() => setShowNewProduct(true)} />}
-            {page === "models" && <Models models={models} brands={brands} onNew={() => setShowNewModel(true)} />}
+            {page === "customers" && (
+              <Customers customers={customers} canCreate={canCreateCustomers} onNew={() => setShowNewCustomer(true)} />
+            )}
+            {page === "products" && (
+              <Products
+                products={products}
+                canCreate={canCreateProducts}
+                compact={!canManageCatalog}
+                onNew={() => setShowNewProduct(true)}
+              />
+            )}
+            {page === "models" && (
+              <Models models={models} canCreate={canCreateModels} onNew={() => setShowNewModel(true)} />
+            )}
             {page === "settings" && (
               <Settings
                 brands={brands}
@@ -480,6 +569,7 @@ const CrmApp: React.FC = () => {
         <NewOrderForm
           products={products}
           customers={customers}
+          metadata={orderMetadata}
           onSave={handleSaveOrder}
           onClose={() => setShowNew(false)}
           onToast={pushToast}

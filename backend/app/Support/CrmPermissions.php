@@ -51,17 +51,9 @@ class CrmPermissions
             'dashboard.view',
             'shipping.view',
             'customers.view',
-            'customers.create',
-            'customers.update',
             'products.view',
-            'products.create',
-            'products.update',
-            'brands.view',
-            'qualities.view',
             'models.view',
             'orders.view',
-            'orders.create',
-            'orders.update',
         ];
     }
 }

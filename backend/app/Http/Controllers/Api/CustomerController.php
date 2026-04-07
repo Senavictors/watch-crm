@@ -5,21 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class CustomerController extends Controller
 {
     public function index()
     {
-        $user = Auth::user();
-
-        $query = Customer::query();
-
-        if (! $user->canAccessAllRecords()) {
-            $query->where('owner_user_id', $user->id);
-        }
-
-        $customers = $query
+        $customers = Customer::query()
             ->orderBy('id')
             ->get()
             ->map(fn (Customer $customer) => $this->toPayload($customer));
