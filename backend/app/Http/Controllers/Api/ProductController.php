@@ -44,6 +44,7 @@ class ProductController extends Controller
             'qty' => $data['qty'],
         ]);
         $product->load(['brand', 'watchModel.quality']);
+        $this->audit('products.created', 'Produto criado.', $product);
 
         return response()->json($this->toPayload($product), 201);
     }
@@ -88,6 +89,7 @@ class ProductController extends Controller
         $product->fill($data);
         $product->save();
         $product->load(['brand', 'watchModel.quality']);
+        $this->audit('products.updated', 'Produto atualizado.', $product);
 
         return response()->json($this->toPayload($product));
     }
@@ -101,6 +103,7 @@ class ProductController extends Controller
         }
 
         $product->delete();
+        $this->audit('products.deleted', 'Produto removido.', null, ['product_id' => $id]);
 
         return response()->json(['ok' => true]);
     }

@@ -70,12 +70,39 @@
   padding-left: 8px;
 }
 
+.userCard {
+  margin-bottom: 18px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.26);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.userName {
+  color: var(--crm-text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.userMeta {
+  margin-top: 4px;
+  color: var(--crm-text-soft);
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
 .footerLabel {
   color: var(--crm-text-soft);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-bottom: 8px;
+}
+
+.logoutButton {
+  margin: 16px 0 10px;
+  width: 100%;
 }
 
 .footerVersion {

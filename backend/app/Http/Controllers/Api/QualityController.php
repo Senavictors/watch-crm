@@ -26,6 +26,7 @@ class QualityController extends Controller
         ]);
 
         $quality = Quality::create($data);
+        $this->audit('qualities.created', 'Qualidade criada.', $quality);
 
         return response()->json($this->toPayload($quality), 201);
     }
@@ -44,6 +45,7 @@ class QualityController extends Controller
 
         $quality->fill($data);
         $quality->save();
+        $this->audit('qualities.updated', 'Qualidade atualizada.', $quality);
 
         return response()->json($this->toPayload($quality));
     }
@@ -57,6 +59,7 @@ class QualityController extends Controller
         }
 
         $quality->delete();
+        $this->audit('qualities.deleted', 'Qualidade removida.', null, ['quality_id' => $id]);
 
         return response()->json(['ok' => true]);
     }

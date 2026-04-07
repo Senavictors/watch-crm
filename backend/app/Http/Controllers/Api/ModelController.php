@@ -49,6 +49,7 @@ class ModelController extends Controller
             'image_path' => $imagePath,
         ]);
         $model->load('quality');
+        $this->audit('models.created', 'Modelo criado.', $model);
 
         return response()->json($this->toPayload($model), 201);
     }
@@ -98,6 +99,7 @@ class ModelController extends Controller
         $model->fill($data);
         $model->save();
         $model->load('quality');
+        $this->audit('models.updated', 'Modelo atualizado.', $model);
 
         return response()->json($this->toPayload($model));
     }
@@ -111,6 +113,7 @@ class ModelController extends Controller
         }
 
         $model->delete();
+        $this->audit('models.deleted', 'Modelo removido.', null, ['model_id' => $id]);
 
         return response()->json(['ok' => true]);
     }

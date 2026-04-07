@@ -1,0 +1,65 @@
+.shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+}
+
+.panel {
+  width: min(100%, 460px);
+  padding: 32px;
+  border: 1px solid var(--crm-border);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.6)),
+    var(--crm-card-bg);
+  box-shadow: 0 28px 60px rgba(15, 23, 42, 0.28);
+  backdrop-filter: blur(24px);
+}
+
+.overline {
+  color: var(--crm-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+
+.title {
+  margin: 0 0 10px;
+  color: var(--crm-text);
+  font-size: 34px;
+  line-height: 1.1;
+}
+
+.subtitle {
+  margin: 0 0 28px;
+  color: var(--crm-text-muted);
+  line-height: 1.6;
+}
+
+.form {
+  display: grid;
+  gap: 14px;
+}
+
+.submit {
+  width: 100%;
+  justify-content: center;
+}
+
+.error {
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.36);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.hint {
+  margin-top: 20px;
+  color: var(--crm-text-soft);
+  font-size: 12px;
+  line-height: 1.6;
+}

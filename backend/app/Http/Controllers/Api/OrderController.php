@@ -4,17 +4,27 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use Illuminate\Support\Facades\Auth;
 
 class OrderController extends Controller
 {
     public function index()
     {
-        $orders = Order::query()
+        $user = Auth::user();
+
+        $query = Order::query();
+
+        if (! $user->canAccessAllRecords()) {
+            $query->where('created_by_user_id', $user->id);
+        }
+
+        $orders = $query
             ->orderByDesc('sale_date')
             ->get()
             ->map(fn (Order $o) => [
                 'id' => $o->id,
                 'customerId' => $o->customer_id,
+                'createdByUserId' => $o->created_by_user_id,
                 'channel' => $o->channel,
                 'seller' => $o->seller,
                 'status' => $o->status,

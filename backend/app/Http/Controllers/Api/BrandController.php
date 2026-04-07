@@ -26,6 +26,7 @@ class BrandController extends Controller
         ]);
 
         $brand = Brand::create($data);
+        $this->audit('brands.created', 'Marca criada.', $brand);
 
         return response()->json($this->toPayload($brand), 201);
     }
@@ -44,6 +45,7 @@ class BrandController extends Controller
 
         $brand->fill($data);
         $brand->save();
+        $this->audit('brands.updated', 'Marca atualizada.', $brand);
 
         return response()->json($this->toPayload($brand));
     }
@@ -57,6 +59,7 @@ class BrandController extends Controller
         }
 
         $brand->delete();
+        $this->audit('brands.deleted', 'Marca removida.', null, ['brand_id' => $id]);
 
         return response()->json(['ok' => true]);
     }

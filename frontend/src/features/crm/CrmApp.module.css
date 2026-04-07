@@ -1,3 +1,10 @@
 .loading {
   color: var(--crm-text-muted);
 }
+
+.centerState {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  color: var(--crm-text-muted);
+}

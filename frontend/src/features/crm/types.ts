@@ -23,6 +23,47 @@ export type Brand = {
   name: string;
 };
 
+export type Permission =
+  | "dashboard.view"
+  | "shipping.view"
+  | "customers.view"
+  | "customers.create"
+  | "customers.update"
+  | "customers.delete"
+  | "products.view"
+  | "products.create"
+  | "products.update"
+  | "products.delete"
+  | "brands.view"
+  | "brands.create"
+  | "brands.update"
+  | "brands.delete"
+  | "qualities.view"
+  | "qualities.create"
+  | "qualities.update"
+  | "qualities.delete"
+  | "models.view"
+  | "models.create"
+  | "models.update"
+  | "models.delete"
+  | "orders.view"
+  | "orders.create"
+  | "orders.update"
+  | "orders.delete"
+  | "settings.view"
+  | "users.manage";
+
+export type AuthUser = {
+  id: number;
+  name: string;
+  email: string;
+  role: "admin" | "gerente" | "vendedor";
+  permissions: Permission[];
+  isActive: boolean;
+  lastLoginAt?: string | null;
+  twoFactorEnabled: boolean;
+};
+
 export type Quality = {
   id: number;
   name: string;
@@ -43,6 +84,7 @@ export type Customer = {
   phone: string;
   instagram: string;
   email?: string;
+  ownerUserId?: number | null;
 };
 
 export type Product = {
@@ -70,6 +112,7 @@ export type ProductInput = {
 export type Order = {
   id: number;
   customerId: number;
+  createdByUserId?: number | null;
   channel: Channel;
   seller: Seller;
   status: OrderStatus;

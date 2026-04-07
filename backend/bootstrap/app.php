@@ -1,9 +1,12 @@
 <?php
 
+use App\Http\Middleware\EnsureUserHasPermission;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\HandleCors;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,7 +17,20 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(HandleCors::class);
+        $middleware->alias([
+            'permission' => EnsureUserHasPermission::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (AuthenticationException $exception, $request) {
+            if ($request->is('api/*')) {
+                return response()->json(['message' => 'Não autenticado.'], 401);
+            }
+        });
+
+        $exceptions->render(function (AccessDeniedHttpException $exception, $request) {
+            if ($request->is('api/*')) {
+                return response()->json(['message' => $exception->getMessage() ?: 'Acesso negado.'], 403);
+            }
+        });
     })->create();

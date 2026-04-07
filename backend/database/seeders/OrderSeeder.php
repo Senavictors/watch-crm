@@ -16,6 +16,7 @@ class OrderSeeder extends Seeder
             [
                 'id' => 1001,
                 'customer_id' => 1,
+                'created_by_user_id' => 2,
                 'product_id' => 1,
                 'product_name' => 'G-Shock GA-100',
                 'channel' => 'Instagram',
@@ -36,6 +37,7 @@ class OrderSeeder extends Seeder
             [
                 'id' => 1002,
                 'customer_id' => 2,
+                'created_by_user_id' => 3,
                 'product_id' => 4,
                 'product_name' => 'Seiko 5 Sports SRPD55',
                 'channel' => 'Mercado Livre',
@@ -56,6 +58,7 @@ class OrderSeeder extends Seeder
             [
                 'id' => 1003,
                 'customer_id' => 3,
+                'created_by_user_id' => 1,
                 'product_id' => 2,
                 'product_name' => 'Tissot PRX',
                 'channel' => 'WhatsApp',
@@ -76,6 +79,7 @@ class OrderSeeder extends Seeder
             [
                 'id' => 1004,
                 'customer_id' => 1,
+                'created_by_user_id' => 3,
                 'product_id' => 3,
                 'product_name' => 'Orient Bambino RA-AC0E',
                 'channel' => 'Site',
@@ -96,6 +100,7 @@ class OrderSeeder extends Seeder
             [
                 'id' => 1005,
                 'customer_id' => 2,
+                'created_by_user_id' => 2,
                 'product_id' => 5,
                 'product_name' => 'Casio Vintage A168WA',
                 'channel' => 'Instagram',

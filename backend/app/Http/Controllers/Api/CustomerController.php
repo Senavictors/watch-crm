@@ -5,12 +5,21 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class CustomerController extends Controller
 {
     public function index()
     {
-        $customers = Customer::query()
+        $user = Auth::user();
+
+        $query = Customer::query();
+
+        if (! $user->canAccessAllRecords()) {
+            $query->where('owner_user_id', $user->id);
+        }
+
+        $customers = $query
             ->orderBy('id')
             ->get()
             ->map(fn (Customer $customer) => $this->toPayload($customer));
@@ -27,7 +36,12 @@ class CustomerController extends Controller
             'instagram' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $customer = Customer::create($data);
+        $customer = Customer::create([
+            ...$data,
+            'owner_user_id' => $request->user()->id,
+        ]);
+
+        $this->audit('customers.created', 'Cliente criado.', $customer);
 
         return response()->json($this->toPayload($customer), 201);
     }
@@ -39,6 +53,8 @@ class CustomerController extends Controller
             return response()->json(['message' => 'Cliente não encontrado.'], 404);
         }
 
+        $this->authorize('update', $customer);
+
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'phone' => ['sometimes', 'string', 'max:50'],
@@ -48,6 +64,7 @@ class CustomerController extends Controller
 
         $customer->fill($data);
         $customer->save();
+        $this->audit('customers.updated', 'Cliente atualizado.', $customer);
 
         return response()->json($this->toPayload($customer));
     }
@@ -58,7 +75,10 @@ class CustomerController extends Controller
         if (! $customer) {
             return response()->json(['message' => 'Cliente não encontrado.'], 404);
         }
+
+        $this->authorize('delete', $customer);
         $customer->delete();
+        $this->audit('customers.deleted', 'Cliente removido.', null, ['customer_id' => $id]);
 
         return response()->json(['ok' => true]);
     }
@@ -71,6 +91,7 @@ class CustomerController extends Controller
             'phone' => $c->phone,
             'email' => $c->email,
             'instagram' => $c->instagram,
+            'ownerUserId' => $c->owner_user_id,
         ];
     }
 }
