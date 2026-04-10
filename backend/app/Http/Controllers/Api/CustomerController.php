@@ -20,12 +20,7 @@ class CustomerController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:50'],
-            'email' => ['nullable', 'email', 'max:255'],
-            'instagram' => ['nullable', 'string', 'max:255'],
-        ]);
+        $data = $this->validatedData($request);
 
         $customer = Customer::create([
             ...$data,
@@ -46,12 +41,7 @@ class CustomerController extends Controller
 
         $this->authorize('update', $customer);
 
-        $data = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'phone' => ['sometimes', 'string', 'max:50'],
-            'email' => ['sometimes', 'nullable', 'email', 'max:255'],
-            'instagram' => ['sometimes', 'nullable', 'string', 'max:255'],
-        ]);
+        $data = $this->validatedData($request, true);
 
         $customer->fill($data);
         $customer->save();
@@ -84,5 +74,18 @@ class CustomerController extends Controller
             'instagram' => $c->instagram,
             'ownerUserId' => $c->owner_user_id,
         ];
+    }
+
+    private function validatedData(Request $request, bool $partial = false): array
+    {
+        $required = $partial ? ['sometimes'] : ['required'];
+        $optional = $partial ? ['sometimes', 'nullable'] : ['nullable'];
+
+        return $request->validate([
+            'name' => [...$required, 'string', 'max:255'],
+            'phone' => [...$required, 'string', 'max:50'],
+            'email' => [...$optional, 'email', 'max:255'],
+            'instagram' => [...$optional, 'string', 'max:255'],
+        ]);
     }
 }

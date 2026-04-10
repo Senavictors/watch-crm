@@ -19,6 +19,7 @@ import {
   AuthUser,
   Brand,
   Customer,
+  CustomerInput,
   Order,
   OrderInput,
   OrderMetadata,
@@ -63,6 +64,7 @@ const CrmApp: React.FC = () => {
   const [showNew, setShowNew] = useState(false);
   const [showNewProduct, setShowNewProduct] = useState(false);
   const [showNewCustomer, setShowNewCustomer] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [showNewModel, setShowNewModel] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
 
@@ -276,6 +278,23 @@ const CrmApp: React.FC = () => {
     }
   }
 
+  async function getErrorMessage(response: Response, fallbackMessage: string) {
+    let message = fallbackMessage;
+
+    try {
+      const payload = await response.json();
+      if (payload?.message) message = payload.message;
+      if (payload?.errors && typeof payload.errors === "object") {
+        const first = Object.values(payload.errors)[0];
+        if (Array.isArray(first) && first[0]) message = String(first[0]);
+      }
+    } catch {
+      // noop
+    }
+
+    return message;
+  }
+
   async function createJson<T>(path: string, body: unknown, fallbackMessage: string): Promise<T> {
     await ensureCsrfCookie(apiBaseUrl);
     const response = await apiFetch(
@@ -289,18 +308,7 @@ const CrmApp: React.FC = () => {
     );
 
     if (!response.ok) {
-      let message = fallbackMessage;
-      try {
-        const payload = await response.json();
-        if (payload?.message) message = payload.message;
-        if (payload?.errors && typeof payload.errors === "object") {
-          const first = Object.values(payload.errors)[0];
-          if (Array.isArray(first) && first[0]) message = String(first[0]);
-        }
-      } catch {
-        // noop
-      }
-      throw new Error(message);
+      throw new Error(await getErrorMessage(response, fallbackMessage));
     }
 
     return response.json() as Promise<T>;
@@ -319,14 +327,7 @@ const CrmApp: React.FC = () => {
     );
 
     if (!response.ok) {
-      let message = fallbackMessage;
-      try {
-        const payload = await response.json();
-        if (payload?.message) message = payload.message;
-      } catch {
-        // noop
-      }
-      throw new Error(message);
+      throw new Error(await getErrorMessage(response, fallbackMessage));
     }
 
     return response.json() as Promise<T>;
@@ -365,12 +366,29 @@ const CrmApp: React.FC = () => {
     }
   }
 
-  async function handleSaveCustomer(data: Omit<Customer, "id">) {
+  async function handleSaveCustomer(data: CustomerInput) {
     try {
       const created = await createJson<Customer>("/customers", data, "Falha ao cadastrar cliente.");
       setCustomers((cs) => [created, ...cs]);
       setShowNewCustomer(false);
       pushToast("Cliente cadastrado com sucesso.", "success");
+    } catch (err) {
+      pushToast(err instanceof Error ? err.message : "Erro desconhecido.", "error");
+    }
+  }
+
+  async function handleUpdateCustomer(data: CustomerInput) {
+    if (!editingCustomer) return;
+
+    try {
+      const updated = await updateJson<Customer>(
+        `/customers/${editingCustomer.id}`,
+        data,
+        "Falha ao atualizar cliente."
+      );
+      setCustomers((cs) => cs.map((customer) => (customer.id === updated.id ? updated : customer)));
+      setEditingCustomer(null);
+      pushToast("Cliente atualizado com sucesso.", "success");
     } catch (err) {
       pushToast(err instanceof Error ? err.message : "Erro desconhecido.", "error");
     }
@@ -402,7 +420,10 @@ const CrmApp: React.FC = () => {
       const formData = new FormData();
       formData.append("name", data.name);
       formData.append("brandId", String(data.brandId));
-      formData.append("qualityId", String(data.qualityId));
+      formData.append("productType", data.productType);
+      if (data.qualityId !== null) {
+        formData.append("qualityId", String(data.qualityId));
+      }
       if (data.imageFile) {
         formData.append("image", data.imageFile);
       }
@@ -460,6 +481,7 @@ const CrmApp: React.FC = () => {
   const canCreateOrders = hasPermission("orders.create");
   const canUpdateOrders = hasPermission("orders.update");
   const canCreateCustomers = hasPermission("customers.create");
+  const canUpdateCustomers = hasPermission("customers.update");
   const canCreateProducts = hasPermission("products.create");
   const canCreateModels = hasPermission("models.create");
   const canManageCatalog = hasPermission("settings.view");
@@ -534,7 +556,13 @@ const CrmApp: React.FC = () => {
             )}
             {page === "shipping" && <ShippingQueue orders={orders} customers={customers} />}
             {page === "customers" && (
-              <Customers customers={customers} canCreate={canCreateCustomers} onNew={() => setShowNewCustomer(true)} />
+              <Customers
+                customers={customers}
+                canCreate={canCreateCustomers}
+                canUpdate={canUpdateCustomers}
+                onNew={() => setShowNewCustomer(true)}
+                onEdit={setEditingCustomer}
+              />
             )}
             {page === "products" && (
               <Products
@@ -586,8 +614,17 @@ const CrmApp: React.FC = () => {
       )}
       {showNewCustomer && (
         <NewCustomerForm
+          customer={null}
           onSave={handleSaveCustomer}
           onClose={() => setShowNewCustomer(false)}
+          onToast={pushToast}
+        />
+      )}
+      {editingCustomer && (
+        <NewCustomerForm
+          customer={editingCustomer}
+          onSave={handleUpdateCustomer}
+          onClose={() => setEditingCustomer(null)}
           onToast={pushToast}
         />
       )}

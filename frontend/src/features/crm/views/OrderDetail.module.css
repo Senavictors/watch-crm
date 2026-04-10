@@ -61,6 +61,41 @@
   font-size: 12px;
 }
 
+.itemsSection {
+  margin-bottom: 20px;
+}
+
+.itemsList {
+  display: grid;
+  gap: 8px;
+}
+
+.itemCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--crm-input-bg);
+  border: 1px solid var(--crm-table-border);
+}
+
+.itemTitle {
+  color: var(--crm-text);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.itemNumbers {
+  display: grid;
+  gap: 4px;
+  justify-items: end;
+  color: var(--crm-accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .finance {
   background: var(--crm-input-bg);
   border-radius: 14px;

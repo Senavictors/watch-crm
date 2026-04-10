@@ -129,7 +129,10 @@ const OrderList: React.FC<Props> = ({
                 <td className={styles.cellText}>
                   {customers.find((c) => c.id === o.customerId)?.name || "—"}
                 </td>
-                <td className={styles.cellText}>{o.productName}</td>
+                <td className={styles.cellText}>
+                  {o.productName}
+                  {o.itemsCount > 1 ? ` (${o.itemsCount} itens)` : ""}
+                </td>
                 <td className={styles.cellMuted}>{o.channel}</td>
                 <td className={styles.cellMuted}>{o.seller}</td>
                 <td className={styles.cellAccent}>

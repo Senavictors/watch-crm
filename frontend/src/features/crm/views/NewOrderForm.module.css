@@ -1,5 +1,5 @@
 .modal {
-  width: 540px;
+  width: 760px;
 }
 
 .fullSpan {
@@ -24,6 +24,61 @@
   font-weight: 700;
 }
 
+.itemsHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.itemsHint {
+  color: var(--crm-text-soft);
+  font-size: 12px;
+}
+
+.itemsList {
+  display: grid;
+  gap: 10px;
+}
+
+.itemCard {
+  border: 1px solid var(--crm-table-border);
+  border-radius: 14px;
+  padding: 12px;
+  background: var(--crm-input-bg);
+}
+
+.itemRow {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(3, minmax(110px, 1fr)) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.itemFieldWide {
+  min-width: 0;
+}
+
+.itemField {
+  min-width: 0;
+}
+
+.itemRemove {
+  display: flex;
+  justify-content: flex-end;
+  padding-bottom: 4px;
+}
+
+.itemMeta {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  color: var(--crm-text-muted);
+  font-size: 12px;
+}
+
 .actions {
   display: flex;
   gap: 8px;
@@ -40,4 +95,18 @@
 
 .actionButton:hover {
   transform: translateY(-2px);
+}
+
+@media (max-width: 840px) {
+  .modal {
+    width: min(96vw, 760px);
+  }
+
+  .itemRow {
+    grid-template-columns: 1fr;
+  }
+
+  .itemRemove {
+    justify-content: flex-start;
+  }
 }

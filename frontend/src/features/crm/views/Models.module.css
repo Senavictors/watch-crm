@@ -82,6 +82,13 @@
   font-size: 12px;
 }
 
+.type {
+  color: var(--crm-primary);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
 .quality {
   color: var(--crm-text-soft);
   font-size: 12px;

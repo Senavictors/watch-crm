@@ -19,6 +19,16 @@ class Customer extends Model
         'owner_user_id',
     ];
 
+    public function setEmailAttribute(?string $value): void
+    {
+        $this->attributes['email'] = $this->nullableString($value);
+    }
+
+    public function setInstagramAttribute(?string $value): void
+    {
+        $this->attributes['instagram'] = $this->nullableString($value);
+    }
+
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
@@ -27,5 +37,12 @@ class Customer extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_user_id');
+    }
+
+    private function nullableString(?string $value): ?string
+    {
+        $trimmed = $value !== null ? trim($value) : null;
+
+        return $trimmed !== '' ? $trimmed : null;
     }
 }

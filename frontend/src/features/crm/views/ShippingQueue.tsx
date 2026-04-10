@@ -55,7 +55,7 @@ const ShippingQueue: React.FC<Props> = ({ orders, customers }) => {
                     #{o.id} — {o.productName}
                   </div>
                   <div className={styles.infoMeta}>
-                    {customer?.name} · {o.shippingMethod} · {o.channel}
+                    {customer?.name} · {o.itemsCount} item(ns) · {o.shippingMethod} · {o.channel}
                   </div>
                 </div>
                 <div className={styles.right}>

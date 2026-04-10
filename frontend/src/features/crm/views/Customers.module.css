@@ -43,11 +43,22 @@
   gap: 14px;
 }
 
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
 .cardName {
   color: var(--crm-text);
   font-weight: 700;
   font-size: 15px;
-  margin-bottom: 6px;
+}
+
+.cardAction {
+  flex-shrink: 0;
 }
 
 .cardMuted {

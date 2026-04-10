@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\WatchModel;
 use App\Models\User;
 use App\Support\OrderMetadata;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -45,7 +48,7 @@ class OrderController extends Controller
         }
 
         $orders = $query
-            ->with('sellerUser')
+            ->with(['sellerUser', 'items'])
             ->orderByDesc('sale_date')
             ->get()
             ->map(fn (Order $order) => $this->toPayload($order));
@@ -56,30 +59,38 @@ class OrderController extends Controller
     public function store(Request $request)
     {
         $data = $this->validateData($request);
-        $product = Product::query()->with(['brand', 'watchModel.quality'])->findOrFail($data['productId']);
+        $seller = User::query()->findOrFail($data['sellerUserId']);
+        $products = $this->productsById($data['items']);
+        $totals = $this->calculateTotals($data['items'], $products);
 
-        $order = Order::create([
-            'customer_id' => $data['customerId'],
-            'created_by_user_id' => $request->user()->id,
-            'seller_user_id' => $data['sellerUserId'],
-            'product_id' => $product->id,
-            'product_name' => $this->productLabel($product),
-            'channel' => $data['channel'],
-            'seller' => User::query()->findOrFail($data['sellerUserId'])->name,
-            'status' => $data['status'] ?? 'Novo',
-            'sale_price' => $data['salePrice'],
-            'cost' => $product->cost,
-            'discount' => $data['discount'] ?? 0,
-            'freight' => $data['freight'] ?? 0,
-            'channel_fee' => $data['channelFee'] ?? 0,
-            'payment_method' => $data['paymentMethod'] ?? null,
-            'shipping_method' => $data['shippingMethod'],
-            'tracking_code' => $data['trackingCode'] ?? null,
-            'sale_date' => $data['saleDate'],
-            'shipped_date' => $data['shippedDate'] ?? null,
-            'notes' => $data['notes'] ?? null,
-        ]);
-        $order->load('sellerUser');
+        $order = DB::transaction(function () use ($data, $products, $request, $seller, $totals) {
+            $order = Order::create([
+                'customer_id' => $data['customerId'],
+                'created_by_user_id' => $request->user()->id,
+                'seller_user_id' => $data['sellerUserId'],
+                'product_id' => $totals['first_product_id'],
+                'product_name' => $totals['product_name'],
+                'channel' => $data['channel'],
+                'seller' => $seller->name,
+                'status' => $data['status'] ?? 'Novo',
+                'sale_price' => $totals['sale_price'],
+                'cost' => $totals['cost'],
+                'discount' => $totals['discount'],
+                'freight' => $data['freight'] ?? 0,
+                'channel_fee' => $data['channelFee'] ?? 0,
+                'payment_method' => $data['paymentMethod'] ?? null,
+                'shipping_method' => $data['shippingMethod'],
+                'tracking_code' => $data['trackingCode'] ?? null,
+                'sale_date' => $data['saleDate'],
+                'shipped_date' => $data['shippedDate'] ?? null,
+                'notes' => $data['notes'] ?? null,
+            ]);
+
+            $this->syncItems($order, $data['items'], $products);
+
+            return $order;
+        });
+        $order->load(['sellerUser', 'items']);
 
         $this->audit('orders.created', 'Pedido criado.', $order, [
             'seller_user_id' => $order->seller_user_id,
@@ -91,7 +102,7 @@ class OrderController extends Controller
 
     public function update(Request $request, int $id)
     {
-        $order = Order::query()->with('sellerUser')->find($id);
+        $order = Order::query()->with(['sellerUser', 'items'])->find($id);
 
         if (! $order) {
             return response()->json(['message' => 'Pedido não encontrado.'], 404);
@@ -112,18 +123,11 @@ class OrderController extends Controller
             $order->seller = $seller->name;
         }
 
-        if (array_key_exists('productId', $data)) {
-            $product = Product::query()->with(['brand', 'watchModel.quality'])->findOrFail($data['productId']);
-            $order->product_id = $product->id;
-            $order->product_name = $this->productLabel($product);
-            $order->cost = $product->cost;
-        }
+        $products = null;
 
         $fieldMap = [
             'channel' => 'channel',
             'status' => 'status',
-            'salePrice' => 'sale_price',
-            'discount' => 'discount',
             'freight' => 'freight',
             'channelFee' => 'channel_fee',
             'paymentMethod' => 'payment_method',
@@ -140,8 +144,24 @@ class OrderController extends Controller
             }
         }
 
-        $order->save();
-        $order->load('sellerUser');
+        DB::transaction(function () use (&$order, $data, &$products) {
+            if (array_key_exists('items', $data)) {
+                $products = $this->productsById($data['items']);
+                $totals = $this->calculateTotals($data['items'], $products);
+                $order->product_id = $totals['first_product_id'];
+                $order->product_name = $totals['product_name'];
+                $order->sale_price = $totals['sale_price'];
+                $order->cost = $totals['cost'];
+                $order->discount = $totals['discount'];
+            }
+
+            $order->save();
+
+            if (array_key_exists('items', $data) && $products !== null) {
+                $this->syncItems($order, $data['items'], $products);
+            }
+        });
+        $order->load(['sellerUser', 'items']);
 
         $metadata = [
             'seller_user_id' => $order->seller_user_id,
@@ -185,11 +205,13 @@ class OrderController extends Controller
                     ->where('role', 'vendedor')
                     ->where('is_active', true)),
             ],
-            'productId' => [$required, 'integer', Rule::exists('products', 'id')],
+            'items' => [$required, 'array', 'min:1'],
+            'items.*.productId' => ['required', 'integer', Rule::exists('products', 'id')],
+            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.unitPrice' => ['required', 'numeric', 'min:0'],
+            'items.*.unitDiscount' => ['required', 'numeric', 'min:0'],
             'channel' => [$required, 'string', Rule::in(OrderMetadata::CHANNELS)],
             'status' => [$partial ? 'sometimes' : 'nullable', 'string', Rule::in(OrderMetadata::STATUSES)],
-            'salePrice' => [$required, 'numeric', 'min:0'],
-            'discount' => [$partial ? 'sometimes' : 'nullable', 'numeric', 'min:0'],
             'freight' => [$partial ? 'sometimes' : 'nullable', 'numeric', 'min:0'],
             'channelFee' => [$partial ? 'sometimes' : 'nullable', 'numeric', 'min:0'],
             'paymentMethod' => [$partial ? 'sometimes' : 'nullable', 'string', Rule::in(OrderMetadata::PAYMENT_METHODS)],
@@ -205,13 +227,17 @@ class OrderController extends Controller
     {
         $brand = $product->brand?->name ?? '—';
         $model = $product->watchModel?->name ?? '—';
-        $quality = $product->watchModel?->quality?->name;
+        $quality = $product->watchModel?->product_type === WatchModel::TYPE_WATCH
+            ? $product->watchModel?->quality?->name
+            : null;
 
         return trim($brand.' '.$model.($quality ? ' · '.$quality : ''));
     }
 
     private function toPayload(Order $o): array
     {
+        $items = $o->relationLoaded('items') ? $o->items : $o->items()->get();
+
         return [
             'id' => $o->id,
             'customerId' => $o->customer_id,
@@ -223,6 +249,8 @@ class OrderController extends Controller
             'status' => $o->status,
             'productId' => $o->product_id,
             'productName' => $o->product_name,
+            'itemsCount' => $items->sum('quantity'),
+            'items' => $items->map(fn (OrderItem $item) => $this->toItemPayload($item))->values(),
             'salePrice' => (float) $o->sale_price,
             'cost' => (float) $o->cost,
             'discount' => (float) $o->discount,
@@ -235,5 +263,106 @@ class OrderController extends Controller
             'shippedDate' => $o->shipped_date ?? '',
             'notes' => $o->notes ?? '',
         ];
+    }
+
+    private function toItemPayload(OrderItem $item): array
+    {
+        return [
+            'id' => $item->id,
+            'productId' => $item->product_id,
+            'productName' => $item->product_name,
+            'productType' => $item->product_type,
+            'brandName' => $item->brand_name,
+            'modelName' => $item->model_name,
+            'qualityName' => $item->quality_name,
+            'quantity' => $item->quantity,
+            'unitPrice' => (float) $item->unit_price,
+            'unitCost' => (float) $item->unit_cost,
+            'unitDiscount' => (float) $item->unit_discount,
+            'linePrice' => (float) $item->unit_price * $item->quantity,
+            'lineCost' => (float) $item->unit_cost * $item->quantity,
+            'lineDiscount' => (float) $item->unit_discount * $item->quantity,
+        ];
+    }
+
+    private function productsById(array $items)
+    {
+        return Product::query()
+            ->with(['brand', 'watchModel.quality'])
+            ->whereIn('id', collect($items)->pluck('productId')->all())
+            ->get()
+            ->keyBy('id');
+    }
+
+    private function calculateTotals(array $items, $products): array
+    {
+        $salePrice = 0;
+        $cost = 0;
+        $discount = 0;
+
+        foreach ($items as $item) {
+            /** @var Product $product */
+            $product = $products->get($item['productId']);
+            $quantity = (int) $item['quantity'];
+            $salePrice += (float) $item['unitPrice'] * $quantity;
+            $cost += (float) $product->cost * $quantity;
+            $discount += (float) $item['unitDiscount'] * $quantity;
+        }
+
+        return [
+            'sale_price' => $salePrice,
+            'cost' => $cost,
+            'discount' => $discount,
+            'product_name' => $this->productSummary($items, $products),
+            'first_product_id' => $items[0]['productId'] ?? null,
+        ];
+    }
+
+    private function productSummary(array $items, $products): string
+    {
+        $totalUnits = collect($items)->sum('quantity');
+        /** @var Product|null $firstProduct */
+        $firstProduct = isset($items[0]['productId']) ? $products->get($items[0]['productId']) : null;
+        $firstLabel = $firstProduct ? $this->productLabel($firstProduct) : 'Produto';
+
+        if (count($items) === 1) {
+            $quantity = (int) ($items[0]['quantity'] ?? 1);
+
+            return $quantity > 1 ? $firstLabel.' x'.$quantity : $firstLabel;
+        }
+
+        return $firstLabel.' + '.max($totalUnits - 1, 0).' item(ns)';
+    }
+
+    private function syncItems(Order $order, array $items, $products): void
+    {
+        $order->items()->delete();
+
+        $payload = collect($items)
+            ->map(function (array $item) use ($order, $products) {
+                /** @var Product $product */
+                $product = $products->get($item['productId']);
+
+                return [
+                    'order_id' => $order->id,
+                    'product_id' => $product->id,
+                    'product_name' => $this->productLabel($product),
+                    'product_type' => $product->watchModel?->product_type ?? WatchModel::TYPE_WATCH,
+                    'brand_name' => $product->brand?->name,
+                    'model_name' => $product->watchModel?->name,
+                    'quality_name' => $product->watchModel?->product_type === WatchModel::TYPE_WATCH
+                        ? $product->watchModel?->quality?->name
+                        : null,
+                    'quantity' => (int) $item['quantity'],
+                    'unit_price' => (float) $item['unitPrice'],
+                    'unit_cost' => (float) $product->cost,
+                    'unit_discount' => (float) $item['unitDiscount'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            })
+            ->all();
+
+        $order->items()->insert($payload);
     }
 }

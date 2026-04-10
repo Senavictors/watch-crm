@@ -15,6 +15,7 @@ class BrandSeeder extends Seeder
             ['id' => 3, 'name' => 'TISSOT'],
             ['id' => 4, 'name' => 'Seiko'],
             ['id' => 5, 'name' => 'Casio'],
+            ['id' => 6, 'name' => 'Rolex'],
         ];
 
         Brand::upsert($data, ['id']);

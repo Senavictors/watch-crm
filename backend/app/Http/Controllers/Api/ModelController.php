@@ -23,6 +23,8 @@ class ModelController extends Controller
 
     public function store(Request $request)
     {
+        $productType = $request->input('productType', WatchModel::TYPE_WATCH);
+
         $data = $request->validate([
             'name' => [
                 'required',
@@ -30,10 +32,18 @@ class ModelController extends Controller
                 'max:255',
                 Rule::unique('models', 'name')
                     ->where('brand_id', $request->input('brandId'))
-                    ->where('quality_id', $request->input('qualityId')),
+                    ->where('product_type', $productType)
+                    ->where('quality_key', $this->qualityKey($productType, $request->input('qualityId'))),
             ],
             'brandId' => ['required', 'integer', 'exists:brands,id'],
-            'qualityId' => ['required', 'integer', 'exists:qualities,id'],
+            'productType' => ['required', 'string', Rule::in([WatchModel::TYPE_WATCH, WatchModel::TYPE_BOX])],
+            'qualityId' => [
+                Rule::requiredIf($productType === WatchModel::TYPE_WATCH),
+                Rule::prohibitedIf($productType === WatchModel::TYPE_BOX),
+                'nullable',
+                'integer',
+                'exists:qualities,id',
+            ],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
         ]);
 
@@ -45,7 +55,9 @@ class ModelController extends Controller
         $model = WatchModel::create([
             'name' => $data['name'],
             'brand_id' => $data['brandId'],
-            'quality_id' => $data['qualityId'],
+            'product_type' => $data['productType'],
+            'quality_id' => $data['productType'] === WatchModel::TYPE_WATCH ? $data['qualityId'] : null,
+            'quality_key' => $this->qualityKey($data['productType'], $data['qualityId'] ?? null),
             'image_path' => $imagePath,
         ]);
         $model->load(['brand', 'quality']);
@@ -63,7 +75,10 @@ class ModelController extends Controller
         }
 
         $brandId = $request->input('brandId', $model->brand_id);
-        $qualityId = $request->input('qualityId', $model->quality_id);
+        $productType = $request->input('productType', $model->product_type);
+        $qualityId = $productType === WatchModel::TYPE_WATCH
+            ? $request->input('qualityId', $model->quality_id)
+            : null;
 
         $data = $request->validate([
             'name' => [
@@ -72,11 +87,19 @@ class ModelController extends Controller
                 'max:255',
                 Rule::unique('models', 'name')
                     ->where('brand_id', $brandId)
-                    ->where('quality_id', $qualityId)
+                    ->where('product_type', $productType)
+                    ->where('quality_key', $this->qualityKey($productType, $qualityId))
                     ->ignore($model->id),
             ],
             'brandId' => ['sometimes', 'integer', 'exists:brands,id'],
-            'qualityId' => ['sometimes', 'integer', 'exists:qualities,id'],
+            'productType' => ['sometimes', 'string', Rule::in([WatchModel::TYPE_WATCH, WatchModel::TYPE_BOX])],
+            'qualityId' => [
+                'sometimes',
+                Rule::prohibitedIf($productType === WatchModel::TYPE_BOX),
+                'nullable',
+                'integer',
+                'exists:qualities,id',
+            ],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
         ]);
 
@@ -95,6 +118,28 @@ class ModelController extends Controller
             $data['quality_id'] = $data['qualityId'];
             unset($data['qualityId']);
         }
+        if (array_key_exists('productType', $data)) {
+            $data['product_type'] = $data['productType'];
+            unset($data['productType']);
+        }
+
+        $resolvedType = $data['product_type'] ?? $model->product_type;
+        if (
+            $resolvedType === WatchModel::TYPE_WATCH
+            && (($data['quality_id'] ?? $model->quality_id) === null)
+        ) {
+            return response()->json([
+                'message' => 'A qualidade é obrigatória para relógios.',
+                'errors' => [
+                    'qualityId' => ['A qualidade é obrigatória para relógios.'],
+                ],
+            ], 422);
+        }
+
+        $data['quality_id'] = $resolvedType === WatchModel::TYPE_WATCH
+            ? ($data['quality_id'] ?? $model->quality_id)
+            : null;
+        $data['quality_key'] = $this->qualityKey($resolvedType, $data['quality_id']);
 
         $model->fill($data);
         $model->save();
@@ -125,9 +170,19 @@ class ModelController extends Controller
             'brandId' => $model->brand_id,
             'brandName' => $model->brand?->name,
             'name' => $model->name,
+            'productType' => $model->product_type,
             'qualityId' => $model->quality_id,
             'qualityName' => $model->quality?->name,
             'imageUrl' => $model->image_path ? url(Storage::url($model->image_path)) : null,
         ];
+    }
+
+    private function qualityKey(string $productType, mixed $qualityId): int
+    {
+        if ($productType === WatchModel::TYPE_BOX) {
+            return 0;
+        }
+
+        return (int) $qualityId;
     }
 }

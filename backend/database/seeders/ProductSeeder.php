@@ -18,6 +18,7 @@ class ProductSeeder extends Seeder
             ['id' => 3, 'brand_id' => 3, 'model_id' => 3, 'cost' => 350, 'price' => 680, 'stock' => 'SUPPLIER', 'qty' => 0],
             ['id' => 4, 'brand_id' => 4, 'model_id' => 4, 'cost' => 480, 'price' => 890, 'stock' => 'IN_STOCK', 'qty' => 2],
             ['id' => 5, 'brand_id' => 5, 'model_id' => 5, 'cost' => 90, 'price' => 170, 'stock' => 'SUPPLIER', 'qty' => 0],
+            ['id' => 6, 'brand_id' => 6, 'model_id' => 6, 'cost' => 80, 'price' => 150, 'stock' => 'IN_STOCK', 'qty' => 6],
         ];
         Product::upsert($data, ['id']);
     }

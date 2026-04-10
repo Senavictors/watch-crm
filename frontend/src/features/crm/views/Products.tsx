@@ -1,8 +1,8 @@
 "use client";
 import React from "react";
 import { Product } from "../types";
+import { fmtBRL, productTypeLabel } from "../helpers";
 import { Btn, Card } from "../ui/Primitives";
-import { fmtBRL } from "../helpers";
 import styles from "./Products.module.css";
 
 type Props = {
@@ -46,7 +46,11 @@ const Products: React.FC<Props> = ({ products, canCreate, compact, onNew }) => {
                       <div className={styles.name}>{p.brand || "—"}</div>
                       <div className={styles.sub}>
                         {p.model || "—"}
-                        {p.modelQualityName ? ` · ${p.modelQualityName}` : ""}
+                        {p.productType === "BOX"
+                          ? ` · ${productTypeLabel(p.productType)}`
+                          : p.modelQualityName
+                            ? ` · ${p.modelQualityName}`
+                            : ""}
                       </div>
                     </td>
                   )}

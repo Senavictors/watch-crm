@@ -116,6 +116,7 @@ class ProductController extends Controller
             'modelId' => $product->model_id,
             'brand' => $product->brand?->name,
             'model' => $product->watchModel?->name,
+            'productType' => $product->watchModel?->product_type ?? 'WATCH',
             'modelQualityName' => $product->watchModel?->quality?->name,
             'cost' => (float) $product->cost,
             'price' => (float) $product->price,

@@ -1,28 +1,32 @@
 "use client";
 import React, { useState } from "react";
 import { Btn, Input } from "../ui/Primitives";
-import { Customer } from "../types";
+import { Customer, CustomerInput } from "../types";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./NewCustomerForm.module.css";
 
 type Props = {
-  onSave: (customer: Omit<Customer, "id">) => void;
+  customer?: Customer | null;
+  onSave: (customer: CustomerInput) => void;
   onClose: () => void;
   onToast: (message: string, variant?: "success" | "error") => void;
 };
 
-const NewCustomerForm: React.FC<Props> = ({ onSave, onClose, onToast }) => {
+const NewCustomerForm: React.FC<Props> = ({ customer, onSave, onClose, onToast }) => {
   const [form, setForm] = useState<{
     name: string;
     phone: string;
     email: string;
     instagram: string;
   }>({
-    name: "",
-    phone: "",
-    email: "",
-    instagram: "",
+    name: customer?.name ?? "",
+    phone: customer?.phone ?? "",
+    email: customer?.email ?? "",
+    instagram: customer?.instagram ?? "",
   });
+
+  const isEditing = Boolean(customer);
+
   function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
     setForm((f) => ({ ...f, [k]: v }));
   }
@@ -35,16 +39,16 @@ const NewCustomerForm: React.FC<Props> = ({ onSave, onClose, onToast }) => {
     onSave({
       name: form.name.trim(),
       phone: form.phone.trim(),
-      email: form.email.trim() || undefined,
-      instagram: form.instagram.trim(),
-    } as Omit<Customer, "id">);
+      email: form.email.trim() || null,
+      instagram: form.instagram.trim() || null,
+    });
   }
 
   return (
     <div className={modalStyles.overlay}>
       <div className={`${modalStyles.modal} ${styles.modal}`}>
         <div className={modalStyles.header}>
-          <h3 className={modalStyles.title}>Novo Cliente</h3>
+          <h3 className={modalStyles.title}>{isEditing ? "Editar Cliente" : "Novo Cliente"}</h3>
           <button onClick={onClose} className={modalStyles.close}>
             ×
           </button>
@@ -66,7 +70,7 @@ const NewCustomerForm: React.FC<Props> = ({ onSave, onClose, onToast }) => {
             Cancelar
           </Btn>
           <Btn onClick={handleSubmit} variant="primary" className={styles.actionButton}>
-            Salvar Cliente
+            {isEditing ? "Salvar Alterações" : "Salvar Cliente"}
           </Btn>
         </div>
       </div>

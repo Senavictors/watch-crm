@@ -7,13 +7,17 @@ import styles from "./Customers.module.css";
 type Props = {
   customers: Customer[];
   canCreate: boolean;
+  canUpdate: boolean;
   onNew: () => void;
+  onEdit: (customer: Customer) => void;
 };
 
-const Customers: React.FC<Props> = ({ customers, canCreate, onNew }) => {
+const Customers: React.FC<Props> = ({ customers, canCreate, canUpdate, onNew, onEdit }) => {
   const [search, setSearch] = useState("");
   const filtered = customers.filter(
-    (c) => !search || `${c.name} ${c.phone} ${c.instagram}`.toLowerCase().includes(search.toLowerCase())
+    (c) =>
+      !search ||
+      `${c.name} ${c.phone} ${c.email ?? ""} ${c.instagram ?? ""}`.toLowerCase().includes(search.toLowerCase())
   );
   return (
     <div>
@@ -34,7 +38,14 @@ const Customers: React.FC<Props> = ({ customers, canCreate, onNew }) => {
       <div className={styles.grid}>
         {filtered.map((c) => (
           <Card key={c.id}>
-            <div className={styles.cardName}>{c.name}</div>
+            <div className={styles.cardHeader}>
+              <div className={styles.cardName}>{c.name}</div>
+              {canUpdate && (
+                <Btn onClick={() => onEdit(c)} variant="secondary" small className={styles.cardAction}>
+                  Editar
+                </Btn>
+              )}
+            </div>
             <div className={styles.cardMuted}>📱 {c.phone}</div>
             {c.email && (
               <div className={styles.cardMuted}>✉️ {c.email}</div>

@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Btn, Input, Select } from "../ui/Primitives";
 import { Brand, ProductInput, StockOrigin, WatchModel } from "../types";
+import { modelLabel } from "../helpers";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./NewProductForm.module.css";
 
@@ -77,7 +78,7 @@ const NewProductForm: React.FC<Props> = ({ brands, models, onSave, onClose, onTo
             <option value="">Selecionar modelo...</option>
             {models.map((m) => (
               <option key={m.id} value={m.id}>
-                {m.name} — {m.qualityName ?? "—"}
+                {modelLabel(m)}
               </option>
             ))}
           </Select>

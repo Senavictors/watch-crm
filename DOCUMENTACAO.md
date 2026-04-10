@@ -1,290 +1,256 @@
 # Queiroz Prime CRM — Documentação
 
 ## Visão Geral
-- Frontend: Next.js (App Router) + React + TypeScript em `frontend/`.
-- Backend: Laravel 12 (PHP 8.2+) em `backend/`.
-- Objetivo: CRM para relojoaria com cadastros, catálogo, pedidos, envios e dashboards.
-- Documentação específica de login e autorização: `docs/login-e-autorizacao.md`.
+- Frontend em `frontend/`: Next.js (App Router) + React + TypeScript.
+- Backend em `backend/`: Laravel 12.
+- Objetivo: CRM para relojoaria com autenticação stateful, catálogo, pedidos, fila de envios e dashboards.
+- Documentação complementar de login e autorização: `docs/login-e-autorizacao.md`.
 
-## Arquitetura
-- Front
-  - Entrada: `frontend/src/app/page.tsx` monta o app `CrmApp`.
-  - Features: `frontend/src/features/crm/*`
-    - `CrmApp.tsx`: container principal, sessão autenticada, navegação e modais.
-    - `components/*`: shell do app, sidebar, background, toasts, modal e tema.
-    - `views/*`: telas (Dashboard, Pedidos, Envios, Clientes, Produtos, Modelos, Configurações e Login).
-    - `ui/Primitives.tsx`: componentes base (Card, Badge, Input, Select, Btn).
-    - `types.ts`: tipagens do domínio, usuário autenticado e permissões.
-    - `api.ts`: utilitários de sessão, CSRF e chamadas autenticadas.
-    - `helpers.ts`: formatação e cálculos (BRL, margem, lucro, próxima postagem).
-    - `data/mock.ts`: NAV e listas de referência (canais, vendedores, métodos de envio/pagamento).
-  - Carregamento de dados: `CrmApp` primeiro consulta `GET /api/me`; se autenticado, consome a API em `NEXT_PUBLIC_API_BASE_URL` (padrão `http://localhost:8000/api`) para clientes, produtos, pedidos, marcas, modelos e qualidades. A criação de pedidos ainda é local no frontend.
+## Resumo da Última Evolução
+- Pedidos passaram a suportar múltiplos itens com linhas próprias (`order_items`).
+- O catálogo agora diferencia produtos e modelos por tipo: `WATCH` e `BOX`.
+- Modelos `BOX` não precisam de qualidade; modelos `WATCH` continuam exigindo.
+- O frontend deixou de simular a criação de pedidos localmente e passou a criar/atualizar dados reais via API.
+- Clientes ganharam edição e saneamento de campos opcionais no backend.
+- O Docker do frontend foi ajustado para usar `next dev --webpack`, evitando o encerramento do processo no container.
 
-- Back
-  - Rotas API: `backend/routes/api.php`
-    - Endpoints de autenticação: `csrf-cookie`, `login`, `logout`, `me`, `forgot-password`, `reset-password`
-    - Endpoints do CRM protegidos por `auth` + `permission:*`
-  - Controladores: `backend/app/Http/Controllers/Api/*Controller.php`
-  - Modelos: `backend/app/Models/{User,Customer,Product,Order,Brand,WatchModel,Quality,AuditLog}.php`
-  - Migrations: `backend/database/migrations/*`
-  - Seeders: `backend/database/seeders/*Seeder.php`
-  - CORS: `backend/config/cors.php` autoriza `http://localhost:4001` com credenciais.
-
-## Frontend — Arquitetura Detalhada
-### Estrutura de Pastas (frontend/)
-```
-frontend/
-├─ public/                     # Assets estáticos (svg, imagens, favicon)
-├─ src/
-│  ├─ app/                      # Next.js App Router
-│  │  ├─ layout.tsx             # Layout raiz + fontes + script de tema
-│  │  ├─ globals.css            # Tokens de design e reset global
-│  │  ├─ page.tsx               # Entry point que monta o CRM
-│  │  ├─ page.module.css        # CSS módulo default do Next (não usado no CRM)
-│  │  └─ favicon.ico
-│  └─ features/
-│     └─ crm/
-│        ├─ CrmApp.tsx          # Container principal, sessão, navegação e modais
-│        ├─ api.ts              # Helpers para CSRF, cookies e fetch autenticado
-│        ├─ components/         # Shell, background, sidebar, toasts, modal, tema
-│        ├─ data/
-│        │  └─ mock.ts          # Constantes de domínio e NAV
-│        ├─ ui/
-│        │  └─ Primitives.tsx   # Componentes base (Card, Badge, Input, Btn)
-│        ├─ views/              # Telas e formulários
-│        │  ├─ Dashboard.tsx
-│        │  ├─ OrderList.tsx
-│        │  ├─ OrderDetail.tsx
-│        │  ├─ ShippingQueue.tsx
-│        │  ├─ Customers.tsx
-│        │  ├─ Products.tsx
-│        │  ├─ Models.tsx
-│        │  ├─ Brands.tsx
-│        │  ├─ Settings.tsx
-│        │  ├─ LoginView.tsx
-│        │  ├─ NewOrderForm.tsx
-│        │  ├─ NewProductForm.tsx
-│        │  ├─ NewCustomerForm.tsx
-│        │  ├─ NewModelForm.tsx
-│        │  └─ NewBrandForm.tsx
-│        ├─ helpers.ts          # Cálculos e formatação (BRL, margem, datas)
-│        └─ types.ts            # Tipos do domínio (Order, Product, Customer)
-├─ next.config.ts
-├─ package.json
-└─ tsconfig.json
-```
-
-### Fluxo de Renderização
-- `page.tsx` apenas retorna `<CrmApp />` e concentra a UI no módulo de CRM.  
-  Referência: [page.tsx](file:///Users/victorhugo/Documents/watch-crm/frontend/src/app/page.tsx)
+## Arquitetura Geral
+### Frontend
+- Entrada: `frontend/src/app/page.tsx` monta o `CrmApp`.
+- Núcleo da aplicação: `frontend/src/features/crm/*`.
 - `CrmApp.tsx` controla:
-  - Estado de sessão (`unknown`, `authenticated`, `unauthenticated`).
-  - Bootstrap do usuário por `GET /api/me`.
-  - Navegação por estado (`page`) usando `NAV` de `data/mock.ts`.
-  - Carregamento autenticado dos dados com `fetch` na API (`NEXT_PUBLIC_API_BASE_URL`).
-  - Modais de criação e detalhe (Pedidos, Produtos, Clientes, Modelos).
-  - Sistema de toasts para feedback visual.
-  Referência: [CrmApp.tsx](file:///Users/victorhugo/Documents/watch-crm/frontend/src/features/crm/CrmApp.tsx)
-- Cada tela está isolada em `views/*`, consumindo props simples e usando os componentes base de `ui/Primitives.tsx`.
-  Referência: [views](file:///Users/victorhugo/Documents/watch-crm/frontend/src/features/crm/views)
-  - A tela de Configurações centraliza cadastros de Marcas e Qualidades.
-  - A tela `LoginView` concentra a autenticação inicial da aplicação.
+  - estado de sessão;
+  - bootstrap do usuário com `GET /api/me`;
+  - carregamento autenticado de `customers`, `products`, `orders`, `orders/metadata`, `brands`, `models` e `qualities`;
+  - criação de pedidos, clientes, produtos, marcas, qualidades e modelos via API;
+  - edição de clientes e atualização de status de pedidos.
 
-### Base de Referência (MVP)
-- O layout original e a lógica de MVP vieram de `crm-relogios.jsx`, que foi modularizado e tipado no diretório `features/crm`.
-  Referência: [crm-relogios.jsx](file:///Users/victorhugo/Documents/watch-crm/crm-relogios.jsx)
-- Arquivos de inspiração visual e animações:
-  - [design-system.html](file:///Users/victorhugo/Documents/watch-crm/fluxora.aura.build/design-system.html)
-  - [index.html](file:///Users/victorhugo/Documents/watch-crm/fluxora.aura.build/index.html)
-  - [predictive-analytics-feature-grid-section.html](file:///Users/victorhugo/Documents/watch-crm/fluxora.aura.build/predictive-analytics-feature-grid-section.html)
+### Backend
+- Rotas centralizadas em `backend/routes/api.php`.
+- Controllers REST para `customers`, `products`, `brands`, `qualities`, `models` e `orders`.
+- Sessão stateful via middleware `web` + `auth`.
+- Regras de autorização por `permission:*` e policies.
+- Migrations e seeders atualizados para suportar catálogo tipado e pedidos multi-itens.
 
-## Frontend — Estilização e UI
-### Tokens e Temas
-- As cores e tokens de UI ficam centralizados em `globals.css` via CSS variables `--crm-*`.
-  Referência: [globals.css](file:///Users/victorhugo/Documents/watch-crm/frontend/src/app/globals.css)
-- Tema claro/escuro funciona por `data-theme` no `<html>`:
-  - `:root` define o tema claro.
-  - `:root[data-theme="dark"]` define o tema escuro.
-  - `:root[data-theme="system"]` respeita `prefers-color-scheme`.
-- O tema é aplicado cedo no `layout.tsx` com um script inline, evitando flash de tema.
-  Referência: [layout.tsx](file:///Users/victorhugo/Documents/watch-crm/frontend/src/app/layout.tsx)
+## Frontend — Estrutura Relevante
+```text
+frontend/
+├─ src/app/
+│  ├─ layout.tsx
+│  ├─ globals.css
+│  └─ page.tsx
+└─ src/features/crm/
+   ├─ CrmApp.tsx
+   ├─ api.ts
+   ├─ helpers.ts
+   ├─ types.ts
+   ├─ components/
+   ├─ ui/
+   ├─ data/mock.ts
+   └─ views/
+      ├─ NewOrderForm.tsx
+      ├─ OrderList.tsx
+      ├─ OrderDetail.tsx
+      ├─ ShippingQueue.tsx
+      ├─ Customers.tsx
+      ├─ NewCustomerForm.tsx
+      ├─ Products.tsx
+      ├─ Models.tsx
+      └─ NewModelForm.tsx
+```
 
-### Estratégia de Estilo
-- A UI usa CSS Modules por view e por componente para manter consistência visual com tokens `--crm-*`.
-- Estilos inline ficaram apenas para valores dinâmicos (ex.: cores por status, delays de animação, barras proporcionais).
-- `ui/Primitives.tsx` concentra os padrões de UI:
-  - `Card` com vidro fosco (blur), bordas suaves e sombra.
-  - `Badge` e `StatCard` com cores derivadas do status e paleta.
-  - `Input`, `Select` e `Btn` com tokens de borda, fundo e tipografia.  
-  Referência: [Primitives.tsx](file:///Users/victorhugo/Documents/watch-crm/frontend/src/features/crm/ui/Primitives.tsx)
-- Animações são declaradas em `globals.css`:
-  - `.crm-animate-width` para barras (crescimento lateral).
-  - `.crm-animate-fade` para entradas suaves em listas/cards.  
-  Referência: [globals.css](file:///Users/victorhugo/Documents/watch-crm/frontend/src/app/globals.css)
+## Frontend — Fluxos Importantes
+### Sessão e carregamento inicial
+- `CrmApp` consulta `GET /api/me`.
+- Se autenticado, carrega em paralelo:
+  - `GET /api/customers`
+  - `GET /api/products`
+  - `GET /api/orders`
+  - `GET /api/orders/metadata`
+  - `GET /api/brands`
+  - `GET /api/models`
+  - `GET /api/qualities`
 
-### Fundo e Grid do CRM
-- O fundo do app é construído com camadas:
-  - Cor base (`--crm-bg`).
-  - Gradientes suaves (`--crm-bg-gradient`).
-  - Grid com baixa opacidade para textura sutil.  
-  Implementado no componente `Background`.
-  Referência: [Background.tsx](file:///Users/victorhugo/Documents/watch-crm/frontend/src/features/crm/components/Background/Background.tsx)
+### Pedidos
+- `NewOrderForm.tsx` agora trabalha com uma coleção de itens.
+- Cada item possui:
+  - `productId`
+  - `quantity`
+  - `unitPrice`
+  - `unitDiscount`
+- O formulário calcula resumo de venda bruta, desconto total, custo total, lucro estimado e origem do estoque.
+- `CrmApp.tsx` persiste o pedido com `POST /api/orders`.
+- `OrderList.tsx`, `OrderDetail.tsx` e `ShippingQueue.tsx` passaram a exibir `itemsCount` e dados mais fiéis do pedido.
 
-### Tipografia
-- A fonte principal aplicada ao CRM é `Inter`, carregada via `next/font` e exposta como `--font-inter`.
-- O layout global também define variáveis de fonte `Geist`, mantendo compatibilidade com outras páginas.
-  Referência: [layout.tsx](file:///Users/victorhugo/Documents/watch-crm/frontend/src/app/layout.tsx)
+### Catálogo
+- `NewModelForm.tsx` permite escolher `productType` (`WATCH` ou `BOX`).
+- A qualidade só aparece quando o tipo é `WATCH`.
+- `Models.tsx` e `Products.tsx` exibem o tipo do item e ajustam o rótulo visual quando o produto é uma caixa.
+- `helpers.ts` centraliza:
+  - `productTypeLabel`
+  - `modelLabel`
+  - `productLabel`
 
-### Componentização e Consistência
-- Telas reutilizam `Card`, `StatCard`, `Badge`, `Input`, `Select` e `Btn` para manter ritmo visual e hierarquia.
-- `AppShell`, `Sidebar` e `Background` consolidam o layout principal e o tema visual.
-- `Modal` e `Toasts` padronizam interações e feedbacks de usuário.
-- A `Sidebar` agora também exibe o usuário autenticado e a ação de logout.
-- Status de pedidos usam cores centralizadas em `data/mock.ts` (`STATUS_COLORS`) para garantir consistência.
-  Referências: [Primitives.tsx](file:///Users/victorhugo/Documents/watch-crm/frontend/src/features/crm/ui/Primitives.tsx), [mock.ts](file:///Users/victorhugo/Documents/watch-crm/frontend/src/features/crm/data/mock.ts), [Sidebar.tsx](file:///Users/victorhugo/Documents/watch-crm/frontend/src/features/crm/components/Sidebar/Sidebar.tsx)
+### Clientes
+- O frontend já cria e edita clientes pela API.
+- Busca de clientes considera nome, telefone, email e Instagram.
 
-### Regras de Envios
-- A sugestão de próxima postagem segue o calendário fixo de envios: segunda, quarta e sexta.
-  Referência: [helpers.ts](file:///Users/victorhugo/Documents/watch-crm/frontend/src/features/crm/helpers.ts)
+## Backend — Estrutura e Regras
+### Rotas principais
+- Auth:
+  - `GET /api/csrf-cookie`
+  - `POST /api/login`
+  - `POST /api/logout`
+  - `GET /api/me`
+  - `POST /api/forgot-password`
+  - `POST /api/reset-password`
+- CRM:
+  - `customers`, `products`, `brands`, `qualities`, `models`, `orders`, `orders/metadata`
 
-## Backend — Arquitetura Detalhada
-### Estrutura Principal (backend/)
-- Rotas: `backend/routes/api.php` centraliza os endpoints do CRM.
-- Controladores: `backend/app/Http/Controllers/Api/*Controller.php`.
-- Modelos Eloquent: `backend/app/Models/*`.
-- Policies: `backend/app/Policies/*`.
-- Middleware customizado: `backend/app/Http/Middleware/EnsureUserHasPermission.php`.
-- Suporte a permissões/auditoria: `backend/app/Support/*`.
-- Migrations: `backend/database/migrations/*`.
-- Seeders: `backend/database/seeders/*`.
+### Controllers impactados
+- `CustomerController`
+  - centralizou validação em `validatedData()`;
+  - mantém store/update alinhados.
+- `ModelController`
+  - passou a validar `productType`;
+  - exige `qualityId` apenas para `WATCH`;
+  - permite `BOX` sem qualidade;
+  - garante unicidade por `brand + name + product_type + quality_key`.
+- `ProductController`
+  - expõe `productType` no payload.
+- `OrderController`
+  - cria e atualiza pedidos com múltiplos itens;
+  - calcula totais a partir das linhas;
+  - carrega `sellerUser` e `items`;
+  - continua usando campos agregados no pedido para compatibilidade e resumo.
 
-### Rotas e Controladores
-- Auth: `AuthController` (`csrfCookie`, `login`, `logout`, `me`, `forgotPassword`, `resetPassword`).
-- Customers: `CustomerController` (index, store, update, destroy).
-- Products: `ProductController` (index, store, update, destroy).
-- Brands: `BrandController` (index, store, update, destroy).
-- Models: `ModelController` (index, store, update, destroy).
-- Qualities: `QualityController` (index, store, update, destroy).
-- Orders: `OrderController` (index).
-Referência: [api.php](file:///Users/victorhugo/Documents/watch-crm/backend/routes/api.php)
+## Banco de Dados e Modelos
+### Novos conceitos
+- `WatchModel` ganhou:
+  - `product_type`
+  - `quality_key`
+- `Order` ganhou relação `hasMany(OrderItem)`.
+- `Product` ganhou relação `hasMany(OrderItem)`.
+- Novo model `OrderItem`.
 
-### Modelos e Relações
-- User → hasMany Orders criados; hasMany Customers sob ownership.
-- Customer → hasMany Orders; belongsTo owner (`owner_user_id`).
-- Order → belongsTo Customer, Product e creator (`created_by_user_id`).
-- Product → belongsTo Brand e WatchModel; hasMany Orders.
-- Brand → hasMany WatchModels.
-- WatchModel → belongsTo Brand e Quality.
-- Quality → hasMany WatchModels.
-Referência: [Models](file:///Users/victorhugo/Documents/watch-crm/backend/app/Models)
+### Migrations novas
+- `2026_04_09_000006_add_product_type_to_models_table.php`
+  - adiciona `product_type`;
+  - adiciona `quality_key`;
+  - torna `quality_id` opcional;
+  - substitui a unique antiga por `models_catalog_unique`.
+- `2026_04_09_000007_create_order_items_table.php`
+  - cria `order_items`;
+  - torna `orders.product_id` anulável;
+  - migra pedidos legados para uma linha inicial em `order_items`.
 
-### Validações de Entrada
-- Customers: nome/telefone obrigatórios; email e instagram opcionais.
-- Products: valida brandId/modelId com relação de marca, custos numéricos, estoque e quantidade.
-- Brands/Qualities: nome único com validação de update.
-- Models: nome único por marca+qualidade, qualidade obrigatória, upload de imagem opcional.
-Referências: [CustomerController](file:///Users/victorhugo/Documents/watch-crm/backend/app/Http/Controllers/Api/CustomerController.php), [ProductController](file:///Users/victorhugo/Documents/watch-crm/backend/app/Http/Controllers/Api/ProductController.php), [ModelController](file:///Users/victorhugo/Documents/watch-crm/backend/app/Http/Controllers/Api/ModelController.php)
+### Estrutura resumida das entidades
+- `customers`
+  - `name`, `phone`, `email?`, `instagram?`, `owner_user_id?`
+- `models`
+  - `brand_id`, `name`, `product_type`, `quality_id?`, `quality_key`, `image_path?`
+- `products`
+  - `brand_id`, `model_id`, `cost`, `price`, `stock`, `qty`
+- `orders`
+  - `customer_id`, `created_by_user_id?`, `seller_user_id?`, `product_id?`, `product_name`, `channel`, `seller`, `status`, `sale_price`, `cost`, `discount`, `freight`, `channel_fee`, `payment_method?`, `shipping_method`, `tracking_code?`, `sale_date`, `shipped_date?`, `notes?`
+- `order_items`
+  - `order_id`, `product_id?`, `product_name`, `product_type`, `brand_name?`, `model_name?`, `quality_name?`, `quantity`, `unit_price`, `unit_cost`, `unit_discount`
 
-### Uploads e Storage
-- Modelos aceitam `image` (jpg/jpeg/png) até 2MB.
-- Upload salva em `storage/app/public/models` e retorna `imageUrl` usando `Storage::url`.
-- É necessário `php artisan storage:link` para servir imagens via `/storage`.
-Referência: [ModelController](file:///Users/victorhugo/Documents/watch-crm/backend/app/Http/Controllers/Api/ModelController.php), [filesystems.php](file:///Users/victorhugo/Documents/watch-crm/backend/config/filesystems.php)
+## Regras de Negócio Relevantes
+### Catálogo
+- `WATCH` precisa de qualidade.
+- `BOX` não aceita qualidade.
+- O mesmo nome de modelo pode coexistir:
+  - em qualidades diferentes, quando `WATCH`;
+  - por tipo diferente, quando `WATCH` vs `BOX`.
 
-### Banco e Seeds
-- Migrations criam tabelas de customers, products, orders, brands, models e qualities.
-- Migrações de evolução ajustam FKs de product e a relação de quality nos models.
-- Migrations de autenticação adicionam campos de usuário, ownership, creator e `audit_logs`.
-- Seeders populam usuários, clientes, marcas, qualidades, modelos, produtos e pedidos.
-Referências: [migrations](file:///Users/victorhugo/Documents/watch-crm/backend/database/migrations), [seeders](file:///Users/victorhugo/Documents/watch-crm/backend/database/seeders)
+### Pedidos
+- Um pedido precisa ter ao menos um item.
+- Cada item precisa de:
+  - produto válido;
+  - quantidade mínima de `1`;
+  - preço unitário;
+  - desconto unitário maior ou igual a `0`.
+- Os totais do pedido são derivados da soma das linhas:
+  - `sale_price`
+  - `cost`
+  - `discount`
+- O resumo textual do pedido usa o primeiro item como base e adiciona a quantidade restante quando houver mais linhas.
 
-### CORS
-- Origem liberada para `http://localhost:4001` e `http://127.0.0.1:4001`.
-- `supports_credentials` está habilitado para permitir sessão por cookie entre frontend e backend.
-Referência: [cors.php](file:///Users/victorhugo/Documents/watch-crm/backend/config/cors.php)
-
-### Autenticação e Autorização
-- O backend usa autenticação stateful com Laravel Session.
-- As rotas de autenticação vivem dentro do middleware `web`.
-- As rotas de negócio do CRM vivem dentro de `auth`.
-- Cada rota protegida declara também a habilidade exigida com `permission:<ability>`.
-- Policies aplicam ownership por registro para clientes e pedidos.
-- O payload de `GET /api/me` retorna dados mínimos do usuário, papel e permissões efetivas.
-
-### Auditoria
-- Ações sensíveis são registradas em `audit_logs`.
-- Eventos auditados incluem login, falha de login, logout, reset de senha e CRUD crítico.
-
-## Modelos e Campos
-- Users
-  - id, name, email, password, role, is_active, last_login_at?, two_factor_secret?, two_factor_confirmed_at?, timestamps
-- Customers
-  - id, name, phone, email?, instagram?, owner_user_id?, timestamps
-- Brands
-  - id, name, timestamps
-- Qualities
-  - id, name, timestamps
-- Models
-  - id, brand_id (FK), quality_id (FK), name, image_path?, timestamps
-- Products
-  - id, brand_id (FK), model_id (FK), cost (decimal), price (decimal), stock ['IN_STOCK','SUPPLIER'], qty (int), timestamps
-- Orders
-  - id, customer_id (FK), created_by_user_id? (FK), product_id (FK), product_name, channel, seller, status, sale_price, cost, discount, freight, channel_fee, payment_method?, shipping_method, tracking_code?, sale_date, shipped_date?, notes?, timestamps
-- AuditLogs
-  - id, user_id?, action, description?, auditable_type?, auditable_id?, ip_address?, user_agent?, metadata?, timestamps
+### Clientes
+- Email e Instagram são opcionalmente persistidos.
+- Strings vazias são convertidas para `null` no model `Customer`.
 
 ## Endpoints
-- GET `/api/csrf-cookie` → prepara a sessão CSRF
-- POST `/api/login` → autentica usuário
-- POST `/api/logout` → encerra sessão
-- GET `/api/me` → retorna usuário autenticado e permissões
-- POST `/api/forgot-password` → solicita recuperação de senha
-- POST `/api/reset-password` → redefine senha
-- GET `/api/customers` → lista de clientes autenticado + `customers.view`
-- POST `/api/customers` → cria cliente autenticado + `customers.create`
-- PUT `/api/customers/{id}` → atualiza cliente autenticado + `customers.update`
-- PATCH `/api/customers/{id}` → atualiza cliente (parcial) autenticado + `customers.update`
-- DELETE `/api/customers/{id}` → remove cliente autenticado + `customers.delete`
-- GET `/api/products` → lista de produtos autenticado + `products.view`
-- POST `/api/products` → cria produto autenticado + `products.create`
-- PUT `/api/products/{id}` → atualiza produto autenticado + `products.update`
-- PATCH `/api/products/{id}` → atualiza produto (parcial) autenticado + `products.update`
-- DELETE `/api/products/{id}` → remove produto autenticado + `products.delete`
-- GET `/api/orders` → lista de pedidos autenticado + `orders.view`
-- GET `/api/brands` → lista de marcas autenticado + `brands.view`
-- POST `/api/brands` → cria marca autenticado + `brands.create`
-- PUT `/api/brands/{id}` → atualiza marca autenticado + `brands.update`
-- PATCH `/api/brands/{id}` → atualiza marca (parcial) autenticado + `brands.update`
-- DELETE `/api/brands/{id}` → remove marca autenticado + `brands.delete`
-- GET `/api/models` → lista de modelos autenticado + `models.view`
-- POST `/api/models` → cria modelo autenticado + `models.create`
-- PUT `/api/models/{id}` → atualiza modelo autenticado + `models.update`
-- PATCH `/api/models/{id}` → atualiza modelo (parcial) autenticado + `models.update`
-- DELETE `/api/models/{id}` → remove modelo autenticado + `models.delete`
-- GET `/api/qualities` → lista de qualidades autenticado + `qualities.view`
-- POST `/api/qualities` → cria qualidade autenticado + `qualities.create`
-- PUT `/api/qualities/{id}` → atualiza qualidade autenticado + `qualities.update`
-- PATCH `/api/qualities/{id}` → atualiza qualidade (parcial) autenticado + `qualities.update`
-- DELETE `/api/qualities/{id}` → remove qualidade autenticado + `qualities.delete`
+- `GET /api/csrf-cookie`
+- `POST /api/login`
+- `POST /api/logout`
+- `GET /api/me`
+- `POST /api/forgot-password`
+- `POST /api/reset-password`
+- `GET /api/customers`
+- `POST /api/customers`
+- `PUT /api/customers/{id}`
+- `PATCH /api/customers/{id}`
+- `DELETE /api/customers/{id}`
+- `GET /api/products`
+- `POST /api/products`
+- `PUT /api/products/{id}`
+- `PATCH /api/products/{id}`
+- `DELETE /api/products/{id}`
+- `GET /api/brands`
+- `POST /api/brands`
+- `PUT /api/brands/{id}`
+- `PATCH /api/brands/{id}`
+- `DELETE /api/brands/{id}`
+- `GET /api/qualities`
+- `POST /api/qualities`
+- `PUT /api/qualities/{id}`
+- `PATCH /api/qualities/{id}`
+- `DELETE /api/qualities/{id}`
+- `GET /api/models`
+- `POST /api/models`
+- `PUT /api/models/{id}`
+- `PATCH /api/models/{id}`
+- `DELETE /api/models/{id}`
+- `GET /api/orders/metadata`
+- `GET /api/orders`
+- `POST /api/orders`
+- `PUT /api/orders/{id}`
+- `PATCH /api/orders/{id}`
+- `DELETE /api/orders/{id}`
+
+## Testes Cobertos
+- `CatalogProductTypeTest`
+  - criação de modelo `BOX` sem qualidade;
+  - obrigatoriedade de qualidade para `WATCH`;
+  - exposição de `productType` em produtos;
+  - unicidade correta no catálogo.
+- `OrderAuthorizationTest`
+  - criação de pedido multi-item por admin;
+  - atualização por gerente;
+  - proibição para vendedor criar/editar;
+  - escopo de listagem por vendedor;
+  - retorno de metadata de pedidos.
 
 ## Execução em Desenvolvimento
-1. Backend
-   - Requisitos: PHP 8.2+, Composer
-   - Instalação: `composer install`
-   - SQLite local é suportado (criar `database/database.sqlite` e ajustar `.env`).
-   - Rodar migrações e seeds: `php artisan migrate:fresh --seed`
-   - Se estiver rodando no host com MySQL do Docker publicado: `DB_HOST=127.0.0.1 DB_PORT=3307 php artisan migrate --seed`
-   - Subir API: `php artisan serve` (http://localhost:8000)
-2. Frontend
-   - Requisitos: Node 18+
-   - Variáveis: `NEXT_PUBLIC_API_BASE_URL` (opcional, default `http://localhost:8000/api`)
-   - Subir dev server em porta alternativa: `npm run dev -- -p 4001` (http://localhost:4001)
-   - O login depende de `GET /api/csrf-cookie` antes do `POST /api/login`
+### Backend
+- Requisitos: PHP 8.2+ e Composer
+- Instalação: `composer install`
+- Rodar migrations e seeders: `php artisan migrate:fresh --seed`
+- Rodar API: `php artisan serve`
+
+### Frontend
+- Requisitos: Node 18+
+- Instalação: `npm install`
+- Variável opcional: `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api`
+- Rodar app: `npm run dev -- -p 4001`
 
 ## Execução com Docker
-- Subir stack completa: `docker compose up --build`
-- Frontend: http://localhost:4001
-- Backend: http://localhost:8000/api
+- Subir stack: `docker compose up --build`
+- Limpar órfãos antigos, se necessário: `docker compose down --remove-orphans`
+- Frontend: `http://localhost:4001`
+- Backend: `http://localhost:8000/api`
 - MySQL:
   - Host: `localhost`
   - Porta: `3307`
@@ -292,14 +258,12 @@ Referência: [cors.php](file:///Users/victorhugo/Documents/watch-crm/backend/con
   - User: `queiroz`
   - Password: `secret`
 
-## Próximos Passos
-- Criar endpoints POST/PUT/PATCH para criação e atualização de pedidos.
-- Gestão administrativa de usuários e perfis pelo próprio CRM.
-- 2FA opcional por usuário ou papel crítico.
-- Filtros avançados e exportação.
-- Ajustar fila de envios para registrar postagens e status.
+### Observação importante sobre o frontend em Docker
+- O serviço do frontend usa `next dev --webpack` no `docker-compose.yml`.
+- Esse ajuste foi necessário porque o `next dev` com Turbopack estava encerrando o processo do container logo após o startup.
 
-## Padrões
+## Padrões do Projeto
 - Não versionar segredos.
-- Tipos centralizados (frontend) em `types.ts`.
-- Reutilizar `Primitives` para UI consistente.
+- Centralizar tipos do frontend em `types.ts`.
+- Reutilizar `helpers.ts` para labels e cálculos de domínio.
+- Reutilizar `Primitives.tsx` para manter consistência visual.

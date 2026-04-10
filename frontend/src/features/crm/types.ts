@@ -4,6 +4,7 @@ export type PaymentMethod = string;
 export type ShippingMethod = string;
 export type OrderStatus = string;
 export type StockOrigin = "IN_STOCK" | "SUPPLIER";
+export type ProductType = "WATCH" | "BOX";
 
 export type Brand = {
   id: number;
@@ -66,7 +67,8 @@ export type WatchModel = {
   brandId: number;
   brandName?: string | null;
   name: string;
-  qualityId: number;
+  productType: ProductType;
+  qualityId: number | null;
   qualityName?: string | null;
   imageUrl?: string | null;
 };
@@ -75,15 +77,23 @@ export type Customer = {
   id: number;
   name: string;
   phone: string;
-  instagram: string;
-  email?: string;
+  instagram?: string | null;
+  email?: string | null;
   ownerUserId?: number | null;
+};
+
+export type CustomerInput = {
+  name: string;
+  phone: string;
+  instagram?: string | null;
+  email?: string | null;
 };
 
 export type Product = {
   id: number;
   brandId: number;
   modelId: number;
+  productType: ProductType;
   brand?: string;
   model?: string;
   modelQualityName?: string | null;
@@ -111,8 +121,10 @@ export type Order = {
   channel: Channel;
   seller: Seller;
   status: OrderStatus;
-  productId: number;
+  productId?: number | null;
   productName: string;
+  itemsCount: number;
+  items: OrderItem[];
   salePrice: number;
   cost: number;
   discount: number;
@@ -124,6 +136,23 @@ export type Order = {
   saleDate: string;
   shippedDate: string;
   notes: string;
+};
+
+export type OrderItem = {
+  id?: number;
+  productId: number | null;
+  productName: string;
+  productType: ProductType;
+  brandName?: string | null;
+  modelName?: string | null;
+  qualityName?: string | null;
+  quantity: number;
+  unitPrice: number;
+  unitCost: number;
+  unitDiscount: number;
+  linePrice: number;
+  lineCost: number;
+  lineDiscount: number;
 };
 
 export type OrderMetadata = {
@@ -138,9 +167,7 @@ export type OrderInput = {
   customerId: number;
   sellerUserId: number;
   channel: Channel;
-  productId: number;
-  salePrice: number;
-  discount: number;
+  items: OrderItemInput[];
   freight: number;
   channelFee: number;
   paymentMethod: PaymentMethod | "";
@@ -150,4 +177,11 @@ export type OrderInput = {
   shippedDate: string;
   notes: string;
   status?: OrderStatus;
+};
+
+export type OrderItemInput = {
+  productId: number;
+  quantity: number;
+  unitPrice: number;
+  unitDiscount: number;
 };

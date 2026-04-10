@@ -1,7 +1,7 @@
 import React from "react";
 import { Badge, Btn } from "../ui/Primitives";
 import { Customer, Order } from "../types";
-import { calcMargin, calcProfit, fmtBRL, nextShippingDay } from "../helpers";
+import { calcMargin, calcProfit, fmtBRL, nextShippingDay, productTypeLabel } from "../helpers";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./OrderDetail.module.css";
 
@@ -54,10 +54,32 @@ const OrderDetail: React.FC<Props> = ({ order, customers, onClose }) => {
             <div className={styles.infoMuted}>{customer?.instagram}</div>
           </div>
           <div>
-            <div className={styles.infoLabel}>Produto</div>
+            <div className={styles.infoLabel}>Resumo do Pedido</div>
             <div className={styles.infoValue}>{order.productName}</div>
+            <div className={styles.infoMuted}>{order.itemsCount} item(ns)</div>
             <div className={styles.infoMuted}>Pagamento: {order.paymentMethod}</div>
             <div className={styles.infoMuted}>Envio: {order.shippingMethod}</div>
+          </div>
+        </div>
+
+        <div className={styles.itemsSection}>
+          <div className={styles.infoLabel}>Itens</div>
+          <div className={styles.itemsList}>
+            {order.items.map((item, index) => (
+              <div key={`${item.productId}-${index}`} className={styles.itemCard}>
+                <div>
+                  <div className={styles.itemTitle}>{item.productName}</div>
+                  <div className={styles.infoMuted}>
+                    {productTypeLabel(item.productType)}
+                    {item.qualityName ? ` · ${item.qualityName}` : ""}
+                  </div>
+                </div>
+                <div className={styles.itemNumbers}>
+                  <span>{item.quantity} un.</span>
+                  <span>{fmtBRL(item.linePrice - item.lineDiscount)}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
