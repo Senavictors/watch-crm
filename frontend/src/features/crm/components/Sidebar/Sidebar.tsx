@@ -25,7 +25,7 @@ const Sidebar: React.FC<Props> = ({ page, onNavigate, nav, readyCount, theme, on
   <div className={styles.wrapper}>
     <div className={styles.header}>
       <div className={styles.headerOverline}>Relojoaria</div>
-      <div className={styles.headerTitle}>QueirozPrimeCRM</div>
+      <div className={styles.headerTitle}>Watch CRM</div>
     </div>
 
     {nav.map((item) => {

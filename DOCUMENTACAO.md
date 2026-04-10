@@ -1,4 +1,4 @@
-# Queiroz Prime CRM — Documentação
+# Watch CRM — Documentação
 
 ## Visão Geral
 - Frontend em `frontend/`: Next.js (App Router) + React + TypeScript.
@@ -254,8 +254,8 @@ frontend/
 - MySQL:
   - Host: `localhost`
   - Porta: `3307`
-  - Database: `queiroz_prime`
-  - User: `queiroz`
+  - Database: `watch_crm`
+  - User: `watchcrm`
   - Password: `secret`
 
 ### Observação importante sobre o frontend em Docker

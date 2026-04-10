@@ -28,8 +28,8 @@ const Models: React.FC<Props> = ({ models, canCreate, onNew }) => {
       </div>
       <div className={styles.grid}>
         {models.map((m) => {
-          const imageSrc = m.imageUrl || "/logo-queiroz.png";
-          const shouldOptimize = imageSrc.startsWith("/");
+          const imageSrc = m.imageUrl;
+          const shouldOptimize = imageSrc?.startsWith("/") ?? false;
           return (
             <Card
               key={m.id}
@@ -37,14 +37,18 @@ const Models: React.FC<Props> = ({ models, canCreate, onNew }) => {
             >
               <div className={styles.media}>
                 <div className={styles.mediaBox}>
-                  <Image
-                    src={imageSrc}
-                    alt={m.name}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 220px"
-                    unoptimized={!shouldOptimize}
-                    className={styles.image}
-                  />
+                  {imageSrc ? (
+                    <Image
+                      src={imageSrc}
+                      alt={m.name}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 220px"
+                      unoptimized={!shouldOptimize}
+                      className={styles.image}
+                    />
+                  ) : (
+                    <div className={styles.imageFallback}>Sem imagem</div>
+                  )}
                 </div>
               </div>
               <div className={styles.cardBody}>

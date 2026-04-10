@@ -65,6 +65,14 @@
   object-fit: contain;
 }
 
+.imageFallback {
+  color: var(--crm-text-soft);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .cardBody {
   padding: 16px;
   display: grid;

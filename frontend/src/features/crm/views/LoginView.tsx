@@ -10,7 +10,7 @@ type Props = {
 };
 
 const LoginView: React.FC<Props> = ({ loading, onLogin }) => {
-  const [email, setEmail] = useState("admin@queirozprimecrm.com");
+  const [email, setEmail] = useState("admin@watchcrm.local");
   const [password, setPassword] = useState("Admin123456!");
   const [error, setError] = useState("");
 
@@ -34,7 +34,7 @@ const LoginView: React.FC<Props> = ({ loading, onLogin }) => {
     <div className={styles.shell}>
       <div className={styles.panel}>
         <div className={styles.overline}>CRM interno</div>
-        <h1 className={styles.title}>Acesse o Queiroz Prime CRM</h1>
+        <h1 className={styles.title}>Acesse o Watch CRM</h1>
         <p className={styles.subtitle}>
           Sessão segura com permissões por papel e auditoria de ações críticas.
         </p>
@@ -58,11 +58,11 @@ const LoginView: React.FC<Props> = ({ loading, onLogin }) => {
         <div className={styles.hint}>
           Usuários seed:
           <br />
-          admin@queirozprimecrm.com
+          admin@watchcrm.local
           <br />
-          gerente@queirozprimecrm.com
+          gerente@watchcrm.local
           <br />
-          vendedor@queirozprimecrm.com
+          vendedor@watchcrm.local
         </div>
       </div>
     </div>

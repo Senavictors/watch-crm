@@ -46,8 +46,8 @@ CRM fullstack para relojoaria com autenticação stateful, catálogo, pedidos, f
 ### Produtos e Estoque
 ![Produtos e Estoque](imagens-do-sistema/produtos-e-estoque.png)
 
-### Marcas
-![Marcas](imagens-do-sistema/marcas.png)
+### Configurações
+![Configurações](imagens-do-sistema/configuracoes.png)
 
 ### Modelos
 ![Modelos](imagens-do-sistema/modelos.png)

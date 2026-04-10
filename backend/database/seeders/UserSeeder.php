@@ -17,7 +17,7 @@ class UserSeeder extends Seeder
             [
                 'id' => 1,
                 'name' => 'Victor Admin',
-                'email' => 'admin@queirozprimecrm.com',
+                'email' => 'admin@watchcrm.local',
                 'password' => Hash::make('Admin123456!'),
                 'role' => UserRole::Admin->value,
                 'is_active' => true,
@@ -28,7 +28,7 @@ class UserSeeder extends Seeder
             [
                 'id' => 2,
                 'name' => 'Amanda Gerente',
-                'email' => 'gerente@queirozprimecrm.com',
+                'email' => 'gerente@watchcrm.local',
                 'password' => Hash::make('Gerente123456!'),
                 'role' => UserRole::Manager->value,
                 'is_active' => true,
@@ -39,7 +39,7 @@ class UserSeeder extends Seeder
             [
                 'id' => 3,
                 'name' => 'Josue Vendedor',
-                'email' => 'vendedor@queirozprimecrm.com',
+                'email' => 'vendedor@watchcrm.local',
                 'password' => Hash::make('Vendedor123456!'),
                 'role' => UserRole::Seller->value,
                 'is_active' => true,
