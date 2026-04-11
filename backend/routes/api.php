@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\BrandController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ModelController;
@@ -55,5 +56,11 @@ Route::middleware('web')->group(function () {
         Route::put('/orders/{id}', [OrderController::class, 'update'])->middleware('permission:orders.update');
         Route::patch('/orders/{id}', [OrderController::class, 'update'])->middleware('permission:orders.update');
         Route::delete('/orders/{id}', [OrderController::class, 'destroy'])->middleware('permission:orders.delete');
+
+        Route::get('/users', [UserController::class, 'index'])->middleware('permission:users.manage');
+        Route::post('/users', [UserController::class, 'store'])->middleware('permission:users.manage');
+        Route::patch('/users/{id}', [UserController::class, 'update'])->middleware('permission:users.manage');
+        Route::patch('/users/{id}/active', [UserController::class, 'toggleActive'])->middleware('permission:users.manage');
+        Route::patch('/users/{id}/password', [UserController::class, 'resetPassword'])->middleware('permission:users.manage');
     });
 });

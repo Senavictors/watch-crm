@@ -418,4 +418,5 @@ export const NAV = [
   { id: "products", label: "Produtos" },
   { id: "models", label: "Modelos" },
   { id: "settings", label: "Configurações" },
+  { id: "users", label: "Usuários" },
 ];

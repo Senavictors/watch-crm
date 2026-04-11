@@ -57,6 +57,22 @@ export type UserOption = {
   name: string;
 };
 
+export type CrmUser = {
+  id: number;
+  name: string;
+  email: string;
+  role: "admin" | "gerente" | "vendedor";
+  isActive: boolean;
+  lastLoginAt?: string | null;
+};
+
+export type CrmUserInput = {
+  name: string;
+  email: string;
+  password?: string;
+  role: "admin" | "gerente" | "vendedor";
+};
+
 export type Quality = {
   id: number;
   name: string;

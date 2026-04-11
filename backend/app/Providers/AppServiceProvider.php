@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\User;
 use App\Policies\CustomerPolicy;
 use App\Policies\OrderPolicy;
+use App\Policies\UserPolicy;
 use App\Support\CrmPermissions;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -31,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(Customer::class, CustomerPolicy::class);
         Gate::policy(Order::class, OrderPolicy::class);
+        Gate::policy(User::class, UserPolicy::class);
 
         foreach (CrmPermissions::ALL as $permission) {
             Gate::define($permission, fn (User $user) => $user->hasPermission($permission));

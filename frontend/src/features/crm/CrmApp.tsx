@@ -12,12 +12,16 @@ import NewCustomerForm from "./views/NewCustomerForm";
 import Models from "./views/Models";
 import NewModelForm from "./views/NewModelForm";
 import Settings from "./views/Settings";
+import Users from "./views/Users";
+import NewUserForm from "./views/NewUserForm";
 import LoginView from "./views/LoginView";
 import { NAV } from "./data/mock";
 import { apiFetch, ensureCsrfCookie, getApiBaseUrl } from "./api";
 import {
   AuthUser,
   Brand,
+  CrmUser,
+  CrmUserInput,
   Customer,
   CustomerInput,
   Order,
@@ -66,6 +70,10 @@ const CrmApp: React.FC = () => {
   const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [showNewModel, setShowNewModel] = useState(false);
+  const [users, setUsers] = useState<CrmUser[]>([]);
+  const [showNewUser, setShowNewUser] = useState(false);
+  const [editingUser, setEditingUser] = useState<CrmUser | null>(null);
+  const [resetPasswordUser, setResetPasswordUser] = useState<CrmUser | null>(null);
   const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
 
   const apiBaseUrl = getApiBaseUrl();
@@ -178,6 +186,9 @@ const CrmApp: React.FC = () => {
         if (user.permissions.includes("qualities.view")) {
           requests.push({ key: "qualities", request: apiFetch(`${apiBaseUrl}/qualities`) });
         }
+        if (user.permissions.includes("users.manage")) {
+          requests.push({ key: "users", request: apiFetch(`${apiBaseUrl}/users`) });
+        }
 
         const responses = await Promise.all(requests.map((item) => item.request));
 
@@ -205,6 +216,7 @@ const CrmApp: React.FC = () => {
         setBrands((data.get("brands") as Brand[] | undefined) ?? []);
         setModels((data.get("models") as WatchModel[] | undefined) ?? []);
         setQualities((data.get("qualities") as Quality[] | undefined) ?? []);
+        setUsers((data.get("users") as CrmUser[] | undefined) ?? []);
         setOrderMetadata((data.get("orderMetadata") as OrderMetadata | undefined) ?? EMPTY_ORDER_METADATA);
       } catch (err) {
         if (!alive) return;
@@ -272,6 +284,7 @@ const CrmApp: React.FC = () => {
       setBrands([]);
       setModels([]);
       setQualities([]);
+      setUsers([]);
       setOrderMetadata(EMPTY_ORDER_METADATA);
     } catch (err) {
       pushToast(err instanceof Error ? err.message : "Erro ao sair.", "error");
@@ -461,6 +474,62 @@ const CrmApp: React.FC = () => {
     }
   }
 
+  async function handleSaveUser(data: CrmUserInput) {
+    try {
+      const created = await createJson<CrmUser>("/users", data, "Falha ao cadastrar usuário.");
+      setUsers((us) => [created, ...us]);
+      setShowNewUser(false);
+      pushToast("Usuário cadastrado com sucesso.", "success");
+    } catch (err) {
+      pushToast(err instanceof Error ? err.message : "Erro desconhecido.", "error");
+    }
+  }
+
+  async function handleUpdateUser(data: CrmUserInput) {
+    if (!editingUser) return;
+    try {
+      const updated = await updateJson<CrmUser>(
+        `/users/${editingUser.id}`,
+        data,
+        "Falha ao atualizar usuário."
+      );
+      setUsers((us) => us.map((u) => (u.id === updated.id ? updated : u)));
+      setEditingUser(null);
+      pushToast("Usuário atualizado com sucesso.", "success");
+    } catch (err) {
+      pushToast(err instanceof Error ? err.message : "Erro desconhecido.", "error");
+    }
+  }
+
+  async function handleToggleUserActive(user: CrmUser) {
+    try {
+      const updated = await updateJson<CrmUser>(
+        `/users/${user.id}/active`,
+        {},
+        "Falha ao alterar status do usuário."
+      );
+      setUsers((us) => us.map((u) => (u.id === updated.id ? updated : u)));
+      pushToast(updated.isActive ? "Usuário ativado." : "Usuário bloqueado.", "success");
+    } catch (err) {
+      pushToast(err instanceof Error ? err.message : "Erro desconhecido.", "error");
+    }
+  }
+
+  async function handleResetUserPassword(data: CrmUserInput) {
+    if (!resetPasswordUser) return;
+    try {
+      await updateJson<{ ok: boolean }>(
+        `/users/${resetPasswordUser.id}/password`,
+        { password: data.password },
+        "Falha ao redefinir senha."
+      );
+      setResetPasswordUser(null);
+      pushToast("Senha redefinida com sucesso.", "success");
+    } catch (err) {
+      pushToast(err instanceof Error ? err.message : "Erro desconhecido.", "error");
+    }
+  }
+
   const nav = NAV.filter((item) => {
     if (item.id === "dashboard") return hasPermission("dashboard.view");
     if (item.id === "shipping") return hasPermission("shipping.view");
@@ -468,6 +537,7 @@ const CrmApp: React.FC = () => {
     if (item.id === "products") return hasPermission("products.view");
     if (item.id === "models") return hasPermission("models.view");
     if (item.id === "settings") return hasPermission("settings.view");
+    if (item.id === "users") return hasPermission("users.manage");
     return hasPermission("orders.view");
   });
 
@@ -485,6 +555,7 @@ const CrmApp: React.FC = () => {
   const canCreateProducts = hasPermission("products.create");
   const canCreateModels = hasPermission("models.create");
   const canManageCatalog = hasPermission("settings.view");
+  const canManageUsers = hasPermission("users.manage");
   const dashboardChannels = orderMetadata.channels.length
     ? orderMetadata.channels
     : Array.from(new Set(orders.map((order) => order.channel)));
@@ -584,6 +655,17 @@ const CrmApp: React.FC = () => {
                 onToast={pushToast}
               />
             )}
+            {page === "users" && (
+              <Users
+                users={users}
+                currentUserRole={currentUser.role}
+                canCreate={canManageUsers}
+                onNew={() => setShowNewUser(true)}
+                onEdit={setEditingUser}
+                onToggleActive={handleToggleUserActive}
+                onResetPassword={setResetPasswordUser}
+              />
+            )}
           </>
         )}
       </AppShell>
@@ -634,6 +716,34 @@ const CrmApp: React.FC = () => {
           qualities={qualities}
           onSave={handleSaveModel}
           onClose={() => setShowNewModel(false)}
+          onToast={pushToast}
+        />
+      )}
+      {showNewUser && (
+        <NewUserForm
+          user={null}
+          currentUserRole={currentUser.role}
+          onSave={handleSaveUser}
+          onClose={() => setShowNewUser(false)}
+          onToast={pushToast}
+        />
+      )}
+      {editingUser && (
+        <NewUserForm
+          user={editingUser}
+          currentUserRole={currentUser.role}
+          onSave={handleUpdateUser}
+          onClose={() => setEditingUser(null)}
+          onToast={pushToast}
+        />
+      )}
+      {resetPasswordUser && (
+        <NewUserForm
+          user={resetPasswordUser}
+          resetPasswordMode={true}
+          currentUserRole={currentUser.role}
+          onSave={handleResetUserPassword}
+          onClose={() => setResetPasswordUser(null)}
           onToast={pushToast}
         />
       )}

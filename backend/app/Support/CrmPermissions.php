@@ -42,7 +42,7 @@ class CrmPermissions
 
     public static function manager(): array
     {
-        return array_values(array_diff(self::ALL, ['users.manage']));
+        return self::ALL;
     }
 
     public static function seller(): array
