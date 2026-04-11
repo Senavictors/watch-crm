@@ -2,11 +2,11 @@
 CRM fullstack para relojoaria com autenticação stateful, catálogo, pedidos, fila de envios e dashboards.
 
 ## Destaques da versão atual
-- Pedidos agora aceitam múltiplos itens, com quantidade, preço unitário e desconto unitário por linha.
-- O catálogo passou a suportar dois tipos de modelo e produto: `WATCH` e `BOX`.
-- Modelos do tipo `BOX` não exigem qualidade; modelos `WATCH` continuam exigindo.
-- Detalhes, lista de pedidos e fila de envios exibem contagem de itens e resumo mais fiel do pedido.
-- Clientes podem ser editados e campos opcionais como email e Instagram são normalizados no backend.
+- Módulo de gerenciamento de usuários: listagem, criação, edição, bloqueio/desbloqueio e redefinição de senha. Acessível a `admin` e `gerente`; gerente não pode criar ou alterar administradores.
+- Frontend migrado de SPA monolítico para Next.js App Router com roteamento por arquivo. Cada página carrega seus dados de forma independente, somente quando o usuário navega até ela.
+- Estado global (auth, toasts, tema) extraído para contexts React dedicados (`AuthContext`, `ToastContext`, `ThemeContext`).
+- Pedidos aceitam múltiplos itens, com quantidade, preço unitário e desconto unitário por linha.
+- O catálogo suporta dois tipos de modelo e produto: `WATCH` e `BOX`. Modelos `BOX` não exigem qualidade.
 - O frontend em Docker sobe com `next dev --webpack`, evitando o encerramento prematuro observado com Turbopack no container.
 
 ## Stack
@@ -29,6 +29,7 @@ CRM fullstack para relojoaria com autenticação stateful, catálogo, pedidos, f
 - Pedidos com criação real via API, múltiplos itens e detalhamento por linha
 - Fila de envios com visibilidade de quantidade de itens por pedido
 - Configurações para cadastro de marcas e qualidades
+- Usuários com listagem, criação, edição de função, bloqueio/desbloqueio e redefinição de senha
 
 ## Telas do Sistema
 ### Dashboard
@@ -56,17 +57,33 @@ CRM fullstack para relojoaria com autenticação stateful, catálogo, pedidos, f
 ```text
 watch-crm/
 ├─ frontend/                   # Next.js (UI/CRM)
-│  └─ src/features/crm/        # Core do CRM
-│     ├─ CrmApp.tsx            # Container principal + sessão autenticada
-│     ├─ api.ts                # CSRF, cookies e chamadas autenticadas
-│     ├─ views/                # Telas e formulários do CRM
-│     ├─ ui/                   # Componentes base
-│     ├─ types.ts              # Tipos do domínio, auth e permissões
-│     └─ helpers.ts            # Cálculos, labels e formatação
+│  └─ src/
+│     ├─ app/
+│     │  ├─ layout.tsx         # Root layout — monta <Providers>
+│     │  ├─ page.tsx           # Redirect para /dashboard
+│     │  ├─ Providers.tsx      # Composição dos 3 contexts (client component)
+│     │  ├─ login/page.tsx     # Página de login standalone
+│     │  └─ (app)/             # Grupo de rotas protegidas
+│     │     ├─ layout.tsx      # Auth guard + permission guard + AppShell + Sidebar
+│     │     ├─ dashboard/      # Cada pasta é uma rota independente
+│     │     ├─ pedidos/
+│     │     ├─ envios/
+│     │     ├─ clientes/
+│     │     ├─ produtos/
+│     │     ├─ modelos/
+│     │     ├─ configuracoes/
+│     │     └─ usuarios/
+│     └─ features/crm/
+│        ├─ contexts/          # AuthContext, ToastContext, ThemeContext
+│        ├─ api.ts             # CSRF, cookies e chamadas autenticadas
+│        ├─ views/             # Telas e formulários do CRM
+│        ├─ ui/                # Componentes base
+│        ├─ types.ts           # Tipos do domínio, auth e permissões
+│        └─ helpers.ts         # Cálculos, labels e formatação
 ├─ backend/                    # Laravel API
 │  ├─ app/Http/Controllers/Api # Controllers da API
 │  ├─ app/Models               # Models Eloquent
-│  ├─ app/Policies             # Policies por ownership
+│  ├─ app/Policies             # Policies por ownership e role
 │  ├─ app/Support              # Permissões e auditoria
 │  ├─ database/migrations      # Migrations
 │  └─ database/seeders         # Seeders
@@ -102,6 +119,11 @@ watch-crm/
 - POST `/api/orders`
 - PATCH `/api/orders/{id}`
 - DELETE `/api/orders/{id}`
+- GET `/api/users`
+- POST `/api/users`
+- PATCH `/api/users/{id}`
+- PATCH `/api/users/{id}/active`
+- PATCH `/api/users/{id}/password`
 
 ## Execução com Docker
 ```bash
