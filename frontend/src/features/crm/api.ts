@@ -1,5 +1,3 @@
-"use client";
-
 const DEFAULT_API_BASE_URL = "http://localhost:8000/api";
 
 export function getApiBaseUrl() {
@@ -42,4 +40,55 @@ export async function apiFetch(input: string, init: RequestInit = {}, options?: 
     credentials: "include",
     headers,
   });
+}
+
+export async function getErrorMessage(response: Response, fallback: string): Promise<string> {
+  let message = fallback;
+  try {
+    const payload = await response.json();
+    if (payload?.message) message = payload.message;
+    if (payload?.errors && typeof payload.errors === "object") {
+      const first = Object.values(payload.errors)[0];
+      if (Array.isArray(first) && first[0]) message = String(first[0]);
+    }
+  } catch {
+    // noop
+  }
+  return message;
+}
+
+export async function apiCreate<T>(path: string, body: unknown, fallback: string): Promise<T> {
+  const apiBaseUrl = getApiBaseUrl();
+  await ensureCsrfCookie(apiBaseUrl);
+  const response = await apiFetch(
+    `${apiBaseUrl}${path}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    { csrf: true }
+  );
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, fallback));
+  }
+  return response.json() as Promise<T>;
+}
+
+export async function apiUpdate<T>(path: string, body: unknown, fallback: string): Promise<T> {
+  const apiBaseUrl = getApiBaseUrl();
+  await ensureCsrfCookie(apiBaseUrl);
+  const response = await apiFetch(
+    `${apiBaseUrl}${path}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    { csrf: true }
+  );
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, fallback));
+  }
+  return response.json() as Promise<T>;
 }

@@ -411,12 +411,12 @@ export const INITIAL_ORDERS: Order[] = [
 ];
 
 export const NAV = [
-  { id: "dashboard", label: "Dashboard" },
-  { id: "orders", label: "Pedidos" },
-  { id: "shipping", label: "Envios" },
-  { id: "customers", label: "Clientes" },
-  { id: "products", label: "Produtos" },
-  { id: "models", label: "Modelos" },
-  { id: "settings", label: "Configurações" },
-  { id: "users", label: "Usuários" },
+  { id: "dashboard",  label: "Dashboard",     path: "/dashboard",      permission: "dashboard.view" },
+  { id: "orders",     label: "Pedidos",        path: "/pedidos",        permission: "orders.view" },
+  { id: "shipping",   label: "Envios",         path: "/envios",         permission: "shipping.view" },
+  { id: "customers",  label: "Clientes",       path: "/clientes",       permission: "customers.view" },
+  { id: "products",   label: "Produtos",       path: "/produtos",       permission: "products.view" },
+  { id: "models",     label: "Modelos",        path: "/modelos",        permission: "models.view" },
+  { id: "settings",   label: "Configurações",  path: "/configuracoes",  permission: "settings.view" },
+  { id: "users",      label: "Usuários",       path: "/usuarios",       permission: "users.manage" },
 ];

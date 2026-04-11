@@ -1,5 +1,5 @@
-import CrmApp from "@/features/crm/CrmApp";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return <CrmApp />;
+  redirect("/dashboard");
 }
