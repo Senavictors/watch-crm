@@ -1,12 +1,13 @@
 "use client";
 import React, { useState } from "react";
 import { Btn, Input, Select } from "../ui/Primitives";
-import { Brand, ProductInput, StockOrigin, WatchModel } from "../types";
+import { Brand, Product, ProductInput, StockOrigin, WatchModel } from "../types";
 import { modelLabel } from "../helpers";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./NewProductForm.module.css";
 
 type Props = {
+  product?: Product | null;
   brands: Brand[];
   models: WatchModel[];
   onSave: (product: ProductInput) => void;
@@ -14,7 +15,9 @@ type Props = {
   onToast: (message: string, variant?: "success" | "error") => void;
 };
 
-const NewProductForm: React.FC<Props> = ({ brands, models, onSave, onClose, onToast }) => {
+const NewProductForm: React.FC<Props> = ({ product, brands, models, onSave, onClose, onToast }) => {
+  const isEditing = Boolean(product);
+
   const [form, setForm] = useState<{
     brandId: string;
     modelId: string;
@@ -23,12 +26,12 @@ const NewProductForm: React.FC<Props> = ({ brands, models, onSave, onClose, onTo
     stock: StockOrigin;
     qty: string;
   }>({
-    brandId: "",
-    modelId: "",
-    cost: "",
-    price: "",
-    stock: "IN_STOCK",
-    qty: "0",
+    brandId: product ? String(product.brandId) : "",
+    modelId: product ? String(product.modelId) : "",
+    cost: product ? String(product.cost) : "",
+    price: product ? String(product.price) : "",
+    stock: product?.stock ?? "IN_STOCK",
+    qty: product ? String(product.qty) : "0",
   });
 
   function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
@@ -67,7 +70,7 @@ const NewProductForm: React.FC<Props> = ({ brands, models, onSave, onClose, onTo
     <div className={modalStyles.overlay}>
       <div className={`${modalStyles.modal} ${styles.modal}`}>
         <div className={modalStyles.header}>
-          <h3 className={modalStyles.title}>Novo Produto</h3>
+          <h3 className={modalStyles.title}>{isEditing ? "Editar Produto" : "Novo Produto"}</h3>
           <button onClick={onClose} className={modalStyles.close}>
             ×
           </button>
@@ -124,7 +127,7 @@ const NewProductForm: React.FC<Props> = ({ brands, models, onSave, onClose, onTo
             Cancelar
           </Btn>
           <Btn onClick={handleSubmit} variant="primary" className={styles.actionButton}>
-            Salvar Produto
+            {isEditing ? "Salvar Alterações" : "Salvar Produto"}
           </Btn>
         </div>
       </div>

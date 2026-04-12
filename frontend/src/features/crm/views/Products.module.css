@@ -109,3 +109,9 @@
 .qtyMuted {
   color: var(--crm-text-soft);
 }
+
+.rowAction {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+}

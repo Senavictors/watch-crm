@@ -8,11 +8,13 @@ import styles from "./Products.module.css";
 type Props = {
   products: Product[];
   canCreate: boolean;
+  canUpdate: boolean;
   compact: boolean;
   onNew: () => void;
+  onEdit: (product: Product) => void;
 };
 
-const Products: React.FC<Props> = ({ products, canCreate, compact, onNew }) => {
+const Products: React.FC<Props> = ({ products, canCreate, canUpdate, compact, onNew, onEdit }) => {
   return (
     <div>
       <div className={styles.headerRow}>
@@ -29,7 +31,7 @@ const Products: React.FC<Props> = ({ products, canCreate, compact, onNew }) => {
             <tr className={styles.theadRow}>
               {(compact
                 ? ["Preço", "Origem", "Estoque"]
-                : ["Marca / Modelo", "Custo", "Preço", "Margem", "Origem", "Estoque"]).map((h) => (
+                : ["Marca / Modelo", "Custo", "Preço", "Margem", "Origem", "Estoque", ...(canUpdate ? ["Ações"] : [])]).map((h) => (
                 <th key={h} className={styles.theadCell}>
                   {h}
                 </th>
@@ -71,6 +73,13 @@ const Products: React.FC<Props> = ({ products, canCreate, compact, onNew }) => {
                   >
                     {p.qty > 0 ? `${p.qty} un.` : "—"}
                   </td>
+                  {!compact && canUpdate && (
+                    <td className={styles.cell}>
+                      <Btn onClick={() => onEdit(p)} variant="secondary" small className={styles.rowAction}>
+                        Editar
+                      </Btn>
+                    </td>
+                  )}
                 </tr>
               );
             })}
