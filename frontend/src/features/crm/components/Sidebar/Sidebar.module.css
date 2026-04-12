@@ -27,32 +27,47 @@
 .navButton {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: none;
   cursor: pointer;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   width: 100%;
   background: transparent;
-  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.14);
+  box-shadow: none;
   color: var(--crm-text-muted);
   font-family: var(--font-inter), sans-serif;
   font-size: 14px;
   font-weight: 400;
-  transition: all 0.15s;
+  transition: background 0.15s, color 0.15s;
   text-align: left;
+}
+
+.navButton:hover:not(.navButtonActive) {
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--crm-text);
 }
 
 .navButtonActive {
   background: var(--crm-primary-soft);
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.25);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
   color: var(--crm-text);
-  font-weight: 700;
+  font-weight: 600;
+}
+
+.navIcon {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.navButtonActive .navIcon {
+  opacity: 1;
 }
 
 .navLabel {
-  font-size: 16px;
+  font-size: 14px;
+  flex: 1;
 }
 
 .badge {

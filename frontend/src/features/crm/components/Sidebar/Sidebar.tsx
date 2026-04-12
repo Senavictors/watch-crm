@@ -1,6 +1,18 @@
 "use client";
 import React from "react";
 import { usePathname, useRouter } from "next/navigation";
+import {
+  LayoutDashboard,
+  ClipboardList,
+  RefreshCw,
+  Truck,
+  Users,
+  Watch,
+  Layers,
+  Settings,
+  UserCog,
+  LucideIcon,
+} from "lucide-react";
 import { AuthUser } from "../../types";
 import { Btn } from "../../ui/Primitives";
 import ThemeToggle from "../ThemeToggle/ThemeToggle";
@@ -22,6 +34,18 @@ type Props = {
   onLogout: () => void;
 };
 
+const iconMap: Record<string, LucideIcon> = {
+  dashboard: LayoutDashboard,
+  orders: ClipboardList,
+  returns: RefreshCw,
+  shipping: Truck,
+  customers: Users,
+  products: Watch,
+  models: Layers,
+  settings: Settings,
+  users: UserCog,
+};
+
 const Sidebar: React.FC<Props> = ({ nav, readyCount, theme, onChangeTheme, user, onLogout }) => {
   const pathname = usePathname();
   const router = useRouter();
@@ -35,6 +59,7 @@ const Sidebar: React.FC<Props> = ({ nav, readyCount, theme, onChangeTheme, user,
 
       {nav.map((item) => {
         const isActive = pathname === item.path || pathname.startsWith(item.path + "/");
+        const Icon = iconMap[item.id];
         return (
           <button
             key={item.id}
@@ -42,6 +67,7 @@ const Sidebar: React.FC<Props> = ({ nav, readyCount, theme, onChangeTheme, user,
             className={`${styles.navButton} ${isActive ? styles.navButtonActive : ""}`}
             type="button"
           >
+            {Icon && <Icon size={18} className={styles.navIcon} />}
             <span className={styles.navLabel}>{item.label}</span>
             {item.id === "shipping" && readyCount > 0 && (
               <span className={styles.badge}>{readyCount}</span>
