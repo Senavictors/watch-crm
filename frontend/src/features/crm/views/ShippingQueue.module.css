@@ -91,3 +91,24 @@
   cursor: pointer;
   flex-shrink: 0;
 }
+
+.returnsSection {
+  margin-top: 32px;
+}
+
+.returnsTitle {
+  color: var(--crm-text);
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.returnTypeBadge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  border: 1px solid;
+  margin-left: 8px;
+}

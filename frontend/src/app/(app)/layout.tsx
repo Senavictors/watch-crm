@@ -12,6 +12,7 @@ import Sidebar from "../../features/crm/components/Sidebar/Sidebar";
 const ROUTE_PERMISSION: Record<string, Permission> = {
   "/dashboard":     "dashboard.view",
   "/pedidos":       "orders.view",
+  "/garantias":     "returns.view",
   "/envios":        "shipping.view",
   "/clientes":      "customers.view",
   "/produtos":      "products.view",

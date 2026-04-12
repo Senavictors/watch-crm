@@ -410,13 +410,37 @@ export const INITIAL_ORDERS: Order[] = [
   },
 ];
 
+export const RETURN_STATUS_COLORS: Record<string, string> = {
+  "Aguardando Recebimento": "#94A3B8",
+  "Recebido": "#FBBF24",
+  "Em Análise": "#F97316",
+  "Enviado p/ Reparo": "#38BDF8",
+  "Reparado": "#60A5FA",
+  "Em Troca": "#A78BFA",
+  "Troca Aprovada": "#818CF8",
+  "Reembolso Pendente": "#FB923C",
+  "Reembolso Efetuado": "#34D399",
+  "Pronto p/ Reenvio": "#38BDF8",
+  "Enviado": "#60A5FA",
+  "Entregue": "#34D399",
+  "Concluído": "#34D399",
+  "Cancelado": "#F87171",
+};
+
+export const RETURN_TYPE_COLORS: Record<string, string> = {
+  garantia: "#F97316",
+  troca: "#A78BFA",
+  devolucao: "#F87171",
+};
+
 export const NAV = [
-  { id: "dashboard",  label: "Dashboard",     path: "/dashboard",      permission: "dashboard.view" },
-  { id: "orders",     label: "Pedidos",        path: "/pedidos",        permission: "orders.view" },
-  { id: "shipping",   label: "Envios",         path: "/envios",         permission: "shipping.view" },
-  { id: "customers",  label: "Clientes",       path: "/clientes",       permission: "customers.view" },
-  { id: "products",   label: "Produtos",       path: "/produtos",       permission: "products.view" },
-  { id: "models",     label: "Modelos",        path: "/modelos",        permission: "models.view" },
-  { id: "settings",   label: "Configurações",  path: "/configuracoes",  permission: "settings.view" },
-  { id: "users",      label: "Usuários",       path: "/usuarios",       permission: "users.manage" },
+  { id: "dashboard",  label: "Dashboard",       path: "/dashboard",      permission: "dashboard.view" },
+  { id: "orders",     label: "Pedidos",          path: "/pedidos",        permission: "orders.view" },
+  { id: "returns",    label: "Garantias/Trocas", path: "/garantias",      permission: "returns.view" },
+  { id: "shipping",   label: "Envios",           path: "/envios",         permission: "shipping.view" },
+  { id: "customers",  label: "Clientes",         path: "/clientes",       permission: "customers.view" },
+  { id: "products",   label: "Produtos",         path: "/produtos",       permission: "products.view" },
+  { id: "models",     label: "Modelos",          path: "/modelos",        permission: "models.view" },
+  { id: "settings",   label: "Configurações",    path: "/configuracoes",  permission: "settings.view" },
+  { id: "users",      label: "Usuários",         path: "/usuarios",       permission: "users.manage" },
 ];

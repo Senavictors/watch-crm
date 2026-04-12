@@ -1,0 +1,105 @@
+.modal {
+  width: 700px;
+}
+
+.fullSpan {
+  grid-column: 1 / -1;
+}
+
+.label {
+  color: var(--crm-text-muted);
+  font-size: 11px;
+  margin-bottom: 5px;
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.costsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.orderItemsList {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.orderItemRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--crm-input-bg);
+  border: 1px solid var(--crm-table-border);
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--crm-accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.orderItemName {
+  color: var(--crm-text);
+  font-weight: 600;
+  font-size: 13px;
+  flex: 1;
+}
+
+.orderItemMeta {
+  color: var(--crm-text-muted);
+  font-size: 12px;
+}
+
+.summaryValue {
+  color: var(--crm-text-muted);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.summaryValueAccent {
+  color: var(--crm-accent);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.summaryValueDanger {
+  color: var(--crm-danger);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.actionButton {
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.4) inset, 0 1px 2px rgba(15, 23, 42, 0.2);
+  transition: all 0.2s ease;
+}
+
+.actionButton:hover {
+  transform: translateY(-2px);
+}
+
+@media (max-width: 780px) {
+  .modal {
+    width: min(96vw, 700px);
+  }
+
+  .costsGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

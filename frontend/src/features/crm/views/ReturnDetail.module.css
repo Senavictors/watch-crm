@@ -1,0 +1,167 @@
+.modal {
+  max-height: 85vh;
+}
+
+.badges {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.typePill {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid;
+}
+
+.statusPill {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.pill {
+  background: var(--crm-button-secondary-bg);
+  color: var(--crm-text);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.infoLabel {
+  color: var(--crm-text-soft);
+  font-size: 11px;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.infoValue {
+  color: var(--crm-text);
+  font-weight: 600;
+}
+
+.infoMuted {
+  color: var(--crm-text-muted);
+  font-size: 12px;
+}
+
+.itemsSection {
+  margin-bottom: 20px;
+}
+
+.itemsList {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.itemCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--crm-input-bg);
+  border: 1px solid var(--crm-table-border);
+}
+
+.itemTitle {
+  color: var(--crm-text);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.itemNumbers {
+  display: grid;
+  gap: 4px;
+  justify-items: end;
+  color: var(--crm-accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.costsSection {
+  background: var(--crm-input-bg);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid var(--crm-table-border);
+}
+
+.costsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.costLabel {
+  color: var(--crm-text-soft);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.costValue {
+  color: var(--crm-text-muted);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.costTotal {
+  padding-top: 12px;
+  border-top: 1px solid var(--crm-table-border);
+  color: var(--crm-text-muted);
+  font-size: 13px;
+}
+
+.refund {
+  margin-top: 8px;
+  color: var(--crm-text-muted);
+  font-size: 13px;
+}
+
+.accent {
+  color: var(--crm-accent);
+  font-weight: 600;
+}
+
+.danger {
+  color: var(--crm-danger);
+  font-weight: 600;
+}
+
+.notesBlock {
+  background: var(--crm-input-bg);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.noteText {
+  color: var(--crm-text-muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}

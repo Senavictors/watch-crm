@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ModelController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\QualityController;
+use App\Http\Controllers\Api\ReturnController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
@@ -56,6 +57,13 @@ Route::middleware('web')->group(function () {
         Route::put('/orders/{id}', [OrderController::class, 'update'])->middleware('permission:orders.update');
         Route::patch('/orders/{id}', [OrderController::class, 'update'])->middleware('permission:orders.update');
         Route::delete('/orders/{id}', [OrderController::class, 'destroy'])->middleware('permission:orders.delete');
+
+        Route::get('/returns/metadata', [ReturnController::class, 'metadata'])->middleware('permission:returns.view');
+        Route::get('/returns', [ReturnController::class, 'index'])->middleware('permission:returns.view');
+        Route::post('/returns', [ReturnController::class, 'store'])->middleware('permission:returns.create');
+        Route::put('/returns/{id}', [ReturnController::class, 'update'])->middleware('permission:returns.update');
+        Route::patch('/returns/{id}', [ReturnController::class, 'update'])->middleware('permission:returns.update');
+        Route::delete('/returns/{id}', [ReturnController::class, 'destroy'])->middleware('permission:returns.delete');
 
         Route::get('/users', [UserController::class, 'index'])->middleware('permission:users.manage');
         Route::post('/users', [UserController::class, 'store'])->middleware('permission:users.manage');

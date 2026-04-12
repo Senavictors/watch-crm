@@ -9,6 +9,7 @@ enum UserRole: string
     case Admin = 'admin';
     case Manager = 'gerente';
     case Seller = 'vendedor';
+    case Guarantee = 'garantia';
 
     public static function values(): array
     {
@@ -21,9 +22,10 @@ enum UserRole: string
     public static function permissionMap(): array
     {
         return [
-            self::Admin->value => CrmPermissions::admin(),
-            self::Manager->value => CrmPermissions::manager(),
-            self::Seller->value => CrmPermissions::seller(),
+            self::Admin->value     => CrmPermissions::admin(),
+            self::Manager->value   => CrmPermissions::manager(),
+            self::Seller->value    => CrmPermissions::seller(),
+            self::Guarantee->value => CrmPermissions::guarantee(),
         ];
     }
 }

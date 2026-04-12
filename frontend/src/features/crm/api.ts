@@ -92,3 +92,25 @@ export async function apiUpdate<T>(path: string, body: unknown, fallback: string
   }
   return response.json() as Promise<T>;
 }
+
+export async function apiDelete(path: string, fallback: string): Promise<void> {
+  const apiBaseUrl = getApiBaseUrl();
+  await ensureCsrfCookie(apiBaseUrl);
+  const response = await apiFetch(
+    `${apiBaseUrl}${path}`,
+    { method: "DELETE" },
+    { csrf: true }
+  );
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, fallback));
+  }
+}
+
+export async function apiGet<T>(path: string, fallback: string): Promise<T> {
+  const apiBaseUrl = getApiBaseUrl();
+  const response = await apiFetch(`${apiBaseUrl}${path}`);
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, fallback));
+  }
+  return response.json() as Promise<T>;
+}

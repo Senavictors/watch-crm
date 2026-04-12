@@ -8,10 +8,12 @@ import styles from "./OrderDetail.module.css";
 type Props = {
   order: Order;
   customers: Customer[];
+  canCreateReturn?: boolean;
   onClose: () => void;
+  onCreateReturn?: (order: Order) => void;
 };
 
-const OrderDetail: React.FC<Props> = ({ order, customers, onClose }) => {
+const OrderDetail: React.FC<Props> = ({ order, customers, canCreateReturn = false, onClose, onCreateReturn }) => {
   const customer = customers.find((c) => c.id === order.customerId);
   const profit = calcProfit(order);
   const margin = calcMargin(order);
@@ -125,6 +127,11 @@ const OrderDetail: React.FC<Props> = ({ order, customers, onClose }) => {
           <Btn onClick={onClose} variant="secondary">
             Fechar
           </Btn>
+          {canCreateReturn && onCreateReturn && (
+            <Btn onClick={() => onCreateReturn(order)} variant="secondary">
+              Registrar Garantia/Troca
+            </Btn>
+          )}
         </div>
       </div>
     </div>

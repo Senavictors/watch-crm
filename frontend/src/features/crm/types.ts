@@ -38,14 +38,20 @@ export type Permission =
   | "orders.create"
   | "orders.update"
   | "orders.delete"
+  | "returns.view"
+  | "returns.create"
+  | "returns.update"
+  | "returns.delete"
   | "settings.view"
   | "users.manage";
+
+export type UserRole = "admin" | "gerente" | "vendedor" | "garantia";
 
 export type AuthUser = {
   id: number;
   name: string;
   email: string;
-  role: "admin" | "gerente" | "vendedor";
+  role: UserRole;
   permissions: Permission[];
   isActive: boolean;
   lastLoginAt?: string | null;
@@ -61,7 +67,7 @@ export type CrmUser = {
   id: number;
   name: string;
   email: string;
-  role: "admin" | "gerente" | "vendedor";
+  role: UserRole;
   isActive: boolean;
   lastLoginAt?: string | null;
 };
@@ -70,7 +76,7 @@ export type CrmUserInput = {
   name: string;
   email: string;
   password?: string;
-  role: "admin" | "gerente" | "vendedor";
+  role: UserRole;
 };
 
 export type Quality = {
@@ -200,4 +206,89 @@ export type OrderItemInput = {
   quantity: number;
   unitPrice: number;
   unitDiscount: number;
+};
+
+export type ReturnType = "garantia" | "troca" | "devolucao";
+export type ReturnStatus = string;
+
+export type ProductReturn = {
+  id: number;
+  orderId: number | null;
+  customerId: number;
+  customerName: string;
+  customerPhone: string;
+  createdByUserId: number | null;
+  assignedUserId: number | null;
+  assignedUserName: string | null;
+  type: ReturnType;
+  typeLabel: string;
+  status: ReturnStatus;
+  reason: string;
+  internalNotes: string;
+  resolutionNotes: string;
+  receivedDate: string;
+  resolvedDate: string;
+  freightCostIn: number;
+  watchmakerCost: number;
+  freightCostOut: number;
+  otherCosts: number;
+  totalCost: number;
+  refundAmount: number | null;
+  returnTrackingCode: string;
+  shippedBackDate: string;
+  items: ReturnItemType[];
+  createdAt: string;
+};
+
+export type ReturnItemType = {
+  id?: number;
+  orderItemId: number | null;
+  productId: number | null;
+  productName: string;
+  productType: ProductType;
+  brandName: string | null;
+  modelName: string | null;
+  qualityName: string | null;
+  quantity: number;
+  unitPrice: number;
+};
+
+export type ReturnMetadata = {
+  types: ReturnType[];
+  typeLabels: Record<ReturnType, string>;
+  statuses: ReturnStatus[];
+  assignableUsers: UserOption[];
+};
+
+export type ReturnInput = {
+  orderId: number | null;
+  customerId: number;
+  assignedUserId: number | null;
+  type: ReturnType;
+  status?: ReturnStatus;
+  reason: string;
+  internalNotes: string;
+  resolutionNotes: string;
+  receivedDate: string;
+  resolvedDate: string;
+  freightCostIn: number;
+  watchmakerCost: number;
+  freightCostOut: number;
+  otherCosts: number;
+  refundAmount: number | null;
+  returnTrackingCode: string;
+  shippedBackDate: string;
+  items: ReturnItemInput[];
+};
+
+export type ReturnItemInput = {
+  orderItemId: number | null;
+  productId: number | null;
+  productName: string;
+  productType: ProductType;
+  brandName: string | null;
+  modelName: string | null;
+  qualityName: string | null;
+  quantity: number;
+  unitPrice: number;
 };

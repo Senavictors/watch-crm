@@ -3,10 +3,11 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../../features/crm/contexts/AuthContext";
 import { useToast } from "../../../features/crm/contexts/ToastContext";
 import { apiFetch, apiUpdate, apiCreate, getApiBaseUrl } from "../../../features/crm/api";
-import { Customer, Order, OrderInput, OrderMetadata, OrderStatus, Product } from "../../../features/crm/types";
+import { Customer, Order, OrderInput, OrderMetadata, OrderStatus, Product, ReturnInput, ReturnMetadata } from "../../../features/crm/types";
 import OrderList from "../../../features/crm/views/OrderList";
 import OrderDetail from "../../../features/crm/views/OrderDetail";
 import NewOrderForm from "../../../features/crm/views/NewOrderForm";
+import NewReturnForm from "../../../features/crm/views/NewReturnForm";
 
 const EMPTY_METADATA: OrderMetadata = {
   channels: [],
@@ -16,6 +17,13 @@ const EMPTY_METADATA: OrderMetadata = {
   assignableSellers: [],
 };
 
+const EMPTY_RETURN_METADATA: ReturnMetadata = {
+  types: [],
+  typeLabels: { garantia: "Garantia", troca: "Troca", devolucao: "Devolução" },
+  statuses: [],
+  assignableUsers: [],
+};
+
 export default function PedidosPage() {
   const { hasPermission, handleUnauthorized } = useAuth();
   const { pushToast } = useToast();
@@ -23,9 +31,11 @@ export default function PedidosPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [metadata, setMetadata] = useState<OrderMetadata>(EMPTY_METADATA);
+  const [returnMetadata, setReturnMetadata] = useState<ReturnMetadata>(EMPTY_RETURN_METADATA);
   const [loading, setLoading] = useState(true);
   const [viewOrder, setViewOrder] = useState<Order | null>(null);
   const [showNew, setShowNew] = useState(false);
+  const [returnForOrder, setReturnForOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     const apiBaseUrl = getApiBaseUrl();
@@ -34,27 +44,34 @@ export default function PedidosPage() {
     async function load() {
       try {
         setLoading(true);
-        const [ordersRes, metaRes, customersRes, productsRes] = await Promise.all([
+        const canViewReturns = hasPermission("returns.view");
+        const fetches: Promise<Response>[] = [
           apiFetch(`${apiBaseUrl}/orders`),
           apiFetch(`${apiBaseUrl}/orders/metadata`),
           apiFetch(`${apiBaseUrl}/customers`),
           apiFetch(`${apiBaseUrl}/products`),
-        ]);
-        if ([ordersRes, metaRes, customersRes, productsRes].some((r) => r.status === 401)) {
+        ];
+        if (canViewReturns) {
+          fetches.push(apiFetch(`${apiBaseUrl}/returns/metadata`));
+        }
+        const results = await Promise.all(fetches);
+        if (results.some((r) => r.status === 401)) {
           handleUnauthorized();
           return;
         }
-        if (!ordersRes.ok || !metaRes.ok || !customersRes.ok || !productsRes.ok) {
+        if (results.slice(0, 4).some((r) => !r.ok)) {
           throw new Error("Falha ao carregar pedidos.");
         }
         const [ordersData, metaData, customersData, productsData] = await Promise.all([
-          ordersRes.json(), metaRes.json(), customersRes.json(), productsRes.json(),
+          results[0].json(), results[1].json(), results[2].json(), results[3].json(),
         ]);
+        const returnMetaData = canViewReturns && results[4]?.ok ? await results[4].json() : EMPTY_RETURN_METADATA;
         if (!alive) return;
         setOrders(ordersData);
         setMetadata(metaData);
         setCustomers(customersData);
         setProducts(productsData);
+        setReturnMetadata(returnMetaData);
       } catch (err) {
         if (alive) pushToast(err instanceof Error ? err.message : "Erro.", "error");
       } finally {
@@ -88,6 +105,17 @@ export default function PedidosPage() {
     }
   }
 
+  async function handleSaveReturn(data: ReturnInput) {
+    try {
+      await apiCreate("/returns", data, "Falha ao registrar garantia.");
+      setReturnForOrder(null);
+      setViewOrder(null);
+      pushToast("Garantia/Troca registrada com sucesso.", "success");
+    } catch (err) {
+      pushToast(err instanceof Error ? err.message : "Erro.", "error");
+    }
+  }
+
   const sellers = Array.from(new Set([
     ...metadata.assignableSellers.map((s) => s.name),
     ...orders.map((o) => o.seller).filter(Boolean),
@@ -109,8 +137,14 @@ export default function PedidosPage() {
         onNew={() => setShowNew(true)}
         onUpdateStatus={handleUpdateStatus}
       />
-      {viewOrder && (
-        <OrderDetail order={viewOrder} customers={customers} onClose={() => setViewOrder(null)} />
+      {viewOrder && !returnForOrder && (
+        <OrderDetail
+          order={viewOrder}
+          customers={customers}
+          canCreateReturn={hasPermission("returns.create")}
+          onClose={() => setViewOrder(null)}
+          onCreateReturn={(order) => { setReturnForOrder(order); setViewOrder(null); }}
+        />
       )}
       {showNew && (
         <NewOrderForm
@@ -119,6 +153,17 @@ export default function PedidosPage() {
           metadata={metadata}
           onSave={handleSaveOrder}
           onClose={() => setShowNew(false)}
+          onToast={pushToast}
+        />
+      )}
+      {returnForOrder && (
+        <NewReturnForm
+          customers={customers}
+          orders={orders}
+          metadata={returnMetadata}
+          prefilledOrderId={returnForOrder.id}
+          onSave={handleSaveReturn}
+          onClose={() => setReturnForOrder(null)}
           onToast={pushToast}
         />
       )}

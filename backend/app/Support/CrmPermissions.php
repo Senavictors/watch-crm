@@ -31,6 +31,10 @@ class CrmPermissions
         'orders.create',
         'orders.update',
         'orders.delete',
+        'returns.view',
+        'returns.create',
+        'returns.update',
+        'returns.delete',
         'settings.view',
         'users.manage',
     ];
@@ -54,6 +58,20 @@ class CrmPermissions
             'products.view',
             'models.view',
             'orders.view',
+            'returns.view',
+        ];
+    }
+
+    public static function guarantee(): array
+    {
+        return [
+            'shipping.view',
+            'customers.view',
+            'products.view',
+            'models.view',
+            'returns.view',
+            'returns.create',
+            'returns.update',
         ];
     }
 }
