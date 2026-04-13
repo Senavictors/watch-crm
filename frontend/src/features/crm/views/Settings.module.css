@@ -25,10 +25,25 @@
 }
 
 .cardHeader {
+  margin-bottom: 12px;
+}
+
+.inputRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
+  gap: 10px;
+}
+
+.inputControl {
+  flex: 1;
+  background: var(--crm-input-bg);
+  border: 1px solid var(--crm-input-border);
+  border-radius: 12px;
+  color: var(--crm-input-text);
+  padding: 8px 12px;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
 }
 
 .cardTitle {

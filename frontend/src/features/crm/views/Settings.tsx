@@ -1,7 +1,7 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { Brand, Quality } from "../types";
-import { Btn, Card, Input } from "../ui/Primitives";
+import { Btn, Card } from "../ui/Primitives";
 import styles from "./Settings.module.css";
 
 type Props = {
@@ -49,15 +49,21 @@ const Settings: React.FC<Props> = ({ brands, qualities, onAddBrand, onAddQuality
       <div className={styles.grid}>
         <Card>
           <div className={styles.cardHeader}>
-            <div>
-              <div className={styles.cardTitle}>Marcas</div>
-              <div className={styles.cardSubtitle}>Cadastre e acompanhe as marcas disponíveis.</div>
-            </div>
+            <div className={styles.cardTitle}>Marcas</div>
+            <div className={styles.cardSubtitle}>Cadastre e acompanhe as marcas disponíveis.</div>
+          </div>
+          <div className={styles.inputRow}>
+            <input
+              className={styles.inputControl}
+              placeholder="Nova marca"
+              value={brandName}
+              onChange={(e) => setBrandName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAddBrand()}
+            />
             <Btn onClick={handleAddBrand} variant="primary" className={styles.actionButton}>
               + Adicionar
             </Btn>
           </div>
-          <Input label="Nova marca" value={brandName} onChange={(e) => setBrandName(e.target.value)} />
           <div className={styles.tableWrap}>
             <div className={styles.tableHeader}>
               <div>Marca</div>
@@ -74,15 +80,21 @@ const Settings: React.FC<Props> = ({ brands, qualities, onAddBrand, onAddQuality
 
         <Card>
           <div className={styles.cardHeader}>
-            <div>
-              <div className={styles.cardTitle}>Qualidades</div>
-              <div className={styles.cardSubtitle}>Defina as qualidades disponíveis para modelos.</div>
-            </div>
+            <div className={styles.cardTitle}>Qualidades</div>
+            <div className={styles.cardSubtitle}>Defina as qualidades disponíveis para modelos.</div>
+          </div>
+          <div className={styles.inputRow}>
+            <input
+              className={styles.inputControl}
+              placeholder="Nova qualidade"
+              value={qualityName}
+              onChange={(e) => setQualityName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAddQuality()}
+            />
             <Btn onClick={handleAddQuality} variant="primary" className={styles.actionButton}>
               + Adicionar
             </Btn>
           </div>
-          <Input label="Nova qualidade" value={qualityName} onChange={(e) => setQualityName(e.target.value)} />
           <div className={styles.tableWrap}>
             <div className={styles.tableHeader}>
               <div>Qualidade</div>
