@@ -31,6 +31,7 @@ Route::middleware('web')->group(function () {
         Route::post('/products', [ProductController::class, 'store'])->middleware('permission:products.create');
         Route::put('/products/{id}', [ProductController::class, 'update'])->middleware('permission:products.update');
         Route::patch('/products/{id}', [ProductController::class, 'update'])->middleware('permission:products.update');
+        Route::patch('/products/{id}/add-qty', [ProductController::class, 'addQty'])->middleware('permission:products.update');
         Route::delete('/products/{id}', [ProductController::class, 'destroy'])->middleware('permission:products.delete');
 
         Route::get('/brands', [BrandController::class, 'index'])->middleware('permission:brands.view');

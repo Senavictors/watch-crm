@@ -35,6 +35,18 @@ class ProductController extends Controller
             'qty' => ['required', 'integer', 'min:0'],
         ]);
 
+        $alreadyExists = Product::where('model_id', $data['modelId'])
+            ->where('stock', $data['stock'])
+            ->exists();
+
+        if ($alreadyExists) {
+            $label = $data['stock'] === 'IN_STOCK' ? 'Estoque' : 'Fornecedor';
+
+            return response()->json([
+                'message' => "Já existe uma entrada \"{$label}\" para este modelo. Edite a entrada existente ou adicione unidades a ela.",
+            ], 422);
+        }
+
         $product = Product::create([
             'brand_id' => $data['brandId'],
             'model_id' => $data['modelId'],
@@ -47,6 +59,25 @@ class ProductController extends Controller
         $this->audit('products.created', 'Produto criado.', $product);
 
         return response()->json($this->toPayload($product), 201);
+    }
+
+    public function addQty(Request $request, int $id)
+    {
+        $product = Product::find($id);
+
+        if (! $product) {
+            return response()->json(['message' => 'Produto não encontrado.'], 404);
+        }
+
+        $data = $request->validate([
+            'qty' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $product->increment('qty', $data['qty']);
+        $product->load(['brand', 'watchModel.quality']);
+        $this->audit('products.qty_added', "Adicionadas {$data['qty']} unidades ao produto.", $product);
+
+        return response()->json($this->toPayload($product));
     }
 
     public function update(Request $request, int $id)

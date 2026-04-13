@@ -9,12 +9,17 @@ type Props = {
   products: Product[];
   canCreate: boolean;
   canUpdate: boolean;
+  canDelete: boolean;
   compact: boolean;
   onNew: () => void;
   onEdit: (product: Product) => void;
+  onDelete: (product: Product) => void;
+  onAddQty: (product: Product) => void;
 };
 
-const Products: React.FC<Props> = ({ products, canCreate, canUpdate, compact, onNew, onEdit }) => {
+const Products: React.FC<Props> = ({ products, canCreate, canUpdate, canDelete, compact, onNew, onEdit, onDelete, onAddQty }) => {
+  const showActions = !compact && (canUpdate || canDelete);
+
   return (
     <div>
       <div className={styles.headerRow}>
@@ -31,7 +36,7 @@ const Products: React.FC<Props> = ({ products, canCreate, canUpdate, compact, on
             <tr className={styles.theadRow}>
               {(compact
                 ? ["Marca / Modelo", "Preço", "Origem", "Estoque"]
-                : ["Marca / Modelo", "Custo", "Preço", "Margem", "Origem", "Estoque", ...(canUpdate ? ["Ações"] : [])]).map((h) => (
+                : ["Marca / Modelo", "Custo", "Preço", "Margem", "Origem", "Estoque", ...(showActions ? ["Ações"] : [])]).map((h) => (
                 <th key={h} className={styles.theadCell}>
                   {h}
                 </th>
@@ -71,11 +76,25 @@ const Products: React.FC<Props> = ({ products, canCreate, canUpdate, compact, on
                   >
                     {p.qty > 0 ? `${p.qty} un.` : "—"}
                   </td>
-                  {!compact && canUpdate && (
+                  {showActions && (
                     <td className={styles.cell}>
-                      <Btn onClick={() => onEdit(p)} variant="secondary" small className={styles.rowAction}>
-                        Editar
-                      </Btn>
+                      <div className={styles.rowActions}>
+                        {canUpdate && (
+                          <>
+                            <Btn onClick={() => onAddQty(p)} variant="secondary" small className={styles.rowAction}>
+                              Entrada
+                            </Btn>
+                            <Btn onClick={() => onEdit(p)} variant="secondary" small className={styles.rowAction}>
+                              Editar
+                            </Btn>
+                          </>
+                        )}
+                        {canDelete && (
+                          <Btn onClick={() => onDelete(p)} variant="danger" small className={styles.rowAction}>
+                            Excluir
+                          </Btn>
+                        )}
+                      </div>
                     </td>
                   )}
                 </tr>

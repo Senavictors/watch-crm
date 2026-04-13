@@ -10,12 +10,13 @@ type Props = {
   product?: Product | null;
   brands: Brand[];
   models: WatchModel[];
+  existingProducts?: Product[];
   onSave: (product: ProductInput) => void;
   onClose: () => void;
   onToast: (message: string, variant?: "success" | "error") => void;
 };
 
-const NewProductForm: React.FC<Props> = ({ product, brands, models, onSave, onClose, onToast }) => {
+const NewProductForm: React.FC<Props> = ({ product, brands, models, existingProducts = [], onSave, onClose, onToast }) => {
   const isEditing = Boolean(product);
 
   const [form, setForm] = useState<{
@@ -41,18 +42,38 @@ const NewProductForm: React.FC<Props> = ({ product, brands, models, onSave, onCl
   const selectedModel = models.find((m) => m.id === Number(form.modelId));
   const modelBrand = selectedModel ? brands.find((b) => b.id === selectedModel.brandId) : null;
 
+  // origins already taken for the selected model (excluding the current product being edited)
+  const takenOrigins = new Set(
+    existingProducts
+      .filter((p) => p.modelId === Number(form.modelId) && p.id !== product?.id)
+      .map((p) => p.stock)
+  );
+
   function handleModelChange(value: string) {
     const model = models.find((m) => m.id === Number(value));
+    const newTaken = new Set(
+      existingProducts
+        .filter((p) => p.modelId === Number(value) && p.id !== product?.id)
+        .map((p) => p.stock)
+    );
+    // pick first available origin
+    const defaultStock: StockOrigin = !newTaken.has("IN_STOCK") ? "IN_STOCK" : "SUPPLIER";
     setForm((f) => ({
       ...f,
       modelId: value,
       brandId: model ? String(model.brandId) : "",
+      stock: newTaken.has(f.stock) ? defaultStock : f.stock,
     }));
   }
 
   function handleSubmit() {
     if (!form.modelId || !form.brandId || !form.cost || !form.price) {
       onToast("Preencha modelo, marca, custo e preço.", "error");
+      return;
+    }
+    if (!isEditing && takenOrigins.has(form.stock)) {
+      const label = form.stock === "IN_STOCK" ? "Estoque" : "Fornecedor";
+      onToast(`Já existe uma entrada "${label}" para este modelo.`, "error");
       return;
     }
     const qty = Math.max(0, Number(form.qty || 0));
@@ -66,6 +87,8 @@ const NewProductForm: React.FC<Props> = ({ product, brands, models, onSave, onCl
     });
   }
 
+  const allOriginsTaken = !isEditing && takenOrigins.has("IN_STOCK") && takenOrigins.has("SUPPLIER");
+
   return (
     <div className={modalStyles.overlay}>
       <div className={`${modalStyles.modal} ${styles.modal}`}>
@@ -75,6 +98,12 @@ const NewProductForm: React.FC<Props> = ({ product, brands, models, onSave, onCl
             ×
           </button>
         </div>
+
+        {allOriginsTaken && (
+          <div className={styles.alert}>
+            Este modelo já possui entradas de Estoque e Fornecedor. Use a opção &quot;+ Qtd&quot; para adicionar unidades.
+          </div>
+        )}
 
         <div className={modalStyles.formGridTwo}>
           <Select label="Modelo" value={form.modelId} onChange={(e) => handleModelChange(e.target.value)}>
@@ -110,9 +139,18 @@ const NewProductForm: React.FC<Props> = ({ product, brands, models, onSave, onCl
             value={form.price}
             onChange={(e) => set("price", e.target.value)}
           />
-          <Select label="Origem" value={form.stock} onChange={(e) => set("stock", e.target.value as StockOrigin)}>
-            <option value="IN_STOCK">Estoque</option>
-            <option value="SUPPLIER">Fornecedor</option>
+          <Select
+            label="Origem"
+            value={form.stock}
+            onChange={(e) => set("stock", e.target.value as StockOrigin)}
+            disabled={isEditing}
+          >
+            <option value="IN_STOCK" disabled={!isEditing && takenOrigins.has("IN_STOCK")}>
+              {takenOrigins.has("IN_STOCK") && !isEditing ? "Estoque (já cadastrado)" : "Estoque"}
+            </option>
+            <option value="SUPPLIER" disabled={!isEditing && takenOrigins.has("SUPPLIER")}>
+              {takenOrigins.has("SUPPLIER") && !isEditing ? "Fornecedor (já cadastrado)" : "Fornecedor"}
+            </option>
           </Select>
           <Input
             label="Estoque (unidades)"
@@ -126,7 +164,7 @@ const NewProductForm: React.FC<Props> = ({ product, brands, models, onSave, onCl
           <Btn onClick={onClose} variant="secondary" className={styles.actionButton}>
             Cancelar
           </Btn>
-          <Btn onClick={handleSubmit} variant="primary" className={styles.actionButton}>
+          <Btn onClick={handleSubmit} variant="primary" className={styles.actionButton} disabled={allOriginsTaken}>
             {isEditing ? "Salvar Alterações" : "Salvar Produto"}
           </Btn>
         </div>
