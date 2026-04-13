@@ -43,6 +43,20 @@
   gap: 14px;
 }
 
+.customerCard {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.customerCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+}
+
+.customerCard:hover .cardAction {
+  opacity: 1;
+}
+
 .cardHeader {
   display: flex;
   align-items: flex-start;
@@ -55,6 +69,12 @@
   color: var(--crm-text);
   font-weight: 700;
   font-size: 15px;
+}
+
+.cardActions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .cardAction {

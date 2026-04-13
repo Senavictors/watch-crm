@@ -1,0 +1,121 @@
+.modal {
+  width: 680px;
+}
+
+.section {
+  margin-bottom: 20px;
+}
+
+.sectionTitle {
+  color: var(--crm-text);
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.infoLabel {
+  color: var(--crm-text-soft);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.infoValue {
+  color: var(--crm-text);
+  font-size: 13px;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--crm-table-border);
+  margin: 16px 0;
+}
+
+.ordersTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.ordersTable th {
+  color: var(--crm-text-soft);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--crm-table-border);
+}
+
+.ordersTable td {
+  color: var(--crm-text-muted);
+  padding: 8px;
+  border-bottom: 1px solid var(--crm-table-border);
+  vertical-align: middle;
+}
+
+.ordersTable tr:last-child td {
+  border-bottom: none;
+}
+
+.emptyOrders {
+  color: var(--crm-text-soft);
+  font-size: 13px;
+  text-align: center;
+  padding: 24px 0;
+}
+
+.loading {
+  color: var(--crm-text-muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 24px 0;
+}
+
+.addressBlock {
+  color: var(--crm-text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--crm-table-border);
+  margin-bottom: 16px;
+}
+
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--crm-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.tab:hover {
+  color: var(--crm-text);
+}
+
+.tabActive {
+  color: var(--crm-accent);
+  border-bottom-color: var(--crm-accent);
+}

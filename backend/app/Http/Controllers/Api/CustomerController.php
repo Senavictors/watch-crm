@@ -20,7 +20,7 @@ class CustomerController extends Controller
 
     public function store(Request $request)
     {
-        $data = $this->validatedData($request);
+        $data = $this->toDatabaseKeys($this->validatedData($request));
 
         $customer = Customer::create([
             ...$data,
@@ -41,7 +41,7 @@ class CustomerController extends Controller
 
         $this->authorize('update', $customer);
 
-        $data = $this->validatedData($request, true);
+        $data = $this->toDatabaseKeys($this->validatedData($request, true));
 
         $customer->fill($data);
         $customer->save();
@@ -72,8 +72,24 @@ class CustomerController extends Controller
             'phone' => $c->phone,
             'email' => $c->email,
             'instagram' => $c->instagram,
+            'street' => $c->street,
+            'number' => $c->number,
+            'complement' => $c->complement,
+            'zipCode' => $c->zip_code,
+            'city' => $c->city,
+            'state' => $c->state,
             'ownerUserId' => $c->owner_user_id,
         ];
+    }
+
+    private function toDatabaseKeys(array $data): array
+    {
+        if (array_key_exists('zipCode', $data)) {
+            $data['zip_code'] = $data['zipCode'];
+            unset($data['zipCode']);
+        }
+
+        return $data;
     }
 
     private function validatedData(Request $request, bool $partial = false): array
@@ -86,6 +102,12 @@ class CustomerController extends Controller
             'phone' => [...$required, 'string', 'max:50'],
             'email' => [...$optional, 'email', 'max:255'],
             'instagram' => [...$optional, 'string', 'max:255'],
+            'street' => [...$optional, 'string', 'max:255'],
+            'number' => [...$optional, 'string', 'max:20'],
+            'complement' => [...$optional, 'string', 'max:255'],
+            'zipCode' => [...$optional, 'string', 'max:20'],
+            'city' => [...$optional, 'string', 'max:100'],
+            'state' => [...$optional, 'string', 'max:2'],
         ]);
     }
 }

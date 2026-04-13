@@ -18,11 +18,23 @@ const NewCustomerForm: React.FC<Props> = ({ customer, onSave, onClose, onToast }
     phone: string;
     email: string;
     instagram: string;
+    street: string;
+    number: string;
+    complement: string;
+    zipCode: string;
+    city: string;
+    state: string;
   }>({
     name: customer?.name ?? "",
     phone: customer?.phone ?? "",
     email: customer?.email ?? "",
     instagram: customer?.instagram ?? "",
+    street: customer?.street ?? "",
+    number: customer?.number ?? "",
+    complement: customer?.complement ?? "",
+    zipCode: customer?.zipCode ?? "",
+    city: customer?.city ?? "",
+    state: customer?.state ?? "",
   });
 
   const isEditing = Boolean(customer);
@@ -41,6 +53,12 @@ const NewCustomerForm: React.FC<Props> = ({ customer, onSave, onClose, onToast }
       phone: form.phone.trim(),
       email: form.email.trim() || null,
       instagram: form.instagram.trim() || null,
+      street: form.street.trim() || null,
+      number: form.number.trim() || null,
+      complement: form.complement.trim() || null,
+      zipCode: form.zipCode.trim() || null,
+      city: form.city.trim() || null,
+      state: form.state.trim() || null,
     });
   }
 
@@ -63,6 +81,16 @@ const NewCustomerForm: React.FC<Props> = ({ customer, onSave, onClose, onToast }
             value={form.instagram}
             onChange={(e) => set("instagram", e.target.value)}
           />
+        </div>
+
+        <div className={styles.sectionLabel}>Endereço (opcional)</div>
+        <div className={modalStyles.formGridTwo}>
+          <Input label="CEP" value={form.zipCode} onChange={(e) => set("zipCode", e.target.value)} />
+          <Input label="Estado (UF)" value={form.state} onChange={(e) => set("state", e.target.value.toUpperCase().slice(0, 2))} />
+          <Input label="Cidade" value={form.city} onChange={(e) => set("city", e.target.value)} />
+          <Input label="Rua" value={form.street} onChange={(e) => set("street", e.target.value)} />
+          <Input label="Número" value={form.number} onChange={(e) => set("number", e.target.value)} />
+          <Input label="Complemento" value={form.complement} onChange={(e) => set("complement", e.target.value)} />
         </div>
 
         <div className={styles.actions}>

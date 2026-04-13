@@ -1,5 +1,15 @@
 .modal {
-  width: 520px;
+  width: 560px;
+}
+
+.sectionLabel {
+  color: var(--crm-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 16px;
+  margin-bottom: 8px;
 }
 
 .actions {

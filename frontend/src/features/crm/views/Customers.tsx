@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { Pencil, Eye } from "lucide-react";
 import { Customer } from "../types";
 import { Btn, Card } from "../ui/Primitives";
 import styles from "./Customers.module.css";
@@ -10,9 +11,10 @@ type Props = {
   canUpdate: boolean;
   onNew: () => void;
   onEdit: (customer: Customer) => void;
+  onView: (customer: Customer) => void;
 };
 
-const Customers: React.FC<Props> = ({ customers, canCreate, canUpdate, onNew, onEdit }) => {
+const Customers: React.FC<Props> = ({ customers, canCreate, canUpdate, onNew, onEdit, onView }) => {
   const [search, setSearch] = useState("");
   const filtered = customers.filter(
     (c) =>
@@ -37,14 +39,19 @@ const Customers: React.FC<Props> = ({ customers, canCreate, canUpdate, onNew, on
       />
       <div className={styles.grid}>
         {filtered.map((c) => (
-          <Card key={c.id}>
+          <Card key={c.id} className={styles.customerCard}>
             <div className={styles.cardHeader}>
               <div className={styles.cardName}>{c.name}</div>
-              {canUpdate && (
-                <Btn onClick={() => onEdit(c)} variant="secondary" small className={styles.cardAction}>
-                  Editar
+              <div className={styles.cardActions}>
+                <Btn onClick={() => onView(c)} variant="secondary" small className={styles.cardAction}>
+                  <Eye size={16} />
                 </Btn>
-              )}
+                {canUpdate && (
+                  <Btn onClick={() => onEdit(c)} variant="secondary" small className={styles.cardAction}>
+                    <Pencil size={16} />
+                  </Btn>
+                )}
+              </div>
             </div>
             <div className={styles.cardMuted}>📱 {c.phone}</div>
             {c.email && (

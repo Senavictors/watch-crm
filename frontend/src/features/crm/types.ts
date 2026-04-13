@@ -101,6 +101,12 @@ export type Customer = {
   phone: string;
   instagram?: string | null;
   email?: string | null;
+  street?: string | null;
+  number?: string | null;
+  complement?: string | null;
+  zipCode?: string | null;
+  city?: string | null;
+  state?: string | null;
   ownerUserId?: number | null;
 };
 
@@ -109,6 +115,12 @@ export type CustomerInput = {
   phone: string;
   instagram?: string | null;
   email?: string | null;
+  street?: string | null;
+  number?: string | null;
+  complement?: string | null;
+  zipCode?: string | null;
+  city?: string | null;
+  state?: string | null;
 };
 
 export type Product = {

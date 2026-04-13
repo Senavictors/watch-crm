@@ -49,6 +49,10 @@ class ReturnController extends Controller
             $query->whereHas('items', fn ($q) => $q->where('order_item_id', $request->integer('orderItemId')));
         }
 
+        if ($request->filled('customer_id')) {
+            $query->where('customer_id', (int) $request->input('customer_id'));
+        }
+
         $returns = $query
             ->orderByDesc('created_at')
             ->get()

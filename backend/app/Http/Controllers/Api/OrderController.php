@@ -47,6 +47,10 @@ class OrderController extends Controller
             $query->where('seller_user_id', $user->id);
         }
 
+        if ($request->filled('customer_id')) {
+            $query->where('customer_id', (int) $request->input('customer_id'));
+        }
+
         $orders = $query
             ->with(['sellerUser', 'items'])
             ->orderByDesc('sale_date')
