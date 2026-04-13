@@ -2,6 +2,7 @@
 CRM fullstack para relojoaria com autenticação stateful, catálogo, pedidos, fila de envios e dashboards.
 
 ## Destaques da versão atual
+- Módulo de metas de vendas: cadastro por escopo (empresa ou vendedor individual), filtros por tipo de produto/marca/modelo, ciclos de período configuráveis (mensal, trimestral, semestral, anual) e cálculo de progresso em tempo real via `order_items`. Admin e gerente gerenciam; vendedor visualiza.
 - Módulo de gerenciamento de usuários: listagem, criação, edição, bloqueio/desbloqueio e redefinição de senha. Acessível a `admin` e `gerente`; gerente não pode criar ou alterar administradores.
 - Frontend migrado de SPA monolítico para Next.js App Router com roteamento por arquivo. Cada página carrega seus dados de forma independente, somente quando o usuário navega até ela.
 - Estado global (auth, toasts, tema) extraído para contexts React dedicados (`AuthContext`, `ToastContext`, `ThemeContext`).
@@ -29,6 +30,7 @@ CRM fullstack para relojoaria com autenticação stateful, catálogo, pedidos, f
 - Pedidos com criação real via API, múltiplos itens e detalhamento por linha
 - Fila de envios com visibilidade de quantidade de itens por pedido
 - Configurações para cadastro de marcas e qualidades
+- Metas de vendas com escopo por empresa ou vendedor, filtros de catálogo, intervalos configuráveis e progresso em tempo real
 - Usuários com listagem, criação, edição de função, bloqueio/desbloqueio e redefinição de senha
 
 ## Telas do Sistema
@@ -71,6 +73,7 @@ watch-crm/
 │     │     ├─ clientes/
 │     │     ├─ produtos/
 │     │     ├─ modelos/
+│     │     ├─ metas/
 │     │     ├─ configuracoes/
 │     │     └─ usuarios/
 │     └─ features/crm/
@@ -119,6 +122,12 @@ watch-crm/
 - POST `/api/orders`
 - PATCH `/api/orders/{id}`
 - DELETE `/api/orders/{id}`
+- GET `/api/goals/metadata`
+- GET `/api/goals`
+- POST `/api/goals`
+- PUT `/api/goals/{id}`
+- PATCH `/api/goals/{id}`
+- DELETE `/api/goals/{id}`
 - GET `/api/users`
 - POST `/api/users`
 - PATCH `/api/users/{id}`
@@ -155,3 +164,4 @@ Observações:
 ## Documentação
 - Visão geral técnica e funcional: [DOCUMENTACAO.md](DOCUMENTACAO.md)
 - Login, autorização, CSRF e troubleshooting: [docs/login-e-autorizacao.md](docs/login-e-autorizacao.md)
+- Módulo de metas — banco, endpoints, progresso e autorização: [docs/metas.md](docs/metas.md)

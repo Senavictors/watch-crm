@@ -5,13 +5,13 @@
 - Backend em `backend/`: Laravel 12.
 - Objetivo: CRM para relojoaria com autenticação stateful, catálogo, pedidos, fila de envios e dashboards.
 - Documentação complementar de login e autorização: `docs/login-e-autorizacao.md`.
+- Documentação completa do módulo de metas: `docs/metas.md`.
 
 ## Resumo da Última Evolução
-- Implementado módulo de gerenciamento de usuários: listagem, criação, edição, bloqueio/desbloqueio e redefinição de senha.
-- Gerente (`gerente`) passou a ter acesso ao módulo de usuários (`users.manage`), com restrição de não poder criar ou editar administradores.
-- Frontend migrado de SPA monolítico (`CrmApp.tsx`) para roteamento por arquivo (Next.js App Router). Cada página agora carrega seus dados de forma independente, somente quando o usuário navega até ela.
-- Estado global (auth, tema, toasts) extraído para contexts React dedicados.
-- `CrmApp.tsx` removido; responsabilidades distribuídas entre contexts e páginas de rota.
+- Implementado módulo de metas de vendas: cadastro por escopo (empresa ou vendedor), filtros por tipo de produto/marca/modelo, ciclos de período configuráveis (mensal, trimestral, semestral, anual) e cálculo de progresso em tempo real via `order_items`.
+- Admin e gerente gerenciam metas; vendedor visualiza apenas as próprias metas e metas da empresa.
+- Formulário de metas com geração automática de intervalos e botão "Distribuir igualmente" para dividir um valor total entre os períodos.
+- Modal de detalhe com barras de progresso por intervalo e visão consolidada da meta.
 
 ## Arquitetura Geral
 ### Frontend
@@ -50,6 +50,7 @@ frontend/
 │     ├─ clientes/page.tsx
 │     ├─ produtos/page.tsx
 │     ├─ modelos/page.tsx
+│     ├─ metas/page.tsx
 │     ├─ configuracoes/page.tsx
 │     └─ usuarios/page.tsx
 └─ src/features/crm/
@@ -70,6 +71,7 @@ frontend/
       ├─ Customers.tsx / NewCustomerForm.tsx
       ├─ Products.tsx / NewProductForm.tsx
       ├─ Models.tsx / NewModelForm.tsx
+      ├─ GoalList.tsx / GoalDetail.tsx / NewGoalForm.tsx
       ├─ Settings.tsx
       ├─ Users.tsx / NewUserForm.tsx
       └─ LoginView.tsx
@@ -92,6 +94,7 @@ frontend/
 | `/produtos` | `GET /products`, `GET /brands`, `GET /models` |
 | `/modelos` | `GET /models`, `GET /brands`, `GET /qualities` |
 | `/configuracoes` | `GET /brands`, `GET /qualities` |
+| `/metas` | `GET /goals`, `GET /goals/metadata` |
 | `/usuarios` | `GET /users` |
 
 ### Pedidos
@@ -104,6 +107,16 @@ frontend/
 - `NewModelForm.tsx` permite escolher `productType` (`WATCH` ou `BOX`).
 - A qualidade só aparece quando o tipo é `WATCH`.
 - `helpers.ts` centraliza: `productTypeLabel`, `modelLabel`, `productLabel`.
+
+### Metas
+- Acessível em `/metas` por `admin`, `gerente` (leitura e escrita) e `vendedor` (somente leitura).
+- Escopo `company`: contabiliza vendas de toda a empresa. Escopo `user`: contabiliza apenas as vendas do vendedor vinculado.
+- Filtros opcionais: tipo de produto (`WATCH` / `BOX`), marca e modelo.
+- Tipo de cálculo: `total_value` (soma de valor líquido) ou `quantity` (soma de itens vendidos).
+- Ciclos de período: mensal, trimestral, semestral ou anual — geram intervalos automaticamente no frontend.
+- Cada intervalo possui um valor alvo independente; botão "Distribuir igualmente" divide um total entre os períodos.
+- Progresso calculado em tempo real consultando `order_items` (pedidos com status `Cancelado` são excluídos).
+- Modal `GoalDetail` exibe barra de progresso consolidada e por intervalo.
 
 ### Usuários
 - Acessível em `/usuarios` apenas por `admin` e `gerente`.
@@ -142,12 +155,15 @@ frontend/
 | `orders.view` | ✓ | ✓ | ✓ |
 | `customers.view`, `products.view`, `models.view` | ✓ | ✓ | ✓ |
 | `dashboard.view`, `shipping.view` | ✓ | ✓ | ✓ |
+| `goals.view` | ✓ | ✓ | ✓ |
+| `goals.create`, `goals.update`, `goals.delete` | ✓ | ✓ | — |
 | `users.manage` | ✓ | ✓ | — |
 
 ### Policies
 - `CustomerPolicy` — vendedor só visualiza/edita clientes próprios.
 - `OrderPolicy` — vendedor só visualiza/edita pedidos próprios.
 - `UserPolicy` — gerente não pode criar, editar, bloquear ou redefinir senha de administradores.
+- `GoalPolicy` — vendedor só visualiza metas da empresa ou metas com `target_user_id` igual ao próprio id; somente admin/gerente podem criar, editar e excluir.
 
 ## Banco de Dados e Modelos
 ### Novos conceitos
@@ -155,6 +171,8 @@ frontend/
 - `Order` ganhou relação `hasMany(OrderItem)`.
 - `Product` ganhou relação `hasMany(OrderItem)`.
 - Novo model `OrderItem`.
+- Novo model `Goal` com relações `belongsTo(User)` (criador e alvo), `belongsTo(Brand)`, `belongsTo(WatchModel)` e `hasMany(GoalInterval)`.
+- Novo model `GoalInterval`.
 
 ### Migrations relevantes
 - `add_product_type_to_models_table` — adiciona `product_type`, `quality_key`; torna `quality_id` opcional.
@@ -167,6 +185,8 @@ frontend/
 - `products` — `brand_id`, `model_id`, `cost`, `price`, `stock`, `qty`
 - `orders` — `customer_id`, `created_by_user_id?`, `seller_user_id?`, `product_id?`, `product_name`, `channel`, `seller`, `status`, `sale_price`, `cost`, `discount`, `freight`, `channel_fee`, `payment_method?`, `shipping_method`, `tracking_code?`, `sale_date`, `shipped_date?`, `notes?`
 - `order_items` — `order_id`, `product_id?`, `product_name`, `product_type`, `brand_name?`, `model_name?`, `quality_name?`, `quantity`, `unit_price`, `unit_cost`, `unit_discount`
+- `goals` — `created_by_user_id`, `target_user_id?`, `name`, `description?`, `scope`, `calculation_type`, `product_type_filter?`, `brand_id?`, `model_id?`, `period_cycle`, `start_date`, `end_date`, `status`
+- `goal_intervals` — `goal_id`, `start_date`, `end_date`, `target_value`
 
 ## Regras de Negócio Relevantes
 ### Catálogo
@@ -178,6 +198,13 @@ frontend/
 - Um pedido precisa ter ao menos um item.
 - Cada item precisa de: produto válido, quantidade mínima de `1`, preço unitário, desconto unitário ≥ `0`.
 - Totais derivados da soma das linhas: `sale_price`, `cost`, `discount`.
+
+### Metas
+- Escopo `user` exige `target_user_id` apontando para um vendedor ativo.
+- Cada intervalo precisa de `target_value > 0`.
+- Intervalos são recriados a cada atualização (delete + re-insert), sem soft-delete.
+- Pedidos com status `Cancelado` são excluídos do cálculo de progresso.
+- `GoalProgressCalculator` calcula `currentValue` por intervalo consultando `order_items` JOIN `orders` com os filtros da meta.
 
 ### Usuários
 - Senha mínima de 12 caracteres (criação e redefinição).
@@ -226,6 +253,12 @@ frontend/
 - `PUT /api/orders/{id}`
 - `PATCH /api/orders/{id}`
 - `DELETE /api/orders/{id}`
+- `GET /api/goals/metadata`
+- `GET /api/goals`
+- `POST /api/goals`
+- `PUT /api/goals/{id}`
+- `PATCH /api/goals/{id}`
+- `DELETE /api/goals/{id}`
 - `GET /api/users`
 - `POST /api/users`
 - `PATCH /api/users/{id}`

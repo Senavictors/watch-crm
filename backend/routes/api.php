@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ModelController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\QualityController;
+use App\Http\Controllers\Api\GoalController;
 use App\Http\Controllers\Api\ReturnController;
 use Illuminate\Support\Facades\Route;
 
@@ -65,6 +66,13 @@ Route::middleware('web')->group(function () {
         Route::put('/returns/{id}', [ReturnController::class, 'update'])->middleware('permission:returns.update');
         Route::patch('/returns/{id}', [ReturnController::class, 'update'])->middleware('permission:returns.update');
         Route::delete('/returns/{id}', [ReturnController::class, 'destroy'])->middleware('permission:returns.delete');
+
+        Route::get('/goals/metadata', [GoalController::class, 'metadata'])->middleware('permission:goals.view');
+        Route::get('/goals', [GoalController::class, 'index'])->middleware('permission:goals.view');
+        Route::post('/goals', [GoalController::class, 'store'])->middleware('permission:goals.create');
+        Route::put('/goals/{id}', [GoalController::class, 'update'])->middleware('permission:goals.update');
+        Route::patch('/goals/{id}', [GoalController::class, 'update'])->middleware('permission:goals.update');
+        Route::delete('/goals/{id}', [GoalController::class, 'destroy'])->middleware('permission:goals.delete');
 
         Route::get('/users', [UserController::class, 'index'])->middleware('permission:users.manage');
         Route::post('/users', [UserController::class, 'store'])->middleware('permission:users.manage');

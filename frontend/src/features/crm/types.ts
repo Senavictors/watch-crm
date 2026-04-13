@@ -42,6 +42,10 @@ export type Permission =
   | "returns.create"
   | "returns.update"
   | "returns.delete"
+  | "goals.view"
+  | "goals.create"
+  | "goals.update"
+  | "goals.delete"
   | "settings.view"
   | "users.manage";
 
@@ -220,6 +224,78 @@ export type OrderItemInput = {
   quantity: number;
   unitPrice: number;
   unitDiscount: number;
+};
+
+export type GoalScope = "company" | "user";
+export type GoalCalculationType = "total_value" | "quantity";
+export type GoalPeriodCycle = "monthly" | "quarterly" | "semiannual" | "annual";
+export type GoalStatus = "active" | "archived";
+
+export type GoalInterval = {
+  id: number;
+  startDate: string;
+  endDate: string;
+  targetValue: number;
+  currentValue: number;
+  percentage: number;
+};
+
+export type Goal = {
+  id: number;
+  createdByUserId: number;
+  createdByUserName: string | null;
+  targetUserId: number | null;
+  targetUserName: string | null;
+  name: string;
+  description: string | null;
+  scope: GoalScope;
+  calculationType: GoalCalculationType;
+  productTypeFilter: string | null;
+  brandId: number | null;
+  brandName: string | null;
+  modelId: number | null;
+  modelName: string | null;
+  periodCycle: GoalPeriodCycle;
+  startDate: string;
+  endDate: string;
+  status: GoalStatus;
+  totalTarget: number;
+  totalCurrent: number;
+  totalPercentage: number;
+  intervals: GoalInterval[];
+  createdAt: string;
+};
+
+export type GoalIntervalInput = {
+  startDate: string;
+  endDate: string;
+  targetValue: number;
+};
+
+export type GoalInput = {
+  name: string;
+  description: string | null;
+  scope: GoalScope;
+  targetUserId: number | null;
+  calculationType: GoalCalculationType;
+  productTypeFilter: string | null;
+  brandId: number | null;
+  modelId: number | null;
+  periodCycle: GoalPeriodCycle;
+  startDate: string;
+  endDate: string;
+  status?: GoalStatus;
+  intervals: GoalIntervalInput[];
+};
+
+export type GoalMetadata = {
+  sellers: UserOption[];
+  brands: { id: number; name: string }[];
+  models: { id: number; name: string; brandId: number; productType: ProductType }[];
+  scopes: { value: string; label: string }[];
+  calculationTypes: { value: string; label: string }[];
+  productTypeFilters: { value: string; label: string }[];
+  periodCycles: { value: string; label: string }[];
 };
 
 export type ReturnType = "garantia" | "troca" | "devolucao";

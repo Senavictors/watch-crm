@@ -9,6 +9,7 @@ import {
   Users,
   Watch,
   Layers,
+  Target,
   Settings,
   UserCog,
   LucideIcon,
@@ -46,6 +47,7 @@ const iconMap: Record<string, LucideIcon> = {
   customers: Users,
   products: Watch,
   models: Layers,
+  goals: Target,
   settings: Settings,
   users: UserCog,
 };

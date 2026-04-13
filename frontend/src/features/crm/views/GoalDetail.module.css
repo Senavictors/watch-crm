@@ -1,0 +1,125 @@
+.modal {
+  width: 620px;
+}
+
+.section {
+  margin-bottom: 20px;
+}
+
+.sectionTitle {
+  color: var(--crm-text);
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.metaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metaLabel {
+  color: var(--crm-text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metaValue {
+  color: var(--crm-text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.totalProgress {
+  background: var(--crm-input-bg);
+  border: 1px solid var(--crm-table-border);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.totalPct {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.totalValues {
+  color: var(--crm-text-muted);
+  font-size: 13px;
+}
+
+.progressBarLarge {
+  height: 10px;
+  background: var(--crm-input-border);
+  border-radius: 5px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.intervalCard {
+  background: var(--crm-input-bg);
+  border: 1px solid var(--crm-table-border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+
+.intervalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.intervalPeriod {
+  color: var(--crm-text);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.intervalPct {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.intervalValues {
+  color: var(--crm-text-muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.progressBarSmall {
+  height: 6px;
+  background: var(--crm-input-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.closeRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.actionButton {
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+}

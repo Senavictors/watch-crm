@@ -35,6 +35,10 @@ class CrmPermissions
         'returns.create',
         'returns.update',
         'returns.delete',
+        'goals.view',
+        'goals.create',
+        'goals.update',
+        'goals.delete',
         'settings.view',
         'users.manage',
     ];
@@ -59,6 +63,7 @@ class CrmPermissions
             'models.view',
             'orders.view',
             'returns.view',
+            'goals.view',
         ];
     }
 

@@ -441,6 +441,7 @@ export const NAV = [
   { id: "customers",  label: "Clientes",         path: "/clientes",       permission: "customers.view" },
   { id: "products",   label: "Produtos",         path: "/produtos",       permission: "products.view" },
   { id: "models",     label: "Modelos",          path: "/modelos",        permission: "models.view" },
+  { id: "goals",      label: "Metas",             path: "/metas",          permission: "goals.view" },
   { id: "settings",   label: "Configurações",    path: "/configuracoes",  permission: "settings.view" },
   { id: "users",      label: "Usuários",         path: "/usuarios",       permission: "users.manage" },
 ];
