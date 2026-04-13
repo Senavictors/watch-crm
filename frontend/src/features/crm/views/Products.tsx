@@ -30,7 +30,7 @@ const Products: React.FC<Props> = ({ products, canCreate, canUpdate, compact, on
           <thead>
             <tr className={styles.theadRow}>
               {(compact
-                ? ["Preço", "Origem", "Estoque"]
+                ? ["Marca / Modelo", "Preço", "Origem", "Estoque"]
                 : ["Marca / Modelo", "Custo", "Preço", "Margem", "Origem", "Estoque", ...(canUpdate ? ["Ações"] : [])]).map((h) => (
                 <th key={h} className={styles.theadCell}>
                   {h}
@@ -43,19 +43,17 @@ const Products: React.FC<Props> = ({ products, canCreate, canUpdate, compact, on
               const margin = (((p.price - p.cost) / p.price) * 100).toFixed(0);
               return (
                 <tr key={p.id} className={styles.row}>
-                  {!compact && (
-                    <td className={styles.cell}>
-                      <div className={styles.name}>{p.brand || "—"}</div>
-                      <div className={styles.sub}>
-                        {p.model || "—"}
-                        {p.productType === "BOX"
-                          ? ` · ${productTypeLabel(p.productType)}`
-                          : p.modelQualityName
-                            ? ` · ${p.modelQualityName}`
-                            : ""}
-                      </div>
-                    </td>
-                  )}
+                  <td className={styles.cell}>
+                    <div className={styles.name}>{p.brand || "—"}</div>
+                    <div className={styles.sub}>
+                      {p.model || "—"}
+                      {p.productType === "BOX"
+                        ? ` · ${productTypeLabel(p.productType)}`
+                        : p.modelQualityName
+                          ? ` · ${p.modelQualityName}`
+                          : ""}
+                    </div>
+                  </td>
                   {!compact && <td className={styles.numericSoft}>{fmtBRL(p.cost)}</td>}
                   <td className={styles.numericAccentStrong}>{fmtBRL(p.price)}</td>
                   {!compact && <td className={styles.numericAccent}>{margin}%</td>}

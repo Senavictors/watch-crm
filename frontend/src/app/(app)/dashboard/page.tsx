@@ -7,7 +7,7 @@ import { Order } from "../../../features/crm/types";
 import Dashboard from "../../../features/crm/views/Dashboard";
 
 export default function DashboardPage() {
-  const { handleUnauthorized } = useAuth();
+  const { handleUnauthorized, hasPermission } = useAuth();
   const { pushToast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [channels, setChannels] = useState<string[]>([]);
@@ -52,5 +52,5 @@ export default function DashboardPage() {
 
   if (loading) return <div style={{ color: "var(--crm-text-muted)", padding: 32 }}>Carregando...</div>;
 
-  return <Dashboard orders={orders} channels={channels} statuses={statuses} />;
+  return <Dashboard orders={orders} channels={channels} statuses={statuses} canViewProfit={hasPermission("orders.update")} />;
 }

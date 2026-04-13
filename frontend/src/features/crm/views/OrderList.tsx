@@ -13,6 +13,7 @@ type Props = {
   statuses: string[];
   canCreate: boolean;
   canUpdateStatus: boolean;
+  canViewProfit: boolean;
   onView: (order: Order) => void;
   onNew: () => void;
   onUpdateStatus: (id: number, status: OrderStatus) => void;
@@ -26,6 +27,7 @@ const OrderList: React.FC<Props> = ({
   statuses,
   canCreate,
   canUpdateStatus,
+  canViewProfit,
   onView,
   onNew,
   onUpdateStatus,
@@ -108,13 +110,15 @@ const OrderList: React.FC<Props> = ({
         <table className={styles.table}>
           <thead>
             <tr className={styles.theadRow}>
-              {["#", "Data", "Cliente", "Produto", "Canal", "Vendedor", "Total", "Lucro", "Status", "Ações"].map(
-                (h) => (
-                  <th key={h} className={styles.theadCell}>
-                    {h}
-                  </th>
-                )
-              )}
+              {["#", "Data", "Cliente", "Produto", "Canal", "Vendedor", "Total",
+                ...(canViewProfit ? ["Lucro"] : []),
+                "Status",
+                ...(canUpdateStatus ? ["Ações"] : []),
+              ].map((h) => (
+                <th key={h} className={styles.theadCell}>
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -138,17 +142,19 @@ const OrderList: React.FC<Props> = ({
                 <td className={styles.cellAccent}>
                   {fmtBRL(o.salePrice - o.discount)}
                 </td>
-                <td
-                  className={styles.cellProfit}
-                  style={{ color: calcProfit(o) > 0 ? "var(--crm-success)" : "var(--crm-danger)" }}
-                >
-                  {fmtBRL(calcProfit(o))}
-                </td>
+                {canViewProfit && (
+                  <td
+                    className={styles.cellProfit}
+                    style={{ color: calcProfit(o) > 0 ? "var(--crm-success)" : "var(--crm-danger)" }}
+                  >
+                    {fmtBRL(calcProfit(o))}
+                  </td>
+                )}
                 <td className={styles.cell}>
                   <Badge status={o.status} />
                 </td>
-                <td className={styles.cell} onClick={(e) => e.stopPropagation()}>
-                  {canUpdateStatus ? (
+                {canUpdateStatus && (
+                  <td className={styles.cell} onClick={(e) => e.stopPropagation()}>
                     <select
                       value={o.status}
                       onChange={(e) => onUpdateStatus(o.id, e.target.value as OrderStatus)}
@@ -158,10 +164,8 @@ const OrderList: React.FC<Props> = ({
                         <option key={s}>{s}</option>
                       ))}
                     </select>
-                  ) : (
-                    <span className={styles.cellMuted}>Sem ação</span>
-                  )}
-                </td>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

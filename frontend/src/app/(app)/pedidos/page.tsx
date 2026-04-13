@@ -133,6 +133,7 @@ export default function PedidosPage() {
         statuses={metadata.statuses}
         canCreate={hasPermission("orders.create")}
         canUpdateStatus={hasPermission("orders.update")}
+        canViewProfit={hasPermission("orders.update")}
         onView={setViewOrder}
         onNew={() => setShowNew(true)}
         onUpdateStatus={handleUpdateStatus}

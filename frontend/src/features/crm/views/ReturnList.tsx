@@ -96,7 +96,9 @@ const ReturnList: React.FC<Props> = ({
         <table className={styles.table}>
           <thead>
             <tr className={styles.theadRow}>
-              {["#", "Data", "Cliente", "Item", "Tipo", "Status", "Custo Total", "Responsável", "Ações"].map((h) => (
+              {["#", "Data", "Cliente", "Item", "Tipo", "Status", "Custo Total", "Responsável",
+                ...(canUpdateStatus ? ["Ações"] : []),
+              ].map((h) => (
                 <th key={h} className={styles.theadCell}>
                   {h}
                 </th>
@@ -136,8 +138,8 @@ const ReturnList: React.FC<Props> = ({
                   </td>
                   <td className={styles.cellAccent}>{fmtBRL(r.totalCost)}</td>
                   <td className={styles.cellMuted}>{r.assignedUserName ?? "—"}</td>
-                  <td className={styles.cell} onClick={(e) => e.stopPropagation()}>
-                    {canUpdateStatus ? (
+                  {canUpdateStatus && (
+                    <td className={styles.cell} onClick={(e) => e.stopPropagation()}>
                       <select
                         value={r.status}
                         onChange={(e) => onUpdateStatus(r.id, e.target.value)}
@@ -147,10 +149,8 @@ const ReturnList: React.FC<Props> = ({
                           <option key={s}>{s}</option>
                         ))}
                       </select>
-                    ) : (
-                      <span className={styles.cellMuted}>—</span>
-                    )}
-                  </td>
+                    </td>
+                  )}
                 </tr>
               );
             })}

@@ -8,9 +8,10 @@ type Props = {
   orders: Order[];
   channels: string[];
   statuses: string[];
+  canViewProfit: boolean;
 };
 
-const Dashboard: React.FC<Props> = ({ orders, channels, statuses }) => {
+const Dashboard: React.FC<Props> = ({ orders, channels, statuses, canViewProfit }) => {
   const paid = orders.filter(
     (o) => !["Novo", "Aguardando Pagamento", "Cancelado"].includes(o.status)
   );
@@ -61,12 +62,14 @@ const Dashboard: React.FC<Props> = ({ orders, channels, statuses }) => {
           sub={`${paid.length} pedidos`}
           color="var(--crm-accent)"
         />
-        <StatCard
-          label="Lucro Líquido"
-          value={fmtBRL(totalProfit)}
-          sub={`Margem ${avgMargin}%`}
-          color="var(--crm-primary)"
-        />
+        {canViewProfit && (
+          <StatCard
+            label="Lucro Líquido"
+            value={fmtBRL(totalProfit)}
+            sub={`Margem ${avgMargin}%`}
+            color="var(--crm-primary)"
+          />
+        )}
         <StatCard
           label="Ticket Médio"
           value={paid.length ? fmtBRL(totalRevenue / paid.length) : "—"}
@@ -147,30 +150,32 @@ const Dashboard: React.FC<Props> = ({ orders, channels, statuses }) => {
         </Card>
       </div>
 
-      <Card>
-        <div className={styles.sectionLabel}>Performance por Vendedor</div>
-        <table className={styles.table}>
-          <thead>
-            <tr className={styles.tableHeadRow}>
-              {["Vendedor", "Pedidos", "Faturamento", "Lucro"].map((h) => (
-                <th key={h} className={styles.tableHeadCell}>
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {bySeller.map((s) => (
-              <tr key={s.name} className={styles.tableRow}>
-                <td className={styles.tableCellName}>{s.name}</td>
-                <td className={styles.tableCellMuted}>{s.count}</td>
-                <td className={styles.tableCellAccent}>{fmtBRL(s.revenue)}</td>
-                <td className={styles.tableCellPrimary}>{fmtBRL(s.profit)}</td>
+      {canViewProfit && (
+        <Card>
+          <div className={styles.sectionLabel}>Performance por Vendedor</div>
+          <table className={styles.table}>
+            <thead>
+              <tr className={styles.tableHeadRow}>
+                {["Vendedor", "Pedidos", "Faturamento", "Lucro"].map((h) => (
+                  <th key={h} className={styles.tableHeadCell}>
+                    {h}
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
+            </thead>
+            <tbody>
+              {bySeller.map((s) => (
+                <tr key={s.name} className={styles.tableRow}>
+                  <td className={styles.tableCellName}>{s.name}</td>
+                  <td className={styles.tableCellMuted}>{s.count}</td>
+                  <td className={styles.tableCellAccent}>{fmtBRL(s.revenue)}</td>
+                  <td className={styles.tableCellPrimary}>{fmtBRL(s.profit)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
     </div>
   );
 };

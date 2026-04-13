@@ -16,6 +16,8 @@ export default function ModelosPage() {
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
 
+  const canCreate = hasPermission("models.create");
+
   useEffect(() => {
     const apiBaseUrl = getApiBaseUrl();
     let alive = true;
@@ -23,18 +25,18 @@ export default function ModelosPage() {
     async function load() {
       try {
         setLoading(true);
-        const [modelsRes, brandsRes, qualitiesRes] = await Promise.all([
-          apiFetch(`${apiBaseUrl}/models`),
-          apiFetch(`${apiBaseUrl}/brands`),
-          apiFetch(`${apiBaseUrl}/qualities`),
-        ]);
-        if ([modelsRes, brandsRes, qualitiesRes].some((r) => r.status === 401)) { handleUnauthorized(); return; }
-        if (!modelsRes.ok || !brandsRes.ok || !qualitiesRes.ok) throw new Error("Falha ao carregar modelos.");
-        const [modelsData, brandsData, qualitiesData] = await Promise.all([modelsRes.json(), brandsRes.json(), qualitiesRes.json()]);
+        const requests: Promise<Response>[] = [apiFetch(`${apiBaseUrl}/models`)];
+        if (canCreate) {
+          requests.push(apiFetch(`${apiBaseUrl}/brands`), apiFetch(`${apiBaseUrl}/qualities`));
+        }
+        const responses = await Promise.all(requests);
+        if (responses.some((r) => r.status === 401)) { handleUnauthorized(); return; }
+        if (responses.some((r) => !r.ok)) throw new Error("Falha ao carregar modelos.");
+        const [modelsData, brandsData, qualitiesData] = await Promise.all(responses.map((r) => r.json()));
         if (!alive) return;
         setModels(modelsData);
-        setBrands(brandsData);
-        setQualities(qualitiesData);
+        if (brandsData) setBrands(brandsData);
+        if (qualitiesData) setQualities(qualitiesData);
       } catch (err) {
         if (alive) pushToast(err instanceof Error ? err.message : "Erro.", "error");
       } finally {
@@ -73,7 +75,7 @@ export default function ModelosPage() {
 
   return (
     <>
-      <Models models={models} canCreate={hasPermission("models.create")} onNew={() => setShowNew(true)} />
+      <Models models={models} canCreate={canCreate} onNew={() => setShowNew(true)} />
       {showNew && (
         <NewModelForm brands={brands} qualities={qualities} onSave={handleSave} onClose={() => setShowNew(false)} onToast={pushToast} />
       )}
