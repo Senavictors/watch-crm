@@ -4,9 +4,18 @@
   height: 100%;
 }
 
+/* ── Header ────────────────────────────────────────────── */
 .header {
+  display: flex;
+  flex-direction: column;
   margin-bottom: 32px;
   padding-left: 8px;
+  gap: 10px;
+}
+
+.wrapperCollapsed .header {
+  padding-left: 0;
+  align-items: center;
 }
 
 .headerOverline {
@@ -24,6 +33,29 @@
   font-weight: 700;
 }
 
+.toggleButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(148, 163, 184, 0.06);
+  color: var(--crm-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  align-self: flex-start;
+}
+
+.toggleButton:hover {
+  background: rgba(148, 163, 184, 0.14);
+  color: var(--crm-text);
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+/* ── Nav buttons ────────────────────────────────────────── */
 .navButton {
   display: flex;
   align-items: center;
@@ -42,6 +74,14 @@
   font-weight: 400;
   transition: background 0.15s, color 0.15s;
   text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.navButtonCollapsed {
+  justify-content: center;
+  padding: 10px;
+  gap: 0;
 }
 
 .navButton:hover:not(.navButtonActive) {
@@ -70,6 +110,7 @@
   flex: 1;
 }
 
+/* ── Badges ─────────────────────────────────────────────── */
 .badge {
   margin-left: auto;
   background: var(--crm-primary);
@@ -80,9 +121,31 @@
   font-weight: 700;
 }
 
+.badgeDot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--crm-primary);
+}
+
+.navButtonCollapsed {
+  position: relative;
+}
+
+/* ── Footer ─────────────────────────────────────────────── */
 .footer {
   margin-top: auto;
   padding-left: 8px;
+}
+
+.footerCollapsed {
+  padding-left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .userCard {
@@ -116,8 +179,26 @@
 }
 
 .logoutButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 16px 0 10px;
   width: 100%;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(148, 163, 184, 0.06);
+  color: var(--crm-text-muted);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.logoutButton:hover {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--crm-text);
 }
 
 .footerVersion {

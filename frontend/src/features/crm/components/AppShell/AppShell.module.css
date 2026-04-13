@@ -14,11 +14,27 @@
   flex-direction: column;
   flex-shrink: 0;
   backdrop-filter: blur(10px);
+  transition: width 0.22s ease, padding 0.22s ease;
+  overflow: hidden;
+}
+
+.root[data-collapsed="true"] .sidebar {
+  width: 64px;
+  padding: 28px 8px;
 }
 
 .content {
   flex: 1;
   padding: 36px 32px;
-  max-width: calc(100vw - 220px);
+  min-width: 0;
   overflow-x: auto;
+  transition: max-width 0.22s ease;
+}
+
+.root[data-collapsed="false"] .content {
+  max-width: calc(100vw - 220px);
+}
+
+.root[data-collapsed="true"] .content {
+  max-width: calc(100vw - 64px);
 }
