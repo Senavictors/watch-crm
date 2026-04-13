@@ -13,7 +13,7 @@ class ModelController extends Controller
     public function index()
     {
         $models = WatchModel::query()
-            ->with(['brand', 'quality'])
+            ->with(['brand', 'quality', 'products'])
             ->orderBy('id')
             ->get()
             ->map(fn (WatchModel $model) => $this->toPayload($model));
@@ -165,6 +165,8 @@ class ModelController extends Controller
 
     private function toPayload(WatchModel $model): array
     {
+        $products = $model->relationLoaded('products') ? $model->products : collect();
+
         return [
             'id' => $model->id,
             'brandId' => $model->brand_id,
@@ -174,6 +176,8 @@ class ModelController extends Controller
             'qualityId' => $model->quality_id,
             'qualityName' => $model->quality?->name,
             'imageUrl' => $model->image_path ? url(Storage::url($model->image_path)) : null,
+            'qtyInStock' => $products->where('stock', 'IN_STOCK')->sum('qty'),
+            'qtyAtSupplier' => $products->where('stock', 'SUPPLIER')->sum('qty'),
         ];
     }
 

@@ -93,6 +93,8 @@ export type WatchModel = {
   qualityId: number | null;
   qualityName?: string | null;
   imageUrl?: string | null;
+  qtyInStock?: number;
+  qtyAtSupplier?: number;
 };
 
 export type Customer = {

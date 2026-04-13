@@ -56,6 +56,21 @@ const Models: React.FC<Props> = ({ models, canCreate, onNew }) => {
                 <div className={styles.brand}>{m.brandName || "—"}</div>
                 <div className={styles.type}>{productTypeLabel(m.productType)}</div>
                 {m.productType === "WATCH" && <div className={styles.quality}>{m.qualityName ?? "—"}</div>}
+                <div className={styles.stockRow}>
+                  {(m.qtyInStock ?? 0) > 0 && (
+                    <span className={`${styles.stockPill} ${styles.pillStock}`}>
+                      {m.qtyInStock} em estoque
+                    </span>
+                  )}
+                  {(m.qtyAtSupplier ?? 0) > 0 && (
+                    <span className={`${styles.stockPill} ${styles.pillSupplier}`}>
+                      {m.qtyAtSupplier} no fornecedor
+                    </span>
+                  )}
+                  {(m.qtyInStock ?? 0) === 0 && (m.qtyAtSupplier ?? 0) === 0 && (
+                    <span className={styles.stockEmpty}>Sem estoque</span>
+                  )}
+                </div>
                 <div className={styles.meta}>Modelo #{m.id}</div>
               </div>
             </Card>
