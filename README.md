@@ -1,167 +1,331 @@
-# Watch CRM
-CRM fullstack para relojoaria com autenticação stateful, catálogo, pedidos, fila de envios e dashboards.
+# ⌚ Watch CRM
 
-## Destaques da versão atual
-- Módulo de metas de vendas: cadastro por escopo (empresa ou vendedor individual), filtros por tipo de produto/marca/modelo, ciclos de período configuráveis (mensal, trimestral, semestral, anual) e cálculo de progresso em tempo real via `order_items`. Admin e gerente gerenciam; vendedor visualiza.
-- Módulo de gerenciamento de usuários: listagem, criação, edição, bloqueio/desbloqueio e redefinição de senha. Acessível a `admin` e `gerente`; gerente não pode criar ou alterar administradores.
-- Frontend migrado de SPA monolítico para Next.js App Router com roteamento por arquivo. Cada página carrega seus dados de forma independente, somente quando o usuário navega até ela.
-- Estado global (auth, toasts, tema) extraído para contexts React dedicados (`AuthContext`, `ToastContext`, `ThemeContext`).
-- Pedidos aceitam múltiplos itens, com quantidade, preço unitário e desconto unitário por linha.
-- O catálogo suporta dois tipos de modelo e produto: `WATCH` e `BOX`. Modelos `BOX` não exigem qualidade.
-- O frontend em Docker sobe com `next dev --webpack`, evitando o encerramento prematuro observado com Turbopack no container.
+Sistema fullstack para gestão de relojoaria — catálogo, pedidos, envios, metas de vendas e pós-venda.
 
-## Stack
-- Frontend: Next.js 16 + React 19 + TypeScript
-- Backend: Laravel 12 + PHP 8.2+ localmente / PHP 8.4 no Docker
-- Banco: MySQL 8.4 via Docker ou SQLite em desenvolvimento local
+> Controle completo da operação da sua loja de relógios, do estoque ao pós-venda.
 
-## Autenticação e Acesso
-- Sessão stateful com Laravel Session e cookies HTTP-only
-- Proteção CSRF com `GET /api/csrf-cookie` antes de ações autenticadas
-- Autorização por papéis: `admin`, `gerente`, `vendedor`
-- Permissões por rota e regras de ownership em módulos sensíveis
+---
 
-## Funcionalidades
-- Login, logout e recuperação de sessão autenticada
-- Dashboard com métricas de pedidos e performance
-- Clientes com cadastro, edição e busca
-- Produtos com suporte a relógios e caixas
-- Modelos com upload de imagem e diferenciação por tipo de produto
-- Pedidos com criação real via API, múltiplos itens e detalhamento por linha
-- Fila de envios com visibilidade de quantidade de itens por pedido
-- Configurações para cadastro de marcas e qualidades
-- Metas de vendas com escopo por empresa ou vendedor, filtros de catálogo, intervalos configuráveis e progresso em tempo real
-- Usuários com listagem, criação, edição de função, bloqueio/desbloqueio e redefinição de senha
+## 📸 Preview
 
-## Telas do Sistema
-### Dashboard
-![Dashboard](imagens-do-sistema/dashboard.png)
+| Dashboard | Pedidos |
+|-----------|---------|
+| ![Dashboard](imagens-do-sistema/dashboard.png) | ![Pedidos](imagens-do-sistema/pedidos.png) |
 
-### Pedidos
-![Pedidos](imagens-do-sistema/pedidos.png)
+| Produtos e Estoque | Modelos |
+|---------------------|---------|
+| ![Produtos](imagens-do-sistema/produtos-e-estoque.png) | ![Modelos](imagens-do-sistema/modelos.png) |
 
-### Fila de Envios
-![Fila de Envios](imagens-do-sistema/fila-de-envios.png)
+| Clientes | Fila de Envios |
+|----------|----------------|
+| ![Clientes](imagens-do-sistema/clientes.png) | ![Fila de Envios](imagens-do-sistema/fila-de-envios.png) |
 
-### Clientes
-![Clientes](imagens-do-sistema/clientes.png)
+| Configurações |
+|---------------|
+| ![Configurações](imagens-do-sistema/configuracoes.png) |
 
-### Produtos e Estoque
-![Produtos e Estoque](imagens-do-sistema/produtos-e-estoque.png)
+---
 
-### Configurações
-![Configurações](imagens-do-sistema/configuracoes.png)
+## ❗ Problema
 
-### Modelos
-![Modelos](imagens-do-sistema/modelos.png)
+Gerenciar uma relojoaria envolve:
+- Controle manual de estoque com alto risco de erro
+- Pedidos registrados em planilhas sem rastreabilidade
+- Metas de vendas acompanhadas de forma imprecisa
+- Pós-venda (garantias, trocas, devoluções) sem padronização
+- Falta de visibilidade sobre a performance da equipe
 
-## Estrutura do Projeto
-```text
-watch-crm/
-├─ frontend/                   # Next.js (UI/CRM)
-│  └─ src/
-│     ├─ app/
-│     │  ├─ layout.tsx         # Root layout — monta <Providers>
-│     │  ├─ page.tsx           # Redirect para /dashboard
-│     │  ├─ Providers.tsx      # Composição dos 3 contexts (client component)
-│     │  ├─ login/page.tsx     # Página de login standalone
-│     │  └─ (app)/             # Grupo de rotas protegidas
-│     │     ├─ layout.tsx      # Auth guard + permission guard + AppShell + Sidebar
-│     │     ├─ dashboard/      # Cada pasta é uma rota independente
-│     │     ├─ pedidos/
-│     │     ├─ envios/
-│     │     ├─ clientes/
-│     │     ├─ produtos/
-│     │     ├─ modelos/
-│     │     ├─ metas/
-│     │     ├─ configuracoes/
-│     │     └─ usuarios/
-│     └─ features/crm/
-│        ├─ contexts/          # AuthContext, ToastContext, ThemeContext
-│        ├─ api.ts             # CSRF, cookies e chamadas autenticadas
-│        ├─ views/             # Telas e formulários do CRM
-│        ├─ ui/                # Componentes base
-│        ├─ types.ts           # Tipos do domínio, auth e permissões
-│        └─ helpers.ts         # Cálculos, labels e formatação
-├─ backend/                    # Laravel API
-│  ├─ app/Http/Controllers/Api # Controllers da API
-│  ├─ app/Models               # Models Eloquent
-│  ├─ app/Policies             # Policies por ownership e role
-│  ├─ app/Support              # Permissões e auditoria
-│  ├─ database/migrations      # Migrations
-│  └─ database/seeders         # Seeders
-├─ docs/                       # Documentações específicas
-├─ docker-compose.yml          # Orquestração Docker
-├─ DOCUMENTACAO.md             # Documentação funcional e técnica
-└─ crm-relogios.jsx            # MVP base de referência
+## 💡 Solução
+
+O Watch CRM centraliza toda a operação:
+- Catálogo de relógios e caixas com estoque por entrada/origem
+- Pedidos com múltiplos itens, preços e descontos por linha
+- Metas de vendas configuráveis com progresso em tempo real
+- Módulo de pós-venda para garantias, trocas e devoluções
+- Dashboard com métricas e visão geral do negócio
+- Controle de acesso por papel (admin, gerente, vendedor)
+
+---
+
+## ⚙️ Funcionalidades
+
+- 📊 **Dashboard** — métricas de pedidos e performance da equipe
+- 🛒 **Pedidos** — criação com múltiplos itens, quantidade, preço e desconto por linha
+- 📦 **Fila de Envios** — acompanhamento de pedidos pendentes de envio
+- 👥 **Clientes** — cadastro, edição e busca
+- ⌚ **Produtos** — relógios e caixas com controle de estoque por entrada
+- 🏷️ **Modelos** — upload de imagem, diferenciação por tipo (WATCH/BOX)
+- 🎯 **Metas de Vendas** — escopo empresa ou vendedor, filtros por marca/modelo/tipo, ciclos configuráveis
+- 🔄 **Garantias/Trocas/Devoluções** — pós-venda com rastreamento de itens e custos
+- 👤 **Usuários** — criação, edição de papel, bloqueio/desbloqueio, reset de senha
+- ⚙️ **Configurações** — cadastro de marcas e qualidades
+- 🔒 **Auth** — sessão stateful com CSRF, permissões granulares por rota
+
+---
+
+## 🏗️ Arquitetura
+
+```mermaid
+graph TD
+    Client[Next.js Frontend :4001] -->|REST API + Cookies| API[Laravel Backend :8000]
+    API -->|Eloquent ORM| DB[(MySQL 8.4 :3307)]
+
+    subgraph Frontend
+        Pages[App Router Pages] --> Views[Feature Views]
+        Views --> Contexts[Auth / Toast / Theme]
+        Views --> ApiLayer[api.ts - CSRF + Fetch]
+    end
+
+    subgraph Backend
+        Controllers[Controllers] --> Models[Eloquent Models]
+        Controllers --> Policies[Policies - Ownership]
+        Middleware[Permission Middleware] --> Controllers
+        Support[Support - Calculators / Metadata]
+    end
+
+    Client --> Pages
+    API --> Middleware
+    Controllers --> Support
 ```
 
-## Endpoints Principais
-- GET `/api/csrf-cookie`
-- POST `/api/login`
-- POST `/api/logout`
-- GET `/api/me`
-- POST `/api/forgot-password`
-- POST `/api/reset-password`
-- GET `/api/customers`
-- POST `/api/customers`
-- PATCH `/api/customers/{id}`
-- DELETE `/api/customers/{id}`
-- GET `/api/products`
-- POST `/api/products`
-- PATCH `/api/products/{id}`
-- DELETE `/api/products/{id}`
-- GET `/api/brands`
-- POST `/api/brands`
-- GET `/api/qualities`
-- POST `/api/qualities`
-- GET `/api/models`
-- POST `/api/models`
-- GET `/api/orders/metadata`
-- GET `/api/orders`
-- POST `/api/orders`
-- PATCH `/api/orders/{id}`
-- DELETE `/api/orders/{id}`
-- GET `/api/goals/metadata`
-- GET `/api/goals`
-- POST `/api/goals`
-- PUT `/api/goals/{id}`
-- PATCH `/api/goals/{id}`
-- DELETE `/api/goals/{id}`
-- GET `/api/users`
-- POST `/api/users`
-- PATCH `/api/users/{id}`
-- PATCH `/api/users/{id}/active`
-- PATCH `/api/users/{id}/password`
+### Fluxo de autenticação
 
-## Execução com Docker
+```mermaid
+sequenceDiagram
+    participant F as Frontend
+    participant B as Backend
+
+    F->>B: GET /api/csrf-cookie
+    B-->>F: Set-Cookie (XSRF-TOKEN)
+    F->>B: POST /api/login (credentials + CSRF)
+    B-->>F: Set-Cookie (session) + user data
+    F->>B: GET /api/me (cookie auth)
+    B-->>F: User + permissions
+```
+
+---
+
+## 📁 Estrutura do Projeto
+
+```
+watch-crm/
+├── frontend/                      # Next.js 16 (UI)
+│   └── src/
+│       ├── app/
+│       │   ├── layout.tsx         # Root layout + Providers
+│       │   ├── login/page.tsx     # Login standalone
+│       │   └── (app)/             # Rotas protegidas
+│       │       ├── layout.tsx     # Auth guard + Sidebar
+│       │       ├── dashboard/
+│       │       ├── pedidos/
+│       │       ├── envios/
+│       │       ├── clientes/
+│       │       ├── produtos/
+│       │       ├── modelos/
+│       │       ├── metas/
+│       │       ├── configuracoes/
+│       │       └── usuarios/
+│       └── features/crm/
+│           ├── api.ts             # CSRF, cookies, chamadas autenticadas
+│           ├── types.ts           # Tipos do domínio e permissões
+│           ├── helpers.ts         # Formatação e cálculos
+│           ├── contexts/          # AuthContext, ToastContext, ThemeContext
+│           ├── views/             # Telas e formulários
+│           ├── components/        # AppShell, Sidebar, Modal
+│           └── ui/                # Componentes base reutilizáveis
+│
+├── backend/                       # Laravel 12 (API)
+│   ├── app/
+│   │   ├── Http/
+│   │   │   ├── Controllers/Api/   # 10 controllers REST
+│   │   │   └── Middleware/        # Permission middleware
+│   │   ├── Models/                # 13 Eloquent models
+│   │   ├── Policies/              # Ownership checks
+│   │   ├── Enums/                 # Product types, statuses
+│   │   └── Support/               # Permissions, calculators, audit
+│   ├── database/
+│   │   ├── migrations/            # 24 migrations
+│   │   └── seeders/
+│   └── routes/api.php             # Todas as rotas REST
+│
+├── docs/                          # Documentação por módulo
+├── docker-compose.yml             # MySQL + Backend + Frontend
+└── DOCUMENTACAO.md                # Doc funcional e técnica
+```
+
+---
+
+## 🧰 Stack
+
+### Frontend
+- **Next.js 16** — App Router com rotas por arquivo
+- **React 19** — Contexts para estado global (sem libs externas)
+- **TypeScript 5** — Tipagem estrita no domínio
+- **Lucide React** — Ícones
+- **CSS Modules** — Estilização isolada por componente
+
+### Backend
+- **Laravel 12** — API REST stateful
+- **PHP 8.2+** (local) / **PHP 8.4** (Docker)
+- **Eloquent ORM** — Models com relationships e scopes
+- **Laravel Pint** — Code style
+
+### Banco de Dados
+- **MySQL 8.4** — Produção e Docker
+- **SQLite** — Desenvolvimento local (opcional)
+
+### Infra
+- **Docker Compose** — 3 serviços (mysql, backend, frontend)
+
+---
+
+## 🤔 Decisões Técnicas
+
+### Next.js App Router
+- Roteamento por arquivo simplifica a navegação entre módulos
+- Cada página carrega dados de forma independente — sem waterfall de requisições
+- Layouts aninhados permitem auth guard centralizado no grupo `(app)/`
+
+### Laravel Stateful (não JWT)
+- Sessão + cookie HTTP-only elimina gerenciamento de tokens no frontend
+- CSRF nativo do Laravel protege contra ataques cross-site
+- Mais simples para SPA que fala com API no mesmo domínio/subdomínio
+
+### Permissões granulares
+- Middleware `permission:<resource>.<action>` em cada rota
+- Mapa de permissões centralizado em `CrmPermissions.php`
+- Policies complementam com regras de ownership (ex: vendedor só vê seus próprios clientes)
+
+### Sem state management externo
+- Contexts nativos do React (`AuthContext`, `ToastContext`, `ThemeContext`) são suficientes para o escopo
+- Evita dependência adicional (Redux, Zustand) sem necessidade real
+
+---
+
+## 🔄 Fluxos Principais
+
+### Criação de pedido
+1. Vendedor seleciona cliente e adiciona itens (produto, quantidade, preço, desconto)
+2. Frontend envia `POST /api/orders` com array de `order_items`
+3. Backend valida permissões, estoque e dados
+4. Cria `Order` + `OrderItem` em transação
+5. Retorna pedido completo com itens e metadados
+
+### Cálculo de progresso de meta
+1. Meta define escopo (empresa ou vendedor), filtros de catálogo e intervalo de tempo
+2. `GoalProgressCalculator` consulta `order_items` no período ativo
+3. Filtra por marca, modelo e tipo de produto conforme configuração da meta
+4. Retorna percentual de progresso atualizado em tempo real
+
+### Autenticação
+1. Frontend chama `GET /api/csrf-cookie` para obter token CSRF
+2. `POST /api/login` com credenciais + cookie CSRF
+3. Backend cria sessão e retorna dados do usuário + permissões
+4. Frontend armazena em `AuthContext` e renderiza rotas permitidas
+
+---
+
+## 🗃️ Banco de Dados
+
+### Principais entidades
+
+| Entidade | Descrição |
+|----------|-----------|
+| `users` | Usuários com role (admin, gerente, vendedor) |
+| `customers` | Clientes com endereço e vínculo ao vendedor |
+| `products` | Produtos com estoque, marca, modelo e qualidade |
+| `orders` | Pedidos com vendedor e criador |
+| `order_items` | Itens do pedido (qtd, preço, desconto) |
+| `brands` | Marcas de relógio |
+| `models` | Modelos com imagem e tipo (WATCH/BOX) |
+| `qualities` | Qualidades (material, acabamento) |
+| `goals` | Metas de vendas com escopo e filtros |
+| `goal_intervals` | Intervalos de período da meta |
+| `product_returns` | Garantias, trocas e devoluções |
+| `return_items` | Itens da devolução |
+| `audit_logs` | Log de auditoria de ações |
+
+### Relacionamentos principais
+- `User` → `Order` (1:N) — vendedor
+- `Order` → `OrderItem` (1:N) — itens do pedido
+- `Product` → `Brand`, `WatchModel`, `Quality` (N:1)
+- `Goal` → `GoalInterval` (1:N) — períodos da meta
+- `ProductReturn` → `ReturnItem` (1:N) — itens da devolução
+- `Customer` → `User` (N:1) — vendedor responsável
+
+---
+
+## 🚀 Como Rodar
+
+### Docker (recomendado)
+
 ```bash
 docker compose up --build
 ```
 
-Serviços:
-- Frontend: `http://localhost:4001`
-- Backend: `http://localhost:8000/api`
-- MySQL: `localhost:3307`
+| Serviço  | URL                           |
+|----------|-------------------------------|
+| Frontend | http://localhost:4001          |
+| Backend  | http://localhost:8000/api      |
+| MySQL    | localhost:3307                 |
 
-Observações:
-- O serviço `frontend` usa `next dev --webpack` no container para manter o servidor estável no Docker.
-- Se houver containers órfãos de testes anteriores, prefira limpar com `docker compose down --remove-orphans` antes de subir novamente.
+```bash
+# Parar e limpar containers
+docker compose down --remove-orphans
+```
 
-## Desenvolvimento Local
-### Backend
-- Instalar dependências: `composer install`
-- Rodar API: `php artisan serve`
-- Rodar migrations e seeders:
-  - no Docker: `php artisan migrate --seed`
-  - no host usando o MySQL publicado: `DB_HOST=127.0.0.1 DB_PORT=3307 php artisan migrate --seed`
+### Desenvolvimento local
 
-### Frontend
-- Instalar dependências: `npm install`
-- Rodar app: `npm run dev -- -p 4001`
-- Base da API: `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api`
+#### Backend
+```bash
+cd backend
+composer install
+php artisan serve                              # API em :8000
 
-## Documentação
-- Visão geral técnica e funcional: [DOCUMENTACAO.md](DOCUMENTACAO.md)
-- Login, autorização, CSRF e troubleshooting: [docs/login-e-autorizacao.md](docs/login-e-autorizacao.md)
-- Módulo de metas — banco, endpoints, progresso e autorização: [docs/metas.md](docs/metas.md)
+# Migrations (usando MySQL do Docker)
+DB_HOST=127.0.0.1 DB_PORT=3307 php artisan migrate --seed
+
+# Testes e lint
+php artisan test
+./vendor/bin/pint
+```
+
+#### Frontend
+```bash
+cd frontend
+npm install
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api npm run dev -- -p 4001
+```
+
+---
+
+## 🛣️ Roadmap
+
+- [x] Dashboard com métricas
+- [x] CRUD de clientes, produtos, modelos
+- [x] Pedidos com múltiplos itens
+- [x] Fila de envios
+- [x] Metas de vendas com progresso em tempo real
+- [x] Gerenciamento de usuários e permissões
+- [x] Módulo de garantias/trocas/devoluções
+- [ ] Relatórios exportáveis (PDF/CSV)
+- [ ] Notificações em tempo real
+- [ ] App mobile
+
+---
+
+## 📚 Documentação
+
+| Documento | Descrição |
+|-----------|-----------|
+| [DOCUMENTACAO.md](DOCUMENTACAO.md) | Visão geral técnica e funcional |
+| [Login e Autorização](docs/login-e-autorizacao.md) | Auth, CSRF e troubleshooting |
+| [Metas](docs/metas.md) | Banco, endpoints e progresso |
+| [Garantias](docs/garantias.md) | Módulo de pós-venda |
+
+---
+
+## 👨‍💻 Autor
+
+**Victor Sena**
+Desenvolvedor Fullstack
