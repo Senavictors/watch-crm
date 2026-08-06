@@ -6,7 +6,6 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
-use App\Models\WatchModel;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -24,7 +23,7 @@ class OrderFactory extends Factory
                 return;
             }
 
-            $product = Product::query()->with(['brand', 'watchModel.quality'])->find($order->product_id);
+            $product = Product::query()->with(['brand', 'watchModel.quality', 'watchModel.category'])->find($order->product_id);
 
             if (! $product) {
                 return;
@@ -34,10 +33,10 @@ class OrderFactory extends Factory
                 'order_id' => $order->id,
                 'product_id' => $product->id,
                 'product_name' => $order->product_name,
-                'product_type' => $product->watchModel?->product_type ?? WatchModel::TYPE_WATCH,
+                'product_type' => $product->watchModel?->category?->name ?? 'Relógios',
                 'brand_name' => $product->brand?->name,
                 'model_name' => $product->watchModel?->name,
-                'quality_name' => $product->watchModel?->product_type === WatchModel::TYPE_WATCH
+                'quality_name' => $product->watchModel?->category?->has_quality
                     ? $product->watchModel?->quality?->name
                     : null,
                 'quantity' => 1,

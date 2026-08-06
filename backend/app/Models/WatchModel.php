@@ -11,16 +11,12 @@ class WatchModel extends Model
 {
     use HasFactory;
 
-    public const TYPE_WATCH = 'WATCH';
-
-    public const TYPE_BOX = 'BOX';
-
     protected $table = 'models';
 
     protected $fillable = [
         'brand_id',
         'name',
-        'product_type',
+        'category_id',
         'quality_id',
         'quality_key',
         'image_path',
@@ -29,6 +25,11 @@ class WatchModel extends Model
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class, 'brand_id');
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'category_id');
     }
 
     public function quality(): BelongsTo

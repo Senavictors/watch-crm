@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Brand;
+use App\Models\Category;
 use App\Models\Quality;
 use App\Models\WatchModel;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -18,14 +19,10 @@ class WatchModelFactory extends Factory
     {
         return $this
             ->afterMaking(function (WatchModel $model) {
-                $model->quality_key = $model->product_type === WatchModel::TYPE_BOX
-                    ? 0
-                    : (int) $model->quality_id;
+                $model->quality_key = $this->resolveQualityKey($model);
             })
             ->afterCreating(function (WatchModel $model) {
-                $model->quality_key = $model->product_type === WatchModel::TYPE_BOX
-                    ? 0
-                    : (int) $model->quality_id;
+                $model->quality_key = $this->resolveQualityKey($model);
                 $model->save();
             });
     }
@@ -34,7 +31,7 @@ class WatchModelFactory extends Factory
     {
         return [
             'brand_id' => Brand::factory(),
-            'product_type' => WatchModel::TYPE_WATCH,
+            'category_id' => Category::factory(),
             'quality_id' => Quality::factory(),
             'quality_key' => 0,
             'name' => fake()->unique()->word(),
@@ -45,9 +42,16 @@ class WatchModelFactory extends Factory
     public function box(): static
     {
         return $this->state(fn () => [
-            'product_type' => WatchModel::TYPE_BOX,
+            'category_id' => Category::factory()->withoutQuality(),
             'quality_id' => null,
             'quality_key' => 0,
         ]);
+    }
+
+    private function resolveQualityKey(WatchModel $model): int
+    {
+        $hasQuality = Category::find($model->category_id)?->has_quality ?? true;
+
+        return $hasQuality ? (int) $model->quality_id : 0;
     }
 }

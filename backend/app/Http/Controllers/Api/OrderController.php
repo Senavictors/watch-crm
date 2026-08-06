@@ -6,11 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
-use App\Models\WatchModel;
 use App\Models\User;
 use App\Support\OrderMetadata;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class OrderController extends Controller
@@ -231,7 +230,7 @@ class OrderController extends Controller
     {
         $brand = $product->brand?->name ?? '—';
         $model = $product->watchModel?->name ?? '—';
-        $quality = $product->watchModel?->product_type === WatchModel::TYPE_WATCH
+        $quality = $product->watchModel?->category?->has_quality
             ? $product->watchModel?->quality?->name
             : null;
 
@@ -292,7 +291,7 @@ class OrderController extends Controller
     private function productsById(array $items)
     {
         return Product::query()
-            ->with(['brand', 'watchModel.quality'])
+            ->with(['brand', 'watchModel.quality', 'watchModel.category'])
             ->whereIn('id', collect($items)->pluck('productId')->all())
             ->get()
             ->keyBy('id');
@@ -351,10 +350,10 @@ class OrderController extends Controller
                     'order_id' => $order->id,
                     'product_id' => $product->id,
                     'product_name' => $this->productLabel($product),
-                    'product_type' => $product->watchModel?->product_type ?? WatchModel::TYPE_WATCH,
+                    'product_type' => $product->watchModel?->category?->name ?? 'Relógios',
                     'brand_name' => $product->brand?->name,
                     'model_name' => $product->watchModel?->name,
-                    'quality_name' => $product->watchModel?->product_type === WatchModel::TYPE_WATCH
+                    'quality_name' => $product->watchModel?->category?->has_quality
                         ? $product->watchModel?->quality?->name
                         : null,
                     'quantity' => (int) $item['quantity'],

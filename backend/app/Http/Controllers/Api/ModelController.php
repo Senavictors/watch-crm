@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use App\Models\WatchModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -13,7 +14,7 @@ class ModelController extends Controller
     public function index()
     {
         $models = WatchModel::query()
-            ->with(['brand', 'quality', 'products'])
+            ->with(['brand', 'category', 'quality', 'products'])
             ->orderBy('id')
             ->get()
             ->map(fn (WatchModel $model) => $this->toPayload($model));
@@ -23,7 +24,8 @@ class ModelController extends Controller
 
     public function store(Request $request)
     {
-        $productType = $request->input('productType', WatchModel::TYPE_WATCH);
+        $categoryId = $request->input('categoryId');
+        $hasQuality = $this->categoryHasQuality($categoryId);
 
         $data = $request->validate([
             'name' => [
@@ -32,14 +34,14 @@ class ModelController extends Controller
                 'max:255',
                 Rule::unique('models', 'name')
                     ->where('brand_id', $request->input('brandId'))
-                    ->where('product_type', $productType)
-                    ->where('quality_key', $this->qualityKey($productType, $request->input('qualityId'))),
+                    ->where('category_id', $categoryId)
+                    ->where('quality_key', $this->qualityKey($hasQuality, $request->input('qualityId'))),
             ],
             'brandId' => ['required', 'integer', 'exists:brands,id'],
-            'productType' => ['required', 'string', Rule::in([WatchModel::TYPE_WATCH, WatchModel::TYPE_BOX])],
+            'categoryId' => ['required', 'integer', 'exists:categories,id'],
             'qualityId' => [
-                Rule::requiredIf($productType === WatchModel::TYPE_WATCH),
-                Rule::prohibitedIf($productType === WatchModel::TYPE_BOX),
+                Rule::requiredIf($hasQuality),
+                Rule::prohibitedIf(! $hasQuality),
                 'nullable',
                 'integer',
                 'exists:qualities,id',
@@ -55,12 +57,12 @@ class ModelController extends Controller
         $model = WatchModel::create([
             'name' => $data['name'],
             'brand_id' => $data['brandId'],
-            'product_type' => $data['productType'],
-            'quality_id' => $data['productType'] === WatchModel::TYPE_WATCH ? $data['qualityId'] : null,
-            'quality_key' => $this->qualityKey($data['productType'], $data['qualityId'] ?? null),
+            'category_id' => $data['categoryId'],
+            'quality_id' => $hasQuality ? $data['qualityId'] : null,
+            'quality_key' => $this->qualityKey($hasQuality, $data['qualityId'] ?? null),
             'image_path' => $imagePath,
         ]);
-        $model->load(['brand', 'quality']);
+        $model->load(['brand', 'category', 'quality']);
         $this->audit('models.created', 'Modelo criado.', $model);
 
         return response()->json($this->toPayload($model), 201);
@@ -75,8 +77,9 @@ class ModelController extends Controller
         }
 
         $brandId = $request->input('brandId', $model->brand_id);
-        $productType = $request->input('productType', $model->product_type);
-        $qualityId = $productType === WatchModel::TYPE_WATCH
+        $categoryId = $request->input('categoryId', $model->category_id);
+        $hasQuality = $this->categoryHasQuality($categoryId);
+        $qualityId = $hasQuality
             ? $request->input('qualityId', $model->quality_id)
             : null;
 
@@ -87,15 +90,15 @@ class ModelController extends Controller
                 'max:255',
                 Rule::unique('models', 'name')
                     ->where('brand_id', $brandId)
-                    ->where('product_type', $productType)
-                    ->where('quality_key', $this->qualityKey($productType, $qualityId))
+                    ->where('category_id', $categoryId)
+                    ->where('quality_key', $this->qualityKey($hasQuality, $qualityId))
                     ->ignore($model->id),
             ],
             'brandId' => ['sometimes', 'integer', 'exists:brands,id'],
-            'productType' => ['sometimes', 'string', Rule::in([WatchModel::TYPE_WATCH, WatchModel::TYPE_BOX])],
+            'categoryId' => ['sometimes', 'integer', 'exists:categories,id'],
             'qualityId' => [
                 'sometimes',
-                Rule::prohibitedIf($productType === WatchModel::TYPE_BOX),
+                Rule::prohibitedIf(! $hasQuality),
                 'nullable',
                 'integer',
                 'exists:qualities,id',
@@ -118,32 +121,33 @@ class ModelController extends Controller
             $data['quality_id'] = $data['qualityId'];
             unset($data['qualityId']);
         }
-        if (array_key_exists('productType', $data)) {
-            $data['product_type'] = $data['productType'];
-            unset($data['productType']);
+        if (array_key_exists('categoryId', $data)) {
+            $data['category_id'] = $data['categoryId'];
+            unset($data['categoryId']);
         }
 
-        $resolvedType = $data['product_type'] ?? $model->product_type;
+        $resolvedCategoryId = $data['category_id'] ?? $model->category_id;
+        $resolvedHasQuality = $this->categoryHasQuality($resolvedCategoryId);
         if (
-            $resolvedType === WatchModel::TYPE_WATCH
+            $resolvedHasQuality
             && (($data['quality_id'] ?? $model->quality_id) === null)
         ) {
             return response()->json([
-                'message' => 'A qualidade é obrigatória para relógios.',
+                'message' => 'A qualidade é obrigatória para esta categoria.',
                 'errors' => [
-                    'qualityId' => ['A qualidade é obrigatória para relógios.'],
+                    'qualityId' => ['A qualidade é obrigatória para esta categoria.'],
                 ],
             ], 422);
         }
 
-        $data['quality_id'] = $resolvedType === WatchModel::TYPE_WATCH
+        $data['quality_id'] = $resolvedHasQuality
             ? ($data['quality_id'] ?? $model->quality_id)
             : null;
-        $data['quality_key'] = $this->qualityKey($resolvedType, $data['quality_id']);
+        $data['quality_key'] = $this->qualityKey($resolvedHasQuality, $data['quality_id']);
 
         $model->fill($data);
         $model->save();
-        $model->load(['brand', 'quality']);
+        $model->load(['brand', 'category', 'quality']);
         $this->audit('models.updated', 'Modelo atualizado.', $model);
 
         return response()->json($this->toPayload($model));
@@ -172,7 +176,9 @@ class ModelController extends Controller
             'brandId' => $model->brand_id,
             'brandName' => $model->brand?->name,
             'name' => $model->name,
-            'productType' => $model->product_type,
+            'categoryId' => $model->category_id,
+            'categoryName' => $model->category?->name,
+            'categoryHasQuality' => (bool) $model->category?->has_quality,
             'qualityId' => $model->quality_id,
             'qualityName' => $model->quality?->name,
             'imageUrl' => $model->image_path ? url(Storage::url($model->image_path)) : null,
@@ -181,9 +187,18 @@ class ModelController extends Controller
         ];
     }
 
-    private function qualityKey(string $productType, mixed $qualityId): int
+    private function categoryHasQuality(mixed $categoryId): bool
     {
-        if ($productType === WatchModel::TYPE_BOX) {
+        if (! $categoryId) {
+            return false;
+        }
+
+        return (bool) Category::find($categoryId)?->has_quality;
+    }
+
+    private function qualityKey(bool $hasQuality, mixed $qualityId): int
+    {
+        if (! $hasQuality) {
             return 0;
         }
 

@@ -12,7 +12,7 @@ class ProductController extends Controller
     public function index()
     {
         $products = Product::query()
-            ->with(['brand', 'watchModel.quality'])
+            ->with(['brand', 'watchModel.quality', 'watchModel.category'])
             ->orderBy('id')
             ->get()
             ->map(fn (Product $product) => $this->toPayload($product));
@@ -55,7 +55,7 @@ class ProductController extends Controller
             'stock' => $data['stock'],
             'qty' => $data['qty'],
         ]);
-        $product->load(['brand', 'watchModel.quality']);
+        $product->load(['brand', 'watchModel.quality', 'watchModel.category']);
         $this->audit('products.created', 'Produto criado.', $product);
 
         return response()->json($this->toPayload($product), 201);
@@ -74,7 +74,7 @@ class ProductController extends Controller
         ]);
 
         $product->increment('qty', $data['qty']);
-        $product->load(['brand', 'watchModel.quality']);
+        $product->load(['brand', 'watchModel.quality', 'watchModel.category']);
         $this->audit('products.qty_added', "Adicionadas {$data['qty']} unidades ao produto.", $product);
 
         return response()->json($this->toPayload($product));
@@ -119,7 +119,7 @@ class ProductController extends Controller
 
         $product->fill($data);
         $product->save();
-        $product->load(['brand', 'watchModel.quality']);
+        $product->load(['brand', 'watchModel.quality', 'watchModel.category']);
         $this->audit('products.updated', 'Produto atualizado.', $product);
 
         return response()->json($this->toPayload($product));
@@ -147,7 +147,8 @@ class ProductController extends Controller
             'modelId' => $product->model_id,
             'brand' => $product->brand?->name,
             'model' => $product->watchModel?->name,
-            'productType' => $product->watchModel?->product_type ?? 'WATCH',
+            'categoryName' => $product->watchModel?->category?->name,
+            'categoryHasQuality' => (bool) $product->watchModel?->category?->has_quality,
             'modelQualityName' => $product->watchModel?->quality?->name,
             'cost' => (float) $product->cost,
             'price' => (float) $product->price,

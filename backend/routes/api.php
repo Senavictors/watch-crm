@@ -1,15 +1,16 @@
 <?php
 
-use App\Http\Controllers\Api\BrandController;
-use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BrandController;
+use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\CustomerController;
+use App\Http\Controllers\Api\GoalController;
 use App\Http\Controllers\Api\ModelController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\QualityController;
-use App\Http\Controllers\Api\GoalController;
 use App\Http\Controllers\Api\ReturnController;
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
@@ -46,6 +47,12 @@ Route::middleware('web')->group(function () {
         Route::put('/qualities/{id}', [QualityController::class, 'update'])->middleware('permission:qualities.update');
         Route::patch('/qualities/{id}', [QualityController::class, 'update'])->middleware('permission:qualities.update');
         Route::delete('/qualities/{id}', [QualityController::class, 'destroy'])->middleware('permission:qualities.delete');
+
+        Route::get('/categories', [CategoryController::class, 'index'])->middleware('permission:categories.view');
+        Route::post('/categories', [CategoryController::class, 'store'])->middleware('permission:categories.create');
+        Route::put('/categories/{id}', [CategoryController::class, 'update'])->middleware('permission:categories.update');
+        Route::patch('/categories/{id}', [CategoryController::class, 'update'])->middleware('permission:categories.update');
+        Route::delete('/categories/{id}', [CategoryController::class, 'destroy'])->middleware('permission:categories.delete');
 
         Route::get('/models', [ModelController::class, 'index'])->middleware('permission:models.view');
         Route::post('/models', [ModelController::class, 'store'])->middleware('permission:models.create');

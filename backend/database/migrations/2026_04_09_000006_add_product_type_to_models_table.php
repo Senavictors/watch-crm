@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\WatchModel;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -12,7 +11,7 @@ return new class extends Migration
     {
         if (! Schema::hasColumn('models', 'product_type')) {
             Schema::table('models', function (Blueprint $table) {
-                $table->string('product_type')->default(WatchModel::TYPE_WATCH)->after('name');
+                $table->string('product_type')->default('WATCH')->after('name');
             });
         }
 
@@ -24,7 +23,7 @@ return new class extends Migration
 
         DB::table('models')
             ->update([
-                'product_type' => WatchModel::TYPE_WATCH,
+                'product_type' => 'WATCH',
                 'quality_key' => DB::raw('COALESCE(quality_id, 0)'),
             ]);
 

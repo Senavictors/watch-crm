@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\Order;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class OrderSeeder extends Seeder
 {
@@ -152,13 +152,13 @@ class OrderSeeder extends Seeder
         $now = now();
 
         $items = [
-            ['order_id' => 1001, 'product_id' => 1, 'product_name' => 'TAG HEUER F1 SENNA · Base ETA', 'product_type' => 'WATCH', 'brand_name' => 'TAG HEUER', 'model_name' => 'F1 SENNA', 'quality_name' => 'Base ETA', 'quantity' => 1, 'unit_price' => 320, 'unit_cost' => 180, 'unit_discount' => 0, 'created_at' => $now, 'updated_at' => $now],
-            ['order_id' => 1002, 'product_id' => 4, 'product_name' => 'Seiko 5 Sports SRPD55 · Base ETA', 'product_type' => 'WATCH', 'brand_name' => 'Seiko', 'model_name' => '5 Sports SRPD55', 'quality_name' => 'Base ETA', 'quantity' => 1, 'unit_price' => 890, 'unit_cost' => 480, 'unit_discount' => 50, 'created_at' => $now, 'updated_at' => $now],
-            ['order_id' => 1003, 'product_id' => 2, 'product_name' => 'Omega SpeedMaster · Base ETA', 'product_type' => 'WATCH', 'brand_name' => 'Omega', 'model_name' => 'SpeedMaster', 'quality_name' => 'Base ETA', 'quantity' => 1, 'unit_price' => 420, 'unit_cost' => 220, 'unit_discount' => 20, 'created_at' => $now, 'updated_at' => $now],
-            ['order_id' => 1004, 'product_id' => 3, 'product_name' => 'TISSOT PRX · Base ETA', 'product_type' => 'WATCH', 'brand_name' => 'TISSOT', 'model_name' => 'PRX', 'quality_name' => 'Base ETA', 'quantity' => 1, 'unit_price' => 680, 'unit_cost' => 350, 'unit_discount' => 0, 'created_at' => $now, 'updated_at' => $now],
-            ['order_id' => 1005, 'product_id' => 5, 'product_name' => 'Casio Vintage A168WA · Base ETA', 'product_type' => 'WATCH', 'brand_name' => 'Casio', 'model_name' => 'Vintage A168WA', 'quality_name' => 'Base ETA', 'quantity' => 1, 'unit_price' => 170, 'unit_cost' => 90, 'unit_discount' => 0, 'created_at' => $now, 'updated_at' => $now],
-            ['order_id' => 1006, 'product_id' => 2, 'product_name' => 'Omega SpeedMaster · Base ETA', 'product_type' => 'WATCH', 'brand_name' => 'Omega', 'model_name' => 'SpeedMaster', 'quality_name' => 'Base ETA', 'quantity' => 1, 'unit_price' => 420, 'unit_cost' => 220, 'unit_discount' => 10, 'created_at' => $now, 'updated_at' => $now],
-            ['order_id' => 1006, 'product_id' => 6, 'product_name' => 'Rolex Caixa Rolex', 'product_type' => 'BOX', 'brand_name' => 'Rolex', 'model_name' => 'Caixa Rolex', 'quality_name' => null, 'quantity' => 1, 'unit_price' => 150, 'unit_cost' => 80, 'unit_discount' => 0, 'created_at' => $now, 'updated_at' => $now],
+            ['order_id' => 1001, 'product_id' => 1, 'product_name' => 'TAG HEUER F1 SENNA · Base ETA', 'product_type' => 'Relógios', 'brand_name' => 'TAG HEUER', 'model_name' => 'F1 SENNA', 'quality_name' => 'Base ETA', 'quantity' => 1, 'unit_price' => 320, 'unit_cost' => 180, 'unit_discount' => 0, 'created_at' => $now, 'updated_at' => $now],
+            ['order_id' => 1002, 'product_id' => 4, 'product_name' => 'Seiko 5 Sports SRPD55 · Base ETA', 'product_type' => 'Relógios', 'brand_name' => 'Seiko', 'model_name' => '5 Sports SRPD55', 'quality_name' => 'Base ETA', 'quantity' => 1, 'unit_price' => 890, 'unit_cost' => 480, 'unit_discount' => 50, 'created_at' => $now, 'updated_at' => $now],
+            ['order_id' => 1003, 'product_id' => 2, 'product_name' => 'Omega SpeedMaster · Base ETA', 'product_type' => 'Relógios', 'brand_name' => 'Omega', 'model_name' => 'SpeedMaster', 'quality_name' => 'Base ETA', 'quantity' => 1, 'unit_price' => 420, 'unit_cost' => 220, 'unit_discount' => 20, 'created_at' => $now, 'updated_at' => $now],
+            ['order_id' => 1004, 'product_id' => 3, 'product_name' => 'TISSOT PRX · Base ETA', 'product_type' => 'Relógios', 'brand_name' => 'TISSOT', 'model_name' => 'PRX', 'quality_name' => 'Base ETA', 'quantity' => 1, 'unit_price' => 680, 'unit_cost' => 350, 'unit_discount' => 0, 'created_at' => $now, 'updated_at' => $now],
+            ['order_id' => 1005, 'product_id' => 5, 'product_name' => 'Casio Vintage A168WA · Base ETA', 'product_type' => 'Relógios', 'brand_name' => 'Casio', 'model_name' => 'Vintage A168WA', 'quality_name' => 'Base ETA', 'quantity' => 1, 'unit_price' => 170, 'unit_cost' => 90, 'unit_discount' => 0, 'created_at' => $now, 'updated_at' => $now],
+            ['order_id' => 1006, 'product_id' => 2, 'product_name' => 'Omega SpeedMaster · Base ETA', 'product_type' => 'Relógios', 'brand_name' => 'Omega', 'model_name' => 'SpeedMaster', 'quality_name' => 'Base ETA', 'quantity' => 1, 'unit_price' => 420, 'unit_cost' => 220, 'unit_discount' => 10, 'created_at' => $now, 'updated_at' => $now],
+            ['order_id' => 1006, 'product_id' => 6, 'product_name' => 'Rolex Caixa Rolex', 'product_type' => 'Caixas', 'brand_name' => 'Rolex', 'model_name' => 'Caixa Rolex', 'quality_name' => null, 'quantity' => 1, 'unit_price' => 150, 'unit_cost' => 80, 'unit_discount' => 0, 'created_at' => $now, 'updated_at' => $now],
         ];
 
         DB::table('order_items')->whereIn('order_id', collect($data)->pluck('id'))->delete();
