@@ -49,6 +49,16 @@ yarn-error.log*
 /backend/public/storage
 /backend/storage/**
 /backend/bootstrap/cache/**
+!/backend/storage/framework/
+!/backend/storage/framework/cache/
+!/backend/storage/framework/cache/.gitignore
+!/backend/storage/framework/sessions/
+!/backend/storage/framework/sessions/.gitignore
+!/backend/storage/framework/views/
+!/backend/storage/framework/views/.gitignore
+!/backend/storage/logs/
+!/backend/storage/logs/.gitignore
+!/backend/bootstrap/cache/.gitignore
 /backend/storage/*.key
 /backend/storage/pail
 
@@ -60,3 +70,11 @@ Homestead.yaml
 /docs
 /sidebars
 CLAUDE.md
+
+# Arquitetura de IA/Agentes (local, não versionada — ver AGENTS.md)
+.claude/
+.cursor/
+.codex/
+.agents/
+AGENTS.md
+PLANS.md
