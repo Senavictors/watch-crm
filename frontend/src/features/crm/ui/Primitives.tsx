@@ -65,6 +65,7 @@ export const Btn: React.FC<{
   small?: boolean;
   style?: React.CSSProperties;
   className?: string;
+  disabled?: boolean;
 }> = ({
   children,
   onClick,
@@ -74,6 +75,7 @@ export const Btn: React.FC<{
   small,
   style = {},
   className,
+  disabled,
 }) => {
   const classNames = [
     styles.btn,
@@ -84,7 +86,14 @@ export const Btn: React.FC<{
     .filter(Boolean)
     .join(" ");
   return (
-    <button className={classNames} onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} style={style}>
+    <button
+      className={classNames}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      style={style}
+      disabled={disabled}
+    >
       {children}
     </button>
   );
