@@ -16,6 +16,8 @@ class Product extends Model
         'model_id',
         'cost',
         'price',
+        'price_pix',
+        'price_card',
         'stock',
         'qty',
     ];

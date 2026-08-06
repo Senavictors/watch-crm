@@ -24,6 +24,8 @@ const NewProductForm: React.FC<Props> = ({ product, brands, models, existingProd
     modelId: string;
     cost: string;
     price: string;
+    pricePix: string;
+    priceCard: string;
     stock: StockOrigin;
     qty: string;
   }>({
@@ -31,6 +33,8 @@ const NewProductForm: React.FC<Props> = ({ product, brands, models, existingProd
     modelId: product ? String(product.modelId) : "",
     cost: product ? String(product.cost) : "",
     price: product ? String(product.price) : "",
+    pricePix: product?.pricePix != null ? String(product.pricePix) : "",
+    priceCard: product?.priceCard != null ? String(product.priceCard) : "",
     stock: product?.stock ?? "IN_STOCK",
     qty: product ? String(product.qty) : "0",
   });
@@ -82,6 +86,8 @@ const NewProductForm: React.FC<Props> = ({ product, brands, models, existingProd
       brandId: Number(form.brandId),
       cost: Number(form.cost),
       price: Number(form.price),
+      pricePix: form.pricePix === "" ? null : Number(form.pricePix),
+      priceCard: form.priceCard === "" ? null : Number(form.priceCard),
       stock: form.stock,
       qty,
     });
@@ -138,6 +144,18 @@ const NewProductForm: React.FC<Props> = ({ product, brands, models, existingProd
             type="number"
             value={form.price}
             onChange={(e) => set("price", e.target.value)}
+          />
+          <Input
+            label="Preço PIX (R$) — opcional"
+            type="number"
+            value={form.pricePix}
+            onChange={(e) => set("pricePix", e.target.value)}
+          />
+          <Input
+            label="Preço Cartão (R$) — opcional"
+            type="number"
+            value={form.priceCard}
+            onChange={(e) => set("priceCard", e.target.value)}
           />
           <Select
             label="Origem"
