@@ -59,7 +59,11 @@ export type Permission =
   | "users.manage"
   | "dashboard.financial.view"
   | "commissions.view"
-  | "commissions.pay";
+  | "commissions.pay"
+  | "expenses.view"
+  | "expenses.create"
+  | "expenses.update"
+  | "expenses.delete";
 
 export type UserRole = "owner" | "admin" | "gerente" | "vendedor" | "garantia";
 
@@ -447,4 +451,32 @@ export type CommissionReport = {
   items: CommissionLine[];
   // Presente só pra quem tem visão de todos os vendedores (owner/admin).
   sellers?: UserOption[];
+};
+
+/**
+ * TASK-006 — módulo de despesas gerais. Categoria é uma lista fechada
+ * (`GET /expenses/metadata`), não um cadastro livre (RN-02).
+ */
+export type ExpenseCategory = string;
+
+export type Expense = {
+  id: number;
+  category: ExpenseCategory;
+  description: string;
+  amount: number;
+  expenseDate: string;
+  createdByUserId: number | null;
+  createdByUserName: string | null;
+  createdAt: string;
+};
+
+export type ExpenseInput = {
+  category: ExpenseCategory;
+  description: string;
+  amount: number;
+  expenseDate: string;
+};
+
+export type ExpenseMetadata = {
+  categories: ExpenseCategory[];
 };

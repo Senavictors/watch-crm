@@ -20,9 +20,10 @@ use Illuminate\Support\Facades\DB;
  * dentro de cada qualidade (~65% à vista/PIX, ~35% cartão) são estimativas
  * pra aproximar o faturamento mensal informado (~R$90mil) — não são uma
  * regra de negócio confirmada, só o necessário pra gerar dados plausíveis.
- * Comissão por unidade (R$40 Base ETA / R$150 Clone) e a despesa de anúncio
- * (R$5.000/mês) foram informadas pelo usuário mas NÃO têm coluna no schema
- * ainda (dependem de TASK-005/TASK-006) — não são gravadas aqui.
+ * Comissão por unidade (R$40 Base ETA / R$150 Clone) já é gravada em
+ * `unit_commission` por item (TASK-005). A despesa de anúncio (R$5.000/mês)
+ * é seedada separadamente por `ExpenseSeeder` (TASK-006) — não é um custo de
+ * pedido, não pertence a este seeder.
  */
 class JosueOrdersSeeder extends Seeder
 {

@@ -192,8 +192,35 @@ class FinancialCalculatorsTest extends TestCase
     {
         $this->assertEqualsWithDelta(150.0, NetResultCalculator::calculate(200.0, 50.0), 0.001);
 
-        // Sem despesas gerais informadas (módulo ainda não existe), resultado líquido = lucro das vendas.
+        // Sem despesas gerais informadas, resultado líquido = lucro das vendas.
         $this->assertEqualsWithDelta(200.0, NetResultCalculator::calculate(200.0), 0.001);
+    }
+
+    public function test_financial_summary_calculator_auto_plugs_general_expenses_of_the_period(): void
+    {
+        // TASK-006: pendência da TASK-001 resolvida — despesas gerais reais
+        // (via GeneralExpenseCalculator) entram automaticamente no resultado
+        // líquido quando o chamador não informa um valor explícito.
+        $admin = $this->admin();
+        $seller = $this->seller();
+
+        Order::factory()->create([
+            'seller_user_id' => $seller->id,
+            'status' => 'Pago',
+            'paid_at' => now(),
+            'sale_price' => 300,
+            'cost' => 100,
+            'discount' => 0,
+            'freight' => 0,
+            'channel_fee' => 0,
+        ]);
+        \App\Models\Expense::factory()->create(['amount' => 80, 'expense_date' => now()->toDateString()]);
+
+        $summary = FinancialSummaryCalculator::calculate($admin);
+
+        // faturamento = 300; custos diretos = 100 (cost); lucro = 200.
+        $this->assertEqualsWithDelta(200.0, $summary->salesProfit, 0.001);
+        $this->assertEqualsWithDelta(120.0, $summary->netResult, 0.001);
     }
 
     public function test_pending_amount_sums_only_new_and_awaiting_payment_orders(): void

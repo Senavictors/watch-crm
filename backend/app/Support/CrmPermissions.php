@@ -48,6 +48,10 @@ class CrmPermissions
         'dashboard.financial.view',
         'commissions.view',
         'commissions.pay',
+        'expenses.view',
+        'expenses.create',
+        'expenses.update',
+        'expenses.delete',
     ];
 
     /**
@@ -79,6 +83,10 @@ class CrmPermissions
      * `dashboard.financial.view`. `commissions.pay` é ação financeira
      * (movimenta o que a empresa deve a cada vendedor), reservada a
      * owner/admin como qualquer outra escrita financeira já restrita aqui.
+     *
+     * TASK-006: despesas gerais estão explicitamente na mesma RN-02 do
+     * ADR-003 ("lucro, despesas e estoque financeiro são restritos") — sem
+     * ambiguidade aqui, diferente de comissão.
      */
     public static function manager(): array
     {
@@ -86,6 +94,10 @@ class CrmPermissions
             'dashboard.financial.view',
             'commissions.view',
             'commissions.pay',
+            'expenses.view',
+            'expenses.create',
+            'expenses.update',
+            'expenses.delete',
         ]));
     }
 

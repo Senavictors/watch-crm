@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CommissionController;
 use App\Http\Controllers\Api\CustomerController;
+use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\GoalController;
 use App\Http\Controllers\Api\ModelController;
 use App\Http\Controllers\Api\OrderController;
@@ -77,6 +78,13 @@ Route::middleware('web')->group(function () {
 
         Route::get('/commissions', [CommissionController::class, 'index'])->middleware('permission:commissions.view');
         Route::post('/commissions/pay', [CommissionController::class, 'pay'])->middleware('permission:commissions.pay');
+
+        Route::get('/expenses/metadata', [ExpenseController::class, 'metadata'])->middleware('permission:expenses.view');
+        Route::get('/expenses', [ExpenseController::class, 'index'])->middleware('permission:expenses.view');
+        Route::post('/expenses', [ExpenseController::class, 'store'])->middleware('permission:expenses.create');
+        Route::put('/expenses/{id}', [ExpenseController::class, 'update'])->middleware('permission:expenses.update');
+        Route::patch('/expenses/{id}', [ExpenseController::class, 'update'])->middleware('permission:expenses.update');
+        Route::delete('/expenses/{id}', [ExpenseController::class, 'destroy'])->middleware('permission:expenses.delete');
 
         Route::get('/goals/metadata', [GoalController::class, 'metadata'])->middleware('permission:goals.view');
         Route::get('/goals', [GoalController::class, 'index'])->middleware('permission:goals.view');

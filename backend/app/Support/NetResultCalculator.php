@@ -7,10 +7,11 @@ namespace App\Support;
  *
  *   Resultado líquido = lucro das vendas - despesas gerais do período
  *
- * `$generalExpenses` é 0.0 por padrão porque o módulo de despesas gerais
- * ainda não existe (TASK-006, que depende desta task). Quando TASK-006
- * estiver pronta, o consumidor passa o total real do período aqui — a
- * fórmula em si já está centralizada e não deve ser duplicada em outro lugar.
+ * Permanece uma função pura (não busca dados sozinha) — quem decide o total
+ * de despesas gerais é `FinancialSummaryCalculator` (via
+ * `GeneralExpenseCalculator`, TASK-006). `$generalExpenses` continua com
+ * default `0.0` aqui só para quem chama esta classe isoladamente (ex.:
+ * testes, ou um consumidor futuro que já tenha o total em mãos).
  */
 class NetResultCalculator
 {
