@@ -6,6 +6,7 @@ use App\Models\Goal;
 use App\Models\GoalInterval;
 use App\Models\OrderItem;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class GoalProgressCalculator
 {
@@ -43,20 +44,39 @@ class GoalProgressCalculator
                 $query->where('order_items.model_name', $goal->watchModel->name);
             }
 
-            if ($goal->calculation_type === 'total_value') {
-                $currentValue = (float) $query->selectRaw(
-                    'COALESCE(SUM(order_items.unit_price * order_items.quantity - order_items.unit_discount * order_items.quantity), 0) as total'
-                )->value('total');
-            } else {
-                $currentValue = (float) $query->sum('order_items.quantity');
-            }
+            // TASK-008 (RN-02, docs/regras-de-negocio-dashboard.md #10):
+            // reembolso efetivado reduz proporcionalmente o progresso da
+            // meta, só pelos itens/quantidades efetivamente devolvidos —
+            // mesmo gatilho (`returns.status = 'Reembolso Efetuado'`) e
+            // mesma granularidade por item (`return_items.quantity`) já
+            // usados por `CommissionCalculator` (TASK-005) para comissão.
+            $returnedByOrderItemId = DB::table('return_items')
+                ->join('returns', 'returns.id', '=', 'return_items.return_id')
+                ->where('returns.status', 'Reembolso Efetuado')
+                ->whereNotNull('return_items.order_item_id')
+                ->selectRaw('return_items.order_item_id as order_item_id, SUM(return_items.quantity) as returned_qty')
+                ->groupBy('return_items.order_item_id')
+                ->pluck('returned_qty', 'order_item_id');
+
+            $items = $query->get(['order_items.id', 'order_items.unit_price', 'order_items.unit_discount', 'order_items.quantity']);
+
+            $currentValue = $items->sum(function (OrderItem $item) use ($goal, $returnedByOrderItemId) {
+                $returnedQty = (int) ($returnedByOrderItemId[$item->id] ?? 0);
+                $netQty = max($item->quantity - $returnedQty, 0);
+
+                if ($goal->calculation_type === 'total_value') {
+                    return ((float) $item->unit_price - (float) $item->unit_discount) * $netQty;
+                }
+
+                return $netQty;
+            });
 
             return [
                 'id' => $interval->id,
                 'startDate' => $interval->start_date->format('Y-m-d'),
                 'endDate' => $interval->end_date->format('Y-m-d'),
                 'targetValue' => (float) $interval->target_value,
-                'currentValue' => $currentValue,
+                'currentValue' => (float) $currentValue,
                 'percentage' => $interval->target_value > 0
                     ? round(($currentValue / (float) $interval->target_value) * 100, 1)
                     : 0,
