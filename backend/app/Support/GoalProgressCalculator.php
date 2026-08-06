@@ -17,10 +17,14 @@ class GoalProgressCalculator
         return $goal->intervals->map(function (GoalInterval $interval) use ($goal) {
             $query = OrderItem::query()
                 ->join('orders', 'order_items.order_id', '=', 'orders.id')
-                ->whereBetween('orders.sale_date', [
-                    $interval->start_date->format('Y-m-d'),
-                    $interval->end_date->format('Y-m-d'),
-                ])
+                // TASK-009 (RN-01): o intervalo da meta usa `paid_at` (data de
+                // competência), não `sale_date` — mesma correção aplicada a
+                // `OrderFinancialScope`. Um pedido só cai no intervalo em que
+                // foi de fato confirmado como pago. `whereDate` (não
+                // `whereBetween` cru) porque `paid_at` tem hora — evita
+                // excluir confirmações depois da meia-noite do último dia.
+                ->whereDate('orders.paid_at', '>=', $interval->start_date->format('Y-m-d'))
+                ->whereDate('orders.paid_at', '<=', $interval->end_date->format('Y-m-d'))
                 // RN-01/CA-02 (TASK-003, docs/domain/financial-rules.md): só
                 // pedidos pagos entram na meta. "Pago" = `paid_at` preenchido e
                 // status diferente de `Cancelado` (mesmo critério dos

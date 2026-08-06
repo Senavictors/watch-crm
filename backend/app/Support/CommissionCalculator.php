@@ -108,7 +108,8 @@ class CommissionCalculator
 
     private static function scopedPaidOrderIds(User $user, ?string $startDate, ?string $endDate, ?int $sellerUserId): \Illuminate\Support\Collection
     {
-        $query = OrderFinancialScope::ordersQuery($user, $startDate, $endDate)
+        // TASK-009 (RN-01): período por `paid_at`, não `sale_date`.
+        $query = OrderFinancialScope::ordersQuery($user, $startDate, $endDate, 'paid_at')
             ->whereNotNull('paid_at')
             ->where('status', '!=', 'Cancelado');
 

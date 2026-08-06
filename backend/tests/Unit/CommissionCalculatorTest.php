@@ -155,6 +155,19 @@ class CommissionCalculatorTest extends TestCase
         $this->assertEqualsWithDelta(40.0, CommissionCalculator::accrued($seller), 0.001);
     }
 
+    public function test_period_uses_paid_at_not_sale_date(): void
+    {
+        // TASK-009 (RN-01)
+        $admin = $this->admin();
+        $seller = $this->seller();
+
+        $order = Order::factory()->create(['seller_user_id' => $seller->id, 'status' => 'Pago', 'sale_date' => '2026-01-15', 'paid_at' => '2026-02-03']);
+        $order->items()->update(['unit_commission' => 40, 'quantity' => 1]);
+
+        $this->assertEqualsWithDelta(0.0, CommissionCalculator::accrued($admin, '2026-01-01', '2026-01-31'), 0.001);
+        $this->assertEqualsWithDelta(40.0, CommissionCalculator::accrued($admin, '2026-02-01', '2026-02-28'), 0.001);
+    }
+
     public function test_report_summary_separates_paid_from_pending(): void
     {
         $admin = $this->admin();

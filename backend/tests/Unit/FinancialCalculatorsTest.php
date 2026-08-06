@@ -293,6 +293,48 @@ class FinancialCalculatorsTest extends TestCase
         $this->assertSame(1, ActiveOrdersCalculator::calculate($seller));
     }
 
+    public function test_revenue_period_uses_paid_at_not_sale_date(): void
+    {
+        // TASK-009 (RN-01): pedido vendido em janeiro mas confirmado como
+        // pago em fevereiro entra no faturamento de FEVEREIRO, não janeiro.
+        $admin = $this->admin();
+        $seller = $this->seller();
+
+        Order::factory()->create([
+            'seller_user_id' => $seller->id,
+            'status' => 'Pago',
+            'sale_date' => '2026-01-15',
+            'paid_at' => '2026-02-03',
+            'sale_price' => 500,
+            'discount' => 0,
+            'freight' => 0,
+        ]);
+
+        $this->assertEqualsWithDelta(0.0, RevenueCalculator::calculate($admin, '2026-01-01', '2026-01-31'), 0.001);
+        $this->assertEqualsWithDelta(500.0, RevenueCalculator::calculate($admin, '2026-02-01', '2026-02-28'), 0.001);
+    }
+
+    public function test_revenue_period_includes_confirmations_up_to_the_last_moment_of_the_end_date(): void
+    {
+        // Regressão de fuso/hora: paid_at tem hora (timestamp), sale_date não
+        // — um whereBetween cru cortaria confirmações após 00:00 do último
+        // dia do período. Confirma que isso não acontece mais.
+        $admin = $this->admin();
+        $seller = $this->seller();
+
+        Order::factory()->create([
+            'seller_user_id' => $seller->id,
+            'status' => 'Pago',
+            'sale_date' => '2026-02-28',
+            'paid_at' => '2026-02-28 23:45:00',
+            'sale_price' => 300,
+            'discount' => 0,
+            'freight' => 0,
+        ]);
+
+        $this->assertEqualsWithDelta(300.0, RevenueCalculator::calculate($admin, '2026-02-01', '2026-02-28'), 0.001);
+    }
+
     public function test_period_without_movement_returns_zero_values_not_errors(): void
     {
         $admin = $this->admin();

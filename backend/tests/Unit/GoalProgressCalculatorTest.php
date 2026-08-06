@@ -87,6 +87,25 @@ class GoalProgressCalculatorTest extends TestCase
         $this->assertEqualsWithDelta(100.0, $intervals->first()['currentValue'], 0.001);
     }
 
+    public function test_goal_interval_uses_paid_at_not_sale_date(): void
+    {
+        // TASK-009 (RN-01): pedido vendido dentro do intervalo mas confirmado
+        // como pago fora dele não conta pra meta desse intervalo.
+        $goal = $this->goalWithInterval();
+
+        Order::factory()->create([
+            'status' => 'Pago',
+            'sale_date' => '2026-08-15',
+            'paid_at' => '2026-09-01',
+            'sale_price' => 500,
+            'discount' => 0,
+        ]);
+
+        $intervals = GoalProgressCalculator::calculate($goal);
+
+        $this->assertEqualsWithDelta(0.0, $intervals->first()['currentValue'], 0.001);
+    }
+
     public function test_effective_refund_reduces_goal_progress_proportionally_by_returned_quantity(): void
     {
         // TASK-008 RN-02: reembolso efetivado reduz a meta só pelos itens

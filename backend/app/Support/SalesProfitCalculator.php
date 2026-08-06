@@ -23,7 +23,8 @@ use App\Models\User;
  * abaixo e desconta devoluções com reembolso efetuado.
  *
  * "Pago" segue o mesmo critério de `RevenueCalculator` (TASK-003): `paid_at`
- * preenchido e status diferente de `Cancelado`.
+ * preenchido e status diferente de `Cancelado`. O período também filtra por
+ * `paid_at` (TASK-009, RN-01) — ver `OrderFinancialScope`.
  */
 class SalesProfitCalculator
 {
@@ -31,7 +32,7 @@ class SalesProfitCalculator
     {
         $revenue ??= RevenueCalculator::calculate($user, $startDate, $endDate);
 
-        $directCosts = (float) OrderFinancialScope::ordersQuery($user, $startDate, $endDate)
+        $directCosts = (float) OrderFinancialScope::ordersQuery($user, $startDate, $endDate, 'paid_at')
             ->whereNotNull('paid_at')
             ->where('status', '!=', 'Cancelado')
             ->selectRaw('COALESCE(SUM(cost + channel_fee + freight), 0) as total')

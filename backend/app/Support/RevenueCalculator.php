@@ -16,12 +16,15 @@ use App\Models\User;
  * registro histórico, então o status `Cancelado` continua excluído
  * explicitamente aqui. Reembolso parcial reduz apenas o valor efetivamente
  * devolvido (`returns.refund_amount`), não o pedido inteiro.
+ *
+ * TASK-009 (RN-01): o período filtra por `paid_at` (data de competência),
+ * não por `sale_date` — ver `OrderFinancialScope`.
  */
 class RevenueCalculator
 {
     public static function calculate(User $user, ?string $startDate = null, ?string $endDate = null): float
     {
-        $paidOrders = fn () => OrderFinancialScope::ordersQuery($user, $startDate, $endDate)
+        $paidOrders = fn () => OrderFinancialScope::ordersQuery($user, $startDate, $endDate, 'paid_at')
             ->whereNotNull('paid_at')
             ->where('status', '!=', 'Cancelado');
 
