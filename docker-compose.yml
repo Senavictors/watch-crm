@@ -52,6 +52,12 @@ services:
       - "4001:4001"
     environment:
       NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api
+      # Bind mount (./frontend:/app) sobre Docker Desktop/Windows não dispara
+      # eventos nativos de FS de forma confiável — o watcher do Next.js
+      # (webpack/watchpack) precisa de polling para o Fast Refresh detectar
+      # edições em disco. Sem isso, uma alteração de código pode não aparecer
+      # no navegador até um `docker compose restart frontend` (ver TASK-003).
+      WATCHPACK_POLLING: "true"
     volumes:
       - ./frontend:/app
       - frontend_node_modules:/app/node_modules
