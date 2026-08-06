@@ -2,7 +2,6 @@
 import React from "react";
 import Image from "next/image";
 import { WatchModel } from "../types";
-import { productTypeLabel } from "../helpers";
 import { Btn, Card } from "../ui/Primitives";
 import styles from "./Models.module.css";
 
@@ -54,8 +53,8 @@ const Models: React.FC<Props> = ({ models, canCreate, onNew }) => {
               <div className={styles.cardBody}>
                 <div className={styles.name}>{m.name}</div>
                 <div className={styles.brand}>{m.brandName || "—"}</div>
-                <div className={styles.type}>{productTypeLabel(m.productType)}</div>
-                {m.productType === "WATCH" && <div className={styles.quality}>{m.qualityName ?? "—"}</div>}
+                <div className={styles.type}>{m.categoryName}</div>
+                {m.categoryHasQuality && <div className={styles.quality}>{m.qualityName ?? "—"}</div>}
                 <div className={styles.stockRow}>
                   {(m.qtyInStock ?? 0) > 0 && (
                     <span className={`${styles.stockPill} ${styles.pillStock}`}>

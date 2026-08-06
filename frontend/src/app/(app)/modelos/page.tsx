@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../../features/crm/contexts/AuthContext";
 import { useToast } from "../../../features/crm/contexts/ToastContext";
 import { apiFetch, ensureCsrfCookie, getErrorMessage, getApiBaseUrl } from "../../../features/crm/api";
-import { Brand, Quality, WatchModel } from "../../../features/crm/types";
+import { Brand, Category, Quality, WatchModel } from "../../../features/crm/types";
 import Models from "../../../features/crm/views/Models";
 import NewModelForm from "../../../features/crm/views/NewModelForm";
 
@@ -12,6 +12,7 @@ export default function ModelosPage() {
   const { pushToast } = useToast();
   const [models, setModels] = useState<WatchModel[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [qualities, setQualities] = useState<Quality[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
@@ -27,16 +28,21 @@ export default function ModelosPage() {
         setLoading(true);
         const requests: Promise<Response>[] = [apiFetch(`${apiBaseUrl}/models`)];
         if (canCreate) {
-          requests.push(apiFetch(`${apiBaseUrl}/brands`), apiFetch(`${apiBaseUrl}/qualities`));
+          requests.push(
+            apiFetch(`${apiBaseUrl}/brands`),
+            apiFetch(`${apiBaseUrl}/qualities`),
+            apiFetch(`${apiBaseUrl}/categories`)
+          );
         }
         const responses = await Promise.all(requests);
         if (responses.some((r) => r.status === 401)) { handleUnauthorized(); return; }
         if (responses.some((r) => !r.ok)) throw new Error("Falha ao carregar modelos.");
-        const [modelsData, brandsData, qualitiesData] = await Promise.all(responses.map((r) => r.json()));
+        const [modelsData, brandsData, qualitiesData, categoriesData] = await Promise.all(responses.map((r) => r.json()));
         if (!alive) return;
         setModels(modelsData);
         if (brandsData) setBrands(brandsData);
         if (qualitiesData) setQualities(qualitiesData);
+        if (categoriesData) setCategories(categoriesData);
       } catch (err) {
         if (alive) pushToast(err instanceof Error ? err.message : "Erro.", "error");
       } finally {
@@ -55,7 +61,7 @@ export default function ModelosPage() {
       const formData = new FormData();
       formData.append("name", data.name);
       formData.append("brandId", String(data.brandId));
-      formData.append("productType", data.productType);
+      formData.append("categoryId", String(data.categoryId));
       if (data.qualityId !== null) formData.append("qualityId", String(data.qualityId));
       if (data.imageFile) formData.append("image", data.imageFile);
 
@@ -77,7 +83,14 @@ export default function ModelosPage() {
     <>
       <Models models={models} canCreate={canCreate} onNew={() => setShowNew(true)} />
       {showNew && (
-        <NewModelForm brands={brands} qualities={qualities} onSave={handleSave} onClose={() => setShowNew(false)} onToast={pushToast} />
+        <NewModelForm
+          brands={brands}
+          categories={categories}
+          qualities={qualities}
+          onSave={handleSave}
+          onClose={() => setShowNew(false)}
+          onToast={pushToast}
+        />
       )}
     </>
   );

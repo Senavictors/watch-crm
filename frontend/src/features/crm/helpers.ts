@@ -1,4 +1,4 @@
-import { Order, Product, ProductType, WatchModel } from "./types";
+import { Order, Product, WatchModel } from "./types";
 
 export function calcProfit(o: Order) {
   return o.salePrice - o.discount - o.cost - o.channelFee;
@@ -38,21 +38,17 @@ export function fmtDate(s?: string) {
   return `${d}/${m}/${y}`;
 }
 
-export function productTypeLabel(type?: ProductType | null) {
-  return type === "BOX" ? "Caixa" : "Relógio";
-}
-
 export function modelLabel(model: WatchModel) {
-  return model.productType === "BOX"
-    ? `${model.name} — ${productTypeLabel(model.productType)}`
-    : `${model.name} — ${model.qualityName ?? "—"}`;
+  return model.categoryHasQuality
+    ? `${model.name} — ${model.qualityName ?? "—"}`
+    : `${model.name} — ${model.categoryName ?? "—"}`;
 }
 
 export function productLabel(product: Product) {
   const base = `${product.brand || "—"} ${product.model || "—"}`.trim();
 
-  if (product.productType === "BOX") {
-    return `${base} · ${productTypeLabel(product.productType)}`;
+  if (!product.categoryHasQuality) {
+    return `${base} · ${product.categoryName ?? "—"}`;
   }
 
   return `${base}${product.modelQualityName ? ` · ${product.modelQualityName}` : ""}`;

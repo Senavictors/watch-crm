@@ -1,33 +1,34 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { Btn, Input, Select } from "../ui/Primitives";
-import { Brand, ProductType, Quality, WatchModel } from "../types";
-import { productTypeLabel } from "../helpers";
+import { Brand, Category, Quality, WatchModel } from "../types";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./NewModelForm.module.css";
 
 type Props = {
   brands: Brand[];
+  categories: Category[];
   qualities: Quality[];
   onSave: (model: Omit<WatchModel, "id" | "imageUrl"> & { imageFile?: File | null }) => void;
   onClose: () => void;
   onToast: (message: string, variant?: "success" | "error") => void;
 };
 
-const NewModelForm: React.FC<Props> = ({ brands, qualities, onSave, onClose, onToast }) => {
+const NewModelForm: React.FC<Props> = ({ brands, categories, qualities, onSave, onClose, onToast }) => {
   const [name, setName] = useState("");
   const [brandId, setBrandId] = useState("");
   const [qualityId, setQualityId] = useState("");
-  const [productType, setProductType] = useState<ProductType>("WATCH");
+  const [categoryId, setCategoryId] = useState(() => String(categories[0]?.id ?? ""));
   const [imageFile, setImageFile] = useState<File | null>(null);
   const brandOptions = useMemo(() => brands, [brands]);
   const qualityOptions = useMemo(() => qualities, [qualities]);
-  const showQuality = productType === "WATCH";
+  const selectedCategory = categories.find((c) => c.id === Number(categoryId));
+  const showQuality = selectedCategory?.hasQuality ?? false;
 
   function handleSubmit() {
-    if (!name.trim() || !brandId || (showQuality && !qualityId)) {
+    if (!name.trim() || !brandId || !categoryId || (showQuality && !qualityId)) {
       onToast(
-        showQuality ? "Preencha o modelo, a marca e a qualidade." : "Preencha o modelo e a marca.",
+        showQuality ? "Preencha o modelo, a marca, a categoria e a qualidade." : "Preencha o modelo, a marca e a categoria.",
         "error"
       );
       return;
@@ -35,7 +36,8 @@ const NewModelForm: React.FC<Props> = ({ brands, qualities, onSave, onClose, onT
     onSave({
       name: name.trim(),
       brandId: Number(brandId),
-      productType,
+      categoryId: Number(categoryId),
+      categoryHasQuality: showQuality,
       qualityId: showQuality ? Number(qualityId) : null,
       imageFile,
     });
@@ -54,19 +56,21 @@ const NewModelForm: React.FC<Props> = ({ brands, qualities, onSave, onClose, onT
         <div className={modalStyles.formGridOne}>
           <Input label="Modelo" value={name} onChange={(e) => setName(e.target.value)} />
           <Select
-            label="Tipo de Produto"
-            value={productType}
+            label="Categoria"
+            value={categoryId}
             onChange={(e) => {
-              const nextType = e.target.value as ProductType;
-              setProductType(nextType);
-              if (nextType === "BOX") {
+              const nextCategoryId = e.target.value;
+              setCategoryId(nextCategoryId);
+              const nextCategory = categories.find((c) => c.id === Number(nextCategoryId));
+              if (!nextCategory?.hasQuality) {
                 setQualityId("");
               }
             }}
           >
-            {(["WATCH", "BOX"] as ProductType[]).map((type) => (
-              <option key={type} value={type}>
-                {productTypeLabel(type)}
+            <option value="">Selecionar categoria...</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
               </option>
             ))}
           </Select>

@@ -4,11 +4,16 @@ export type PaymentMethod = string;
 export type ShippingMethod = string;
 export type OrderStatus = string;
 export type StockOrigin = "IN_STOCK" | "SUPPLIER";
-export type ProductType = "WATCH" | "BOX";
 
 export type Brand = {
   id: number;
   name: string;
+};
+
+export type Category = {
+  id: number;
+  name: string;
+  hasQuality: boolean;
 };
 
 export type Permission =
@@ -30,6 +35,10 @@ export type Permission =
   | "qualities.create"
   | "qualities.update"
   | "qualities.delete"
+  | "categories.view"
+  | "categories.create"
+  | "categories.update"
+  | "categories.delete"
   | "models.view"
   | "models.create"
   | "models.update"
@@ -93,7 +102,9 @@ export type WatchModel = {
   brandId: number;
   brandName?: string | null;
   name: string;
-  productType: ProductType;
+  categoryId: number;
+  categoryName?: string | null;
+  categoryHasQuality: boolean;
   qualityId: number | null;
   qualityName?: string | null;
   imageUrl?: string | null;
@@ -133,7 +144,8 @@ export type Product = {
   id: number;
   brandId: number;
   modelId: number;
-  productType: ProductType;
+  categoryName?: string | null;
+  categoryHasQuality: boolean;
   brand?: string;
   model?: string;
   modelQualityName?: string | null;
@@ -182,7 +194,7 @@ export type OrderItem = {
   id?: number;
   productId: number | null;
   productName: string;
-  productType: ProductType;
+  productType: string;
   brandName?: string | null;
   modelName?: string | null;
   qualityName?: string | null;
@@ -291,7 +303,7 @@ export type GoalInput = {
 export type GoalMetadata = {
   sellers: UserOption[];
   brands: { id: number; name: string }[];
-  models: { id: number; name: string; brandId: number; productType: ProductType }[];
+  models: { id: number; name: string; brandId: number; productType: string }[];
   scopes: { value: string; label: string }[];
   calculationTypes: { value: string; label: string }[];
   productTypeFilters: { value: string; label: string }[];
@@ -335,7 +347,7 @@ export type ReturnItemType = {
   orderItemId: number | null;
   productId: number | null;
   productName: string;
-  productType: ProductType;
+  productType: string;
   brandName: string | null;
   modelName: string | null;
   qualityName: string | null;
@@ -375,7 +387,7 @@ export type ReturnItemInput = {
   orderItemId: number | null;
   productId: number | null;
   productName: string;
-  productType: ProductType;
+  productType: string;
   brandName: string | null;
   modelName: string | null;
   qualityName: string | null;

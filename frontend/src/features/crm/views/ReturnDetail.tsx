@@ -1,7 +1,7 @@
 import React from "react";
 import { Btn } from "../ui/Primitives";
 import { ProductReturn, ReturnType } from "../types";
-import { fmtBRL, fmtDate, productTypeLabel } from "../helpers";
+import { fmtBRL, fmtDate } from "../helpers";
 import { RETURN_STATUS_COLORS, RETURN_TYPE_COLORS } from "../data/mock";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./ReturnDetail.module.css";
@@ -70,7 +70,7 @@ const ReturnDetail: React.FC<Props> = ({ productReturn: r, canUpdate, onClose, o
                 <div>
                   <div className={styles.itemTitle}>{item.productName}</div>
                   <div className={styles.infoMuted}>
-                    {productTypeLabel(item.productType)}
+                    {item.productType}
                     {item.qualityName ? ` · ${item.qualityName}` : ""}
                   </div>
                 </div>

@@ -11,7 +11,7 @@ import {
   Product,
   ShippingMethod,
 } from "../types";
-import { fmtBRL, productLabel, productTypeLabel } from "../helpers";
+import { fmtBRL, productLabel } from "../helpers";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./NewOrderForm.module.css";
 
@@ -265,7 +265,7 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, onSave, 
 
                     {selectedProduct && (
                       <div className={styles.itemMeta}>
-                        <span>{productTypeLabel(selectedProduct.productType)}</span>
+                        <span>{selectedProduct.categoryName}</span>
                         <span>{selectedProduct.stock === "IN_STOCK" ? "✅ Estoque" : "⚠️ Fornecedor"}</span>
                         <span>Custo: {fmtBRL(selectedProduct.cost)}</span>
                       </div>

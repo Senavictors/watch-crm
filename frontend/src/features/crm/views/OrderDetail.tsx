@@ -1,7 +1,7 @@
 import React from "react";
 import { Badge, Btn } from "../ui/Primitives";
 import { Customer, Order } from "../types";
-import { calcMargin, calcProfit, fmtBRL, nextShippingDay, productTypeLabel } from "../helpers";
+import { calcMargin, calcProfit, fmtBRL, nextShippingDay } from "../helpers";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./OrderDetail.module.css";
 
@@ -72,7 +72,7 @@ const OrderDetail: React.FC<Props> = ({ order, customers, canCreateReturn = fals
                 <div>
                   <div className={styles.itemTitle}>{item.productName}</div>
                   <div className={styles.infoMuted}>
-                    {productTypeLabel(item.productType)}
+                    {item.productType}
                     {item.qualityName ? ` · ${item.qualityName}` : ""}
                   </div>
                 </div>
