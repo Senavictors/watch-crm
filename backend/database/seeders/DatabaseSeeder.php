@@ -20,6 +20,8 @@ class DatabaseSeeder extends Seeder
             ModelSeeder::class,
             ProductSeeder::class,
             OrderSeeder::class,
+            JosueCatalogSeeder::class,
+            JosueOrdersSeeder::class,
         ]);
     }
 }
