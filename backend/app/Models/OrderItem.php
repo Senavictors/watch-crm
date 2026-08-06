@@ -21,8 +21,18 @@ class OrderItem extends Model
         'quantity',
         'unit_price',
         'unit_cost',
+        'unit_commission',
         'unit_discount',
+        'commission_paid_at',
+        'commission_paid_by_user_id',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'commission_paid_at' => 'datetime',
+        ];
+    }
 
     public function order(): BelongsTo
     {
@@ -32,5 +42,10 @@ class OrderItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function commissionPaidByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'commission_paid_by_user_id');
     }
 }

@@ -35,6 +35,7 @@ class ProductController extends Controller
             'price' => ['required', 'numeric', 'min:0'],
             'pricePix' => ['nullable', 'numeric', 'min:0'],
             'priceCard' => ['nullable', 'numeric', 'min:0'],
+            'commissionAmount' => ['nullable', 'numeric', 'min:0'],
             'stock' => ['required', 'in:IN_STOCK,SUPPLIER'],
             'qty' => ['required', 'integer', 'min:0'],
         ]);
@@ -58,6 +59,7 @@ class ProductController extends Controller
             'price' => $data['price'],
             'price_pix' => $data['pricePix'] ?? null,
             'price_card' => $data['priceCard'] ?? null,
+            'commission_amount' => $data['commissionAmount'] ?? null,
             'stock' => $data['stock'],
             'qty' => $data['qty'],
         ]);
@@ -111,6 +113,7 @@ class ProductController extends Controller
             'price' => ['sometimes', 'numeric', 'min:0'],
             'pricePix' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'priceCard' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'commissionAmount' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'stock' => ['sometimes', 'in:IN_STOCK,SUPPLIER'],
             'qty' => ['sometimes', 'integer', 'min:0'],
         ]);
@@ -133,6 +136,11 @@ class ProductController extends Controller
         if (array_key_exists('priceCard', $data)) {
             $data['price_card'] = $data['priceCard'];
             unset($data['priceCard']);
+        }
+
+        if (array_key_exists('commissionAmount', $data)) {
+            $data['commission_amount'] = $data['commissionAmount'];
+            unset($data['commissionAmount']);
         }
 
         $product->fill($data);
@@ -177,6 +185,10 @@ class ProductController extends Controller
             'price' => (float) $product->price,
             'pricePix' => $product->price_pix !== null ? (float) $product->price_pix : null,
             'priceCard' => $product->price_card !== null ? (float) $product->price_card : null,
+            // TASK-005: comissão é sempre visível a quem tem `products.view`
+            // (inclui vendedor) — diferente de `cost`, não revela custo/
+            // margem, é o valor que o próprio vendedor recebe por unidade.
+            'commissionAmount' => $product->commission_amount !== null ? (float) $product->commission_amount : null,
             'stock' => $product->stock,
             'qty' => $product->qty,
         ];

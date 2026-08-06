@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\CommissionController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\GoalController;
 use App\Http\Controllers\Api\ModelController;
@@ -73,6 +74,9 @@ Route::middleware('web')->group(function () {
         Route::put('/returns/{id}', [ReturnController::class, 'update'])->middleware('permission:returns.update');
         Route::patch('/returns/{id}', [ReturnController::class, 'update'])->middleware('permission:returns.update');
         Route::delete('/returns/{id}', [ReturnController::class, 'destroy'])->middleware('permission:returns.delete');
+
+        Route::get('/commissions', [CommissionController::class, 'index'])->middleware('permission:commissions.view');
+        Route::post('/commissions/pay', [CommissionController::class, 'pay'])->middleware('permission:commissions.pay');
 
         Route::get('/goals/metadata', [GoalController::class, 'metadata'])->middleware('permission:goals.view');
         Route::get('/goals', [GoalController::class, 'index'])->middleware('permission:goals.view');

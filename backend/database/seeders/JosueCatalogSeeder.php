@@ -16,9 +16,10 @@ use Illuminate\Support\Facades\Hash;
  * clientes maior para os pedidos gerados por JosueOrdersSeeder terem sentido.
  *
  * Preço tabelado (RN informada pelo usuário):
- * - Qualidade "Base ETA": R$1.050 à vista (PIX) / R$1.200 no cartão.
+ * - Qualidade "Base ETA": R$1.050 à vista (PIX) / R$1.200 no cartão. Comissão
+ *   do vendedor: R$40/unidade (TASK-005).
  * - Qualidade "Clone" (ele chamou de "prime/clone"): R$4.000 à vista / R$6.000
- *   no cartão.
+ *   no cartão. Comissão do vendedor: R$150/unidade (TASK-005).
  * `cost` (custo) não foi informado — assumido como ~45% do preço à vista,
  * decisão documentada aqui, sem base real do negócio.
  *
@@ -41,9 +42,12 @@ class JosueCatalogSeeder extends Seeder
 
     private const CLONE_QUALITY_ID = 2;
 
-    private const BASE_ETA_PRICING = ['cost' => 480, 'price' => 1050, 'price_pix' => 1050, 'price_card' => 1200];
+    // TASK-005: comissão real do vendedor por unidade, informada pelo usuário
+    // junto com o preço tabelado (mesma fonte) — R$40 (Base ETA) / R$150
+    // (Prime/Clone). Caixas não têm comissão informada (ver seedBoxes).
+    private const BASE_ETA_PRICING = ['cost' => 480, 'price' => 1050, 'price_pix' => 1050, 'price_card' => 1200, 'commission' => 40];
 
-    private const CLONE_PRICING = ['cost' => 1800, 'price' => 4000, 'price_pix' => 4000, 'price_card' => 6000];
+    private const CLONE_PRICING = ['cost' => 1800, 'price' => 4000, 'price_pix' => 4000, 'price_card' => 6000, 'commission' => 150];
 
     public function run(): void
     {
@@ -199,6 +203,7 @@ class JosueCatalogSeeder extends Seeder
                 'price' => $pricing['price'],
                 'price_pix' => $pricing['price_pix'],
                 'price_card' => $pricing['price_card'],
+                'commission_amount' => $pricing['commission'],
                 'stock' => $stock,
                 'qty' => $qty,
                 'created_at' => $now,
@@ -216,6 +221,7 @@ class JosueCatalogSeeder extends Seeder
                         'price' => self::BASE_ETA_PRICING['price'],
                         'price_pix' => self::BASE_ETA_PRICING['price_pix'],
                         'price_card' => self::BASE_ETA_PRICING['price_card'],
+                        'commission_amount' => self::BASE_ETA_PRICING['commission'],
                     ]);
                     $addModelAndProduct($brandId, $modelName, self::CLONE_QUALITY_ID, self::CLONE_PRICING);
 
@@ -243,6 +249,10 @@ class JosueCatalogSeeder extends Seeder
      * caem no preço padrão pra qualquer forma de pagamento — TASK-004).
      * Audemars Piguet, Richard Mille e Breitling ficam sem caixa cadastrada
      * (decisão do usuário — preço não informado pra essas 3).
+     *
+     * Comissão (TASK-005): não informada pra caixas — `commission_amount`
+     * fica nulo, mesmo tratamento de `price_pix`/`price_card` (RN-01 não
+     * obriga configurar todo produto).
      */
     private function seedBoxes(array $newBrandIds): void
     {

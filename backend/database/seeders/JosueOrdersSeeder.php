@@ -187,6 +187,10 @@ class JosueOrdersSeeder extends Seeder
             'quantity' => 1,
             'unit_price' => $unitPrice,
             'unit_cost' => (float) $watch->cost,
+            // TASK-005: snapshot da comissão vigente, mesmo critério do
+            // OrderController::syncItems — sem isso o relatório de
+            // comissões ficaria vazio pro histórico de demonstração.
+            'unit_commission' => (float) ($watch->commission_amount ?? 0),
             'unit_discount' => 0,
         ];
     }
@@ -206,6 +210,7 @@ class JosueOrdersSeeder extends Seeder
             'quantity' => 1,
             'unit_price' => (float) $box->price,
             'unit_cost' => (float) $box->cost,
+            'unit_commission' => (float) ($box->commission_amount ?? 0),
             'unit_discount' => 0,
         ];
     }

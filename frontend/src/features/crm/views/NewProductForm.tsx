@@ -26,6 +26,7 @@ const NewProductForm: React.FC<Props> = ({ product, brands, models, existingProd
     price: string;
     pricePix: string;
     priceCard: string;
+    commissionAmount: string;
     stock: StockOrigin;
     qty: string;
   }>({
@@ -35,6 +36,7 @@ const NewProductForm: React.FC<Props> = ({ product, brands, models, existingProd
     price: product ? String(product.price) : "",
     pricePix: product?.pricePix != null ? String(product.pricePix) : "",
     priceCard: product?.priceCard != null ? String(product.priceCard) : "",
+    commissionAmount: product?.commissionAmount != null ? String(product.commissionAmount) : "",
     stock: product?.stock ?? "IN_STOCK",
     qty: product ? String(product.qty) : "0",
   });
@@ -88,6 +90,7 @@ const NewProductForm: React.FC<Props> = ({ product, brands, models, existingProd
       price: Number(form.price),
       pricePix: form.pricePix === "" ? null : Number(form.pricePix),
       priceCard: form.priceCard === "" ? null : Number(form.priceCard),
+      commissionAmount: form.commissionAmount === "" ? null : Number(form.commissionAmount),
       stock: form.stock,
       qty,
     });
@@ -156,6 +159,12 @@ const NewProductForm: React.FC<Props> = ({ product, brands, models, existingProd
             type="number"
             value={form.priceCard}
             onChange={(e) => set("priceCard", e.target.value)}
+          />
+          <Input
+            label="Comissão do Vendedor (R$) — opcional"
+            type="number"
+            value={form.commissionAmount}
+            onChange={(e) => set("commissionAmount", e.target.value)}
           />
           <Select
             label="Origem"

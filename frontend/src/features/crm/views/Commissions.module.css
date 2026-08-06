@@ -1,0 +1,160 @@
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.title {
+  color: var(--crm-text);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.actionButton {
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.4) inset, 0 1px 2px rgba(15, 23, 42, 0.2);
+  transition: all 0.2s ease;
+}
+
+.statsRow {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.filterBar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.filterSelect,
+.filterInput {
+  background: var(--crm-input-bg);
+  border: 1px solid var(--crm-input-border);
+  border-radius: 12px;
+  color: var(--crm-input-text);
+  padding: 8px 14px;
+  font-size: 13px;
+  outline: none;
+}
+
+.filterSelect {
+  cursor: pointer;
+}
+
+.filterLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--crm-text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.tableCard {
+  padding: 0;
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.theadRow {
+  background: var(--crm-table-header-bg);
+  border-bottom: 1px solid var(--crm-table-border);
+}
+
+.theadCell {
+  color: var(--crm-text-muted);
+  font-weight: 600;
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.row {
+  border-bottom: 1px solid var(--crm-table-border);
+}
+
+.cell {
+  padding: 10px 14px;
+}
+
+.name {
+  color: var(--crm-text);
+  font-weight: 600;
+}
+
+.sub {
+  color: var(--crm-text-muted);
+  font-size: 12px;
+}
+
+.numericSoft {
+  padding: 10px 14px;
+  color: var(--crm-text-soft);
+  font-family: var(--font-inter), sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.numericAccentStrong {
+  padding: 10px 14px;
+  color: var(--crm-accent);
+  font-family: var(--font-inter), sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.pill {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.pillPaid {
+  background: var(--crm-pill-primary-bg);
+  color: var(--crm-pill-primary-text);
+}
+
+.pillPending {
+  background: var(--crm-pill-muted-bg);
+  color: var(--crm-pill-muted-text);
+}
+
+.empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--crm-text-muted);
+}
+
+.payBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--crm-table-border);
+  background: var(--crm-table-header-bg);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.payBarInfo {
+  color: var(--crm-text-muted);
+  font-size: 12px;
+}

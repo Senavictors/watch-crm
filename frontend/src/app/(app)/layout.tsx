@@ -18,6 +18,7 @@ const ROUTE_PERMISSION: Record<string, Permission> = {
   "/produtos":      "products.view",
   "/modelos":       "models.view",
   "/metas":         "goals.view",
+  "/comissoes":     "commissions.view",
   "/configuracoes": "settings.view",
   "/usuarios":      "users.manage",
 };

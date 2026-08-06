@@ -162,6 +162,32 @@ class FinancialCalculatorsTest extends TestCase
         $this->assertEqualsWithDelta(190.0, $profit, 0.001);
     }
 
+    public function test_sales_profit_subtracts_accrued_commission(): void
+    {
+        // TASK-005: pendência da TASK-001 resolvida — comissão real (via
+        // CommissionCalculator) entra na fórmula, não mais como 0 fixo.
+        $admin = $this->admin();
+        $seller = $this->seller();
+
+        $order = \App\Models\Order::factory()->create([
+            'seller_user_id' => $seller->id,
+            'status' => 'Pago',
+            'paid_at' => now(),
+            'sale_price' => 300,
+            'cost' => 100,
+            'discount' => 0,
+            'freight' => 15,
+            'channel_fee' => 10,
+        ]);
+        $order->items()->update(['unit_commission' => 40]);
+
+        $profit = SalesProfitCalculator::calculate($admin);
+
+        // faturamento = 315; custos diretos = 125 (ver teste acima); comissão = 40.
+        // lucro = 315 - 125 - 40 = 150.
+        $this->assertEqualsWithDelta(150.0, $profit, 0.001);
+    }
+
     public function test_net_result_subtracts_general_expenses_from_sales_profit(): void
     {
         $this->assertEqualsWithDelta(150.0, NetResultCalculator::calculate(200.0, 50.0), 0.001);

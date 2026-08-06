@@ -42,6 +42,7 @@ const Products: React.FC<Props> = ({ products, canCreate, canUpdate, canDelete, 
                 ...(canViewFinancials ? ["Custo"] : []),
                 "Preço",
                 ...(canViewFinancials ? ["Margem"] : []),
+                "Comissão",
                 "Origem", "Estoque",
                 ...(showActions ? ["Ações"] : []),
               ].map((h) => (
@@ -70,6 +71,7 @@ const Products: React.FC<Props> = ({ products, canCreate, canUpdate, canDelete, 
                   {canViewFinancials && <td className={styles.numericSoft}>{fmtBRL(p.cost)}</td>}
                   <td className={styles.numericAccentStrong}>{fmtBRL(p.price)}</td>
                   {canViewFinancials && <td className={styles.numericAccent}>{margin ?? "—"}%</td>}
+                  <td className={styles.numericSoft}>{p.commissionAmount != null ? fmtBRL(p.commissionAmount) : "—"}</td>
                   <td className={styles.cell}>
                     <span
                       className={`${styles.pill} ${

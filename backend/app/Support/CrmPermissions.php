@@ -46,6 +46,8 @@ class CrmPermissions
         'settings.view',
         'users.manage',
         'dashboard.financial.view',
+        'commissions.view',
+        'commissions.pay',
     ];
 
     /**
@@ -69,10 +71,22 @@ class CrmPermissions
      * Gerente perde `dashboard.financial.view` (RN-02: lucro, despesas e
      * estoque financeiro são restritos) — é a diferença real entre admin e
      * gerente que o ADR-003 pede; antes desta task os dois eram idênticos.
+     *
+     * TASK-005: gerente também não gerencia comissão. Não vende (fora de
+     * `UserRole::sellableRoles()`), então `commissions.view` só serviria pra
+     * ver o relatório agregado de todos os vendedores — dado tão sensível
+     * quanto lucro/margem de pedidos (RN-02), mesmo raciocínio de
+     * `dashboard.financial.view`. `commissions.pay` é ação financeira
+     * (movimenta o que a empresa deve a cada vendedor), reservada a
+     * owner/admin como qualquer outra escrita financeira já restrita aqui.
      */
     public static function manager(): array
     {
-        return array_values(array_diff(self::ALL, ['dashboard.financial.view']));
+        return array_values(array_diff(self::ALL, [
+            'dashboard.financial.view',
+            'commissions.view',
+            'commissions.pay',
+        ]));
     }
 
     public static function seller(): array
@@ -86,6 +100,11 @@ class CrmPermissions
             'orders.view',
             'returns.view',
             'goals.view',
+            // TASK-005 (RN-02): vendedor vê a própria projeção de comissão —
+            // o controller/CommissionCalculator força o escopo pro próprio
+            // vendedor quando ele não tem `canAccessAllRecords()`, então
+            // conceder a permissão aqui não abre visão sobre outros.
+            'commissions.view',
         ];
     }
 

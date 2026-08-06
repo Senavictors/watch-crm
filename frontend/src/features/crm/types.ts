@@ -57,7 +57,9 @@ export type Permission =
   | "goals.delete"
   | "settings.view"
   | "users.manage"
-  | "dashboard.financial.view";
+  | "dashboard.financial.view"
+  | "commissions.view"
+  | "commissions.pay";
 
 export type UserRole = "owner" | "admin" | "gerente" | "vendedor" | "garantia";
 
@@ -157,6 +159,9 @@ export type Product = {
   price: number;
   pricePix?: number | null;
   priceCard?: number | null;
+  // TASK-005: sempre presente pra quem tem products.view (inclui vendedor) —
+  // não é dado de custo/margem, é quanto o vendedor ganha por unidade.
+  commissionAmount?: number | null;
   stock: StockOrigin;
   qty: number;
 };
@@ -168,6 +173,7 @@ export type ProductInput = {
   price: number;
   pricePix?: number | null;
   priceCard?: number | null;
+  commissionAmount?: number | null;
   stock: StockOrigin;
   qty: number;
 };
@@ -406,4 +412,39 @@ export type ReturnItemInput = {
   qualityName: string | null;
   quantity: number;
   unitPrice: number;
+};
+
+/**
+ * TASK-005 — comissões por produto e venda. `CommissionLine` é uma linha do
+ * relatório (`GET /commissions`); RN-02 (vendedor só vê a própria projeção)
+ * é aplicada no backend, não aqui.
+ */
+export type CommissionLine = {
+  orderItemId: number;
+  orderId: number | null;
+  sellerUserId: number | null;
+  sellerUserName: string | null;
+  productName: string;
+  saleDate: string | null;
+  quantity: number;
+  returnedQuantity: number;
+  netQuantity: number;
+  unitCommission: number;
+  lineCommission: number;
+  paid: boolean;
+  commissionPaidAt: string | null;
+  commissionPaidByUserName: string | null;
+};
+
+export type CommissionSummary = {
+  accrued: number;
+  paid: number;
+  pending: number;
+};
+
+export type CommissionReport = {
+  summary: CommissionSummary;
+  items: CommissionLine[];
+  // Presente só pra quem tem visão de todos os vendedores (owner/admin).
+  sellers?: UserOption[];
 };

@@ -132,6 +132,18 @@ class OrderController extends Controller
         $this->authorize('update', $order);
 
         $data = $this->validateData($request, true);
+
+        // TASK-005 (CA-03): `syncItems` recria as linhas do pedido (delete +
+        // insert), o que apagaria silenciosamente `commission_paid_at` de
+        // qualquer item já conciliado. Uma comissão paga não pode ser
+        // reaberta por uma edição de itens — se precisar corrigir a venda,
+        // é preciso reverter o pagamento da comissão primeiro.
+        if (array_key_exists('items', $data) && $order->items->contains(fn (OrderItem $item) => $item->commission_paid_at !== null)) {
+            return response()->json([
+                'message' => 'Não é possível alterar os itens de um pedido com comissão já paga.',
+            ], 422);
+        }
+
         $previousStatus = $order->status;
 
         if (array_key_exists('customerId', $data)) {
@@ -411,6 +423,12 @@ class OrderController extends Controller
                     'quantity' => (int) $item['quantity'],
                     'unit_price' => (float) $item['unitPrice'],
                     'unit_cost' => (float) $product->cost,
+                    // TASK-005 (RN-01): comissão vigente do produto congelada
+                    // no item — trocar/editar o produto depois não afeta
+                    // pedidos já vendidos (CA-01). RN-03 (troca usa a
+                    // comissão do novo produto) decorre naturalmente daqui:
+                    // um item novo sempre lê a comissão atual do produto.
+                    'unit_commission' => (float) ($product->commission_amount ?? 0),
                     'unit_discount' => (float) $item['unitDiscount'],
                     'created_at' => now(),
                     'updated_at' => now(),

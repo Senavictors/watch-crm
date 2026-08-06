@@ -18,6 +18,7 @@ class Product extends Model
         'price',
         'price_pix',
         'price_card',
+        'commission_amount',
         'stock',
         'qty',
     ];
