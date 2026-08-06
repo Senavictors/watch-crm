@@ -173,6 +173,9 @@ export type Order = {
   channel: Channel;
   seller: Seller;
   status: OrderStatus;
+  paidAt?: string | null;
+  paidByUserId?: number | null;
+  paidByUserName?: string | null;
   productId?: number | null;
   productName: string;
   itemsCount: number;

@@ -19,6 +19,9 @@ use App\Models\User;
  * (efeito líquido zero até existir um campo próprio). Embalagem, comissão e
  * outros custos do pedido ainda não têm coluna (TASK-005/TASK-006) e entram
  * como 0 nesta versão — pendência registrada na task.
+ *
+ * "Pago" segue o mesmo critério de `RevenueCalculator` (TASK-003): `paid_at`
+ * preenchido e status diferente de `Cancelado`.
  */
 class SalesProfitCalculator
 {
@@ -27,7 +30,8 @@ class SalesProfitCalculator
         $revenue ??= RevenueCalculator::calculate($user, $startDate, $endDate);
 
         $directCosts = (float) OrderFinancialScope::ordersQuery($user, $startDate, $endDate)
-            ->whereIn('status', OrderMetadata::PAID_STATUSES)
+            ->whereNotNull('paid_at')
+            ->where('status', '!=', 'Cancelado')
             ->selectRaw('COALESCE(SUM(cost + channel_fee + freight), 0) as total')
             ->value('total');
 

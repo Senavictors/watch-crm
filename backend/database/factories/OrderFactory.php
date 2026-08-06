@@ -71,4 +71,18 @@ class OrderFactory extends Factory
             'notes' => '',
         ];
     }
+
+    /**
+     * Pedido com pagamento confirmado (TASK-003) — usado por testes que
+     * criam pedidos "pagos" diretamente via factory, sem passar pelo
+     * `OrderController` (que confirma o pagamento sozinho na transição).
+     */
+    public function paid(?User $confirmedBy = null): static
+    {
+        return $this->state(fn () => [
+            'status' => 'Pago',
+            'paid_at' => now(),
+            'paid_by_user_id' => $confirmedBy?->id ?? User::factory(),
+        ]);
+    }
 }

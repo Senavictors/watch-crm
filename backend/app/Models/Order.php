@@ -20,6 +20,8 @@ class Order extends Model
         'channel',
         'seller',
         'status',
+        'paid_at',
+        'paid_by_user_id',
         'sale_price',
         'cost',
         'discount',
@@ -32,6 +34,13 @@ class Order extends Model
         'shipped_date',
         'notes',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'paid_at' => 'datetime',
+        ];
+    }
 
     public function customer(): BelongsTo
     {
@@ -51,6 +60,11 @@ class Order extends Model
     public function sellerUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'seller_user_id');
+    }
+
+    public function paidByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'paid_by_user_id');
     }
 
     public function items(): HasMany

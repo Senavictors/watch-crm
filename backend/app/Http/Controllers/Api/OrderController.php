@@ -8,6 +8,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\OrderMetadata;
+use App\Support\OrderPaymentTransition;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -51,7 +52,7 @@ class OrderController extends Controller
         }
 
         $orders = $query
-            ->with(['sellerUser', 'items'])
+            ->with(['sellerUser', 'paidByUser', 'items'])
             ->orderByDesc('sale_date')
             ->get()
             ->map(fn (Order $order) => $this->toPayload($order));
@@ -66,7 +67,9 @@ class OrderController extends Controller
         $products = $this->productsById($data['items']);
         $totals = $this->calculateTotals($data['items'], $products);
 
-        $order = DB::transaction(function () use ($data, $products, $request, $seller, $totals) {
+        $paymentEvent = null;
+
+        $order = DB::transaction(function () use ($data, $products, $request, $seller, $totals, &$paymentEvent) {
             $order = Order::create([
                 'customer_id' => $data['customerId'],
                 'created_by_user_id' => $request->user()->id,
@@ -89,23 +92,35 @@ class OrderController extends Controller
                 'notes' => $data['notes'] ?? null,
             ]);
 
+            $paymentEvent = OrderPaymentTransition::applyOnCreate($order, $request->user());
+            if ($paymentEvent) {
+                $order->save();
+            }
+
             $this->syncItems($order, $data['items'], $products);
 
             return $order;
         });
-        $order->load(['sellerUser', 'items']);
+        $order->load(['sellerUser', 'paidByUser', 'items']);
 
         $this->audit('orders.created', 'Pedido criado.', $order, [
             'seller_user_id' => $order->seller_user_id,
             'status' => $order->status,
         ]);
 
+        if ($paymentEvent) {
+            $this->audit($paymentEvent, 'Pagamento confirmado na criação do pedido.', $order, [
+                'paid_at' => $order->paid_at?->toIso8601String(),
+                'paid_by_user_id' => $order->paid_by_user_id,
+            ]);
+        }
+
         return response()->json($this->toPayload($order), 201);
     }
 
     public function update(Request $request, int $id)
     {
-        $order = Order::query()->with(['sellerUser', 'items'])->find($id);
+        $order = Order::query()->with(['sellerUser', 'paidByUser', 'items'])->find($id);
 
         if (! $order) {
             return response()->json(['message' => 'Pedido não encontrado.'], 404);
@@ -147,6 +162,8 @@ class OrderController extends Controller
             }
         }
 
+        $paymentEvent = OrderPaymentTransition::apply($order, $previousStatus, $request->user());
+
         DB::transaction(function () use (&$order, $data, &$products) {
             if (array_key_exists('items', $data)) {
                 $products = $this->productsById($data['items']);
@@ -164,7 +181,7 @@ class OrderController extends Controller
                 $this->syncItems($order, $data['items'], $products);
             }
         });
-        $order->load(['sellerUser', 'items']);
+        $order->load(['sellerUser', 'paidByUser', 'items']);
 
         $metadata = [
             'seller_user_id' => $order->seller_user_id,
@@ -175,6 +192,19 @@ class OrderController extends Controller
         }
 
         $this->audit('orders.updated', 'Pedido atualizado.', $order, $metadata);
+
+        if ($paymentEvent === OrderPaymentTransition::EVENT_CONFIRMED) {
+            $this->audit($paymentEvent, 'Pagamento confirmado.', $order, [
+                'previous_status' => $previousStatus,
+                'paid_at' => $order->paid_at?->toIso8601String(),
+                'paid_by_user_id' => $order->paid_by_user_id,
+            ]);
+        } elseif ($paymentEvent === OrderPaymentTransition::EVENT_REVERTED) {
+            $this->audit($paymentEvent, 'Confirmação de pagamento revertida.', $order, [
+                'previous_status' => $previousStatus,
+                'status' => $order->status,
+            ]);
+        }
 
         return response()->json($this->toPayload($order));
     }
@@ -250,6 +280,9 @@ class OrderController extends Controller
             'channel' => $o->channel,
             'seller' => $o->sellerUser?->name ?? $o->seller,
             'status' => $o->status,
+            'paidAt' => $o->paid_at?->toIso8601String(),
+            'paidByUserId' => $o->paid_by_user_id,
+            'paidByUserName' => $o->paidByUser?->name,
             'productId' => $o->product_id,
             'productName' => $o->product_name,
             'itemsCount' => $items->sum('quantity'),

@@ -20,6 +20,11 @@ class GoalProgressCalculator
                     $interval->start_date->format('Y-m-d'),
                     $interval->end_date->format('Y-m-d'),
                 ])
+                // RN-01/CA-02 (TASK-003, docs/domain/financial-rules.md): só
+                // pedidos pagos entram na meta. "Pago" = `paid_at` preenchido e
+                // status diferente de `Cancelado` (mesmo critério dos
+                // calculadores financeiros).
+                ->whereNotNull('orders.paid_at')
                 ->where('orders.status', '!=', 'Cancelado');
 
             if ($goal->scope === 'user' && $goal->target_user_id) {

@@ -38,10 +38,14 @@ class OrderMetadata
     ];
 
     /**
-     * Status considerados "pago" para fins de faturamento, lucro e metas (RN-01
-     * de docs/domain/financial-rules.md). Interino: TASK-003 substituirá este
-     * critério por presença de `paid_at` — enquanto isso, é o status que aproxima
-     * "o pagamento já foi confirmado e o pedido segue seu fluxo normal".
+     * Status em que um pedido é considerado "pago" (TASK-003). Usado por
+     * `OrderPaymentTransition` para decidir quando confirmar/reverter
+     * `orders.paid_at` — a partir dessa confirmação, faturamento, lucro e metas
+     * (RN-01 de docs/domain/financial-rules.md) filtram por `paid_at`, não mais
+     * por este status diretamente (ver RevenueCalculator, SalesProfitCalculator,
+     * GoalProgressCalculator). `ActiveOrdersCalculator` e
+     * `PendingAmountCalculator` continuam status-based (RN-02 do glossário e
+     * "valores aguardando pagamento" não dependem de confirmação de pagamento).
      */
     public const PAID_STATUSES = [
         'Pago',

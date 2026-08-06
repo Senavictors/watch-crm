@@ -43,6 +43,7 @@ class FinancialCalculatorsTest extends TestCase
         Order::factory()->create([
             'seller_user_id' => $seller->id,
             'status' => 'Pago',
+            'paid_at' => now(),
             'sale_price' => 100,
             'discount' => 10,
             'freight' => 20,
@@ -72,6 +73,24 @@ class FinancialCalculatorsTest extends TestCase
         $this->assertEqualsWithDelta(110.0, $revenue, 0.001);
     }
 
+    public function test_revenue_excludes_paid_status_orders_without_a_confirmed_payment(): void
+    {
+        // TASK-003: "pago" passa a ser decidido por `paid_at`, não pelo status
+        // sozinho — um pedido nesse estado (ex.: dado legado sem confirmação
+        // registrada) não entra em faturamento/lucro até `paid_at` existir.
+        $admin = $this->admin();
+        $seller = $this->seller();
+
+        Order::factory()->create([
+            'seller_user_id' => $seller->id,
+            'status' => 'Pago',
+            'paid_at' => null,
+            'sale_price' => 500,
+        ]);
+
+        $this->assertEqualsWithDelta(0.0, RevenueCalculator::calculate($admin), 0.001);
+    }
+
     public function test_revenue_subtracts_completed_refund_amount_but_not_pending_refund(): void
     {
         $admin = $this->admin();
@@ -81,6 +100,7 @@ class FinancialCalculatorsTest extends TestCase
         $paidOrder = Order::factory()->create([
             'seller_user_id' => $seller->id,
             'status' => 'Pago',
+            'paid_at' => now(),
             'sale_price' => 300,
             'discount' => 0,
             'freight' => 0,
@@ -97,6 +117,7 @@ class FinancialCalculatorsTest extends TestCase
         $anotherPaidOrder = Order::factory()->create([
             'seller_user_id' => $seller->id,
             'status' => 'Pago',
+            'paid_at' => now(),
             'sale_price' => 200,
             'discount' => 0,
             'freight' => 0,
@@ -125,6 +146,7 @@ class FinancialCalculatorsTest extends TestCase
         Order::factory()->create([
             'seller_user_id' => $seller->id,
             'status' => 'Pago',
+            'paid_at' => now(),
             'sale_price' => 300,
             'cost' => 100,
             'discount' => 0,
@@ -172,6 +194,7 @@ class FinancialCalculatorsTest extends TestCase
         Order::factory()->create([
             'seller_user_id' => $seller->id,
             'status' => 'Pago',
+            'paid_at' => now(),
             'sale_price' => 1000,
             'discount' => 0,
             'freight' => 0,
@@ -210,8 +233,8 @@ class FinancialCalculatorsTest extends TestCase
         $seller = $this->seller();
         $otherSeller = $this->seller();
 
-        Order::factory()->create(['seller_user_id' => $seller->id, 'status' => 'Pago', 'sale_price' => 100, 'discount' => 0, 'freight' => 0]);
-        Order::factory()->create(['seller_user_id' => $otherSeller->id, 'status' => 'Pago', 'sale_price' => 900, 'discount' => 0, 'freight' => 0]);
+        Order::factory()->create(['seller_user_id' => $seller->id, 'status' => 'Pago', 'paid_at' => now(), 'sale_price' => 100, 'discount' => 0, 'freight' => 0]);
+        Order::factory()->create(['seller_user_id' => $otherSeller->id, 'status' => 'Pago', 'paid_at' => now(), 'sale_price' => 900, 'discount' => 0, 'freight' => 0]);
 
         $this->assertEqualsWithDelta(100.0, RevenueCalculator::calculate($seller), 0.001);
         $this->assertSame(1, ActiveOrdersCalculator::calculate($seller));
@@ -226,6 +249,7 @@ class FinancialCalculatorsTest extends TestCase
         Order::factory()->create([
             'seller_user_id' => $seller->id,
             'status' => 'Pago',
+            'paid_at' => '2020-01-01',
             'sale_date' => '2020-01-01',
         ]);
 
@@ -248,6 +272,7 @@ class FinancialCalculatorsTest extends TestCase
         Order::factory()->create([
             'seller_user_id' => $seller->id,
             'status' => 'Pago',
+            'paid_at' => now(),
             'sale_price' => 300,
             'cost' => 100,
             'discount' => 0,

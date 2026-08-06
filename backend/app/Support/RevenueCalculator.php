@@ -11,15 +11,19 @@ use App\Models\User;
  *   Faturamento = itens vendidos - descontos + frete cobrado
  *
  * RN-01: somente pedidos pagos entram; cancelamentos e reembolsos saem.
- * Reembolso parcial reduz apenas o valor efetivamente devolvido
- * (`returns.refund_amount`), não o pedido inteiro.
+ * "Pago" é decidido por `orders.paid_at` (TASK-003), não pelo status
+ * diretamente — um pedido cancelado depois de pago preserva `paid_at` como
+ * registro histórico, então o status `Cancelado` continua excluído
+ * explicitamente aqui. Reembolso parcial reduz apenas o valor efetivamente
+ * devolvido (`returns.refund_amount`), não o pedido inteiro.
  */
 class RevenueCalculator
 {
     public static function calculate(User $user, ?string $startDate = null, ?string $endDate = null): float
     {
         $paidOrders = fn () => OrderFinancialScope::ordersQuery($user, $startDate, $endDate)
-            ->whereIn('status', OrderMetadata::PAID_STATUSES);
+            ->whereNotNull('paid_at')
+            ->where('status', '!=', 'Cancelado');
 
         $gross = (float) $paidOrders()
             ->selectRaw('COALESCE(SUM(sale_price - discount + freight), 0) as total')

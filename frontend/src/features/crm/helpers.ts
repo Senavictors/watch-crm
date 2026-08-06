@@ -38,6 +38,19 @@ export function fmtDate(s?: string) {
   return `${d}/${m}/${y}`;
 }
 
+export function fmtDateTime(s?: string | null) {
+  if (!s) return "—";
+  const date = new Date(s);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function modelLabel(model: WatchModel) {
   return model.categoryHasQuality
     ? `${model.name} — ${model.qualityName ?? "—"}`

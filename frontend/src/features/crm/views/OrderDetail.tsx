@@ -1,7 +1,7 @@
 import React from "react";
 import { Badge, Btn } from "../ui/Primitives";
 import { Customer, Order } from "../types";
-import { calcMargin, calcProfit, fmtBRL, nextShippingDay } from "../helpers";
+import { calcMargin, calcProfit, fmtBRL, fmtDateTime, nextShippingDay } from "../helpers";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./OrderDetail.module.css";
 
@@ -45,6 +45,13 @@ const OrderDetail: React.FC<Props> = ({ order, customers, canCreateReturn = fals
         {order.status === "Separação/Fornecedor" && (
           <div className={styles.alertDanger}>
             ⚠️ Produto com fornecedor — tarefa: buscar/comprar antes do envio
+          </div>
+        )}
+
+        {order.paidAt && (
+          <div className={styles.alertInfo}>
+            ✅ Pago em <strong>{fmtDateTime(order.paidAt)}</strong>
+            {order.paidByUserName ? ` por ${order.paidByUserName}` : ""}
           </div>
         )}
 
