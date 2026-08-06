@@ -480,3 +480,89 @@ export type ExpenseInput = {
 export type ExpenseMetadata = {
   categories: ExpenseCategory[];
 };
+
+/**
+ * TASK-009 — contrato de `GET /dashboard/summary` (docs/api/dashboard.md).
+ * Campos opcionais são gateados por permissão no backend (CA-04) —
+ * ausentes na resposta pra quem não pode ver, mesmo padrão de `cost` em
+ * `Order`/`Product` (TASK-013). Consumido pelas TASK-011/012.
+ */
+export type DashboardKpi = {
+  value: number;
+  previousValue: number;
+  percentageChange: number | null;
+};
+
+export type DashboardCurrentKpi = {
+  value: number;
+};
+
+export type DashboardEvolutionBucket = {
+  bucket: string;
+  revenue: number;
+  salesProfit?: number;
+  watchesSold: number;
+  ordersCount: number;
+};
+
+export type DashboardCategoryBreakdown = {
+  category: string;
+  revenue: number;
+  units: number;
+};
+
+export type DashboardChannelBreakdown = {
+  channel: string;
+  revenue: number;
+  ordersCount: number;
+};
+
+export type DashboardGoalSummary = {
+  id: number;
+  name: string;
+  totalTarget: number;
+  totalCurrent: number;
+  totalPercentage: number;
+};
+
+export type DashboardNextShipment = {
+  orderId: number;
+  customerName: string | null;
+  status: OrderStatus;
+  shippingMethod: ShippingMethod;
+  saleDate: string;
+};
+
+export type DashboardCommissionSummary = CommissionSummary;
+
+export type DashboardStock = {
+  totalCost: number;
+  totalPotentialRevenue: number;
+  potentialProfit: number;
+  totalUnits: number;
+};
+
+export type DashboardSummaryResponse = {
+  period: { from: string; to: string; grouping: "day" | "week" | "month" };
+  comparison: { from: string; to: string };
+  kpis: {
+    watchesSold: DashboardKpi;
+    ordersCount: DashboardKpi;
+    activeOrders: DashboardCurrentKpi;
+    pendingAmount: DashboardCurrentKpi;
+    revenue?: DashboardKpi;
+    salesProfit?: DashboardKpi;
+    netResult?: DashboardKpi;
+    generalExpenses?: DashboardKpi;
+  };
+  evolution: DashboardEvolutionBucket[];
+  goal: {
+    company: DashboardGoalSummary | null;
+    individual: DashboardGoalSummary | null;
+  };
+  nextShipments: DashboardNextShipment[];
+  categories?: DashboardCategoryBreakdown[];
+  channels?: DashboardChannelBreakdown[];
+  commission?: DashboardCommissionSummary;
+  stock?: DashboardStock;
+};

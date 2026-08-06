@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CommissionController;
 use App\Http\Controllers\Api\CustomerController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\GoalController;
 use App\Http\Controllers\Api\ModelController;
@@ -24,6 +25,8 @@ Route::middleware('web')->group(function () {
     Route::middleware('auth')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
+
+        Route::get('/dashboard/summary', [DashboardController::class, 'summary'])->middleware('permission:dashboard.view');
 
         Route::get('/customers', [CustomerController::class, 'index'])->middleware('permission:customers.view');
         Route::post('/customers', [CustomerController::class, 'store'])->middleware('permission:customers.create');
