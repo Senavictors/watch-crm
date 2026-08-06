@@ -99,8 +99,15 @@ const OrderDetail: React.FC<Props> = ({ order, customers, canCreateReturn = fals
               { l: "Desconto", v: fmtBRL(order.discount), c: "var(--crm-text-muted)" },
               { l: "Frete", v: fmtBRL(order.freight), c: "var(--crm-text-muted)" },
               { l: "Taxa Canal", v: fmtBRL(order.channelFee), c: "var(--crm-text-muted)" },
-              { l: "Custo Produto", v: fmtBRL(order.cost), c: "var(--crm-text-muted)" },
-              { l: "Lucro", v: fmtBRL(profit), c: profit > 0 ? "var(--crm-success)" : "var(--crm-danger)" },
+              // TASK-013: "Custo Produto"/"Lucro" só aparecem quando a API
+              // retornou `cost` (dashboard.financial.view) — profit === null
+              // quer dizer "sem permissão", não "lucro zero".
+              ...(profit !== null
+                ? [
+                    { l: "Custo Produto", v: fmtBRL(order.cost), c: "var(--crm-text-muted)" },
+                    { l: "Lucro", v: fmtBRL(profit), c: profit > 0 ? "var(--crm-success)" : "var(--crm-danger)" },
+                  ]
+                : []),
             ].map((item) => (
               <div key={item.l}>
                 <div className={styles.financeLabel}>{item.l}</div>
@@ -115,9 +122,11 @@ const OrderDetail: React.FC<Props> = ({ order, customers, canCreateReturn = fals
               </div>
             ))}
           </div>
-          <div className={styles.financeDivider}>
-            Margem: <span className={styles.accent}>{margin}%</span>
-          </div>
+          {margin !== null && (
+            <div className={styles.financeDivider}>
+              Margem: <span className={styles.accent}>{margin}%</span>
+            </div>
+          )}
         </div>
 
         {order.trackingCode && (

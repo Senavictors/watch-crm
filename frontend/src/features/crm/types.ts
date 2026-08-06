@@ -56,9 +56,10 @@ export type Permission =
   | "goals.update"
   | "goals.delete"
   | "settings.view"
-  | "users.manage";
+  | "users.manage"
+  | "dashboard.financial.view";
 
-export type UserRole = "admin" | "gerente" | "vendedor" | "garantia";
+export type UserRole = "owner" | "admin" | "gerente" | "vendedor" | "garantia";
 
 export type AuthUser = {
   id: number;
@@ -149,8 +150,13 @@ export type Product = {
   brand?: string;
   model?: string;
   modelQualityName?: string | null;
-  cost: number;
+  // TASK-013: ausente na resposta da API pra quem não tem
+  // dashboard.financial.view / products.update — não confundir com "custo
+  // zero", trate como "não disponível pra este usuário".
+  cost?: number;
   price: number;
+  pricePix?: number | null;
+  priceCard?: number | null;
   stock: StockOrigin;
   qty: number;
 };
@@ -160,6 +166,8 @@ export type ProductInput = {
   modelId: number;
   cost: number;
   price: number;
+  pricePix?: number | null;
+  priceCard?: number | null;
   stock: StockOrigin;
   qty: number;
 };
@@ -181,7 +189,9 @@ export type Order = {
   itemsCount: number;
   items: OrderItem[];
   salePrice: number;
-  cost: number;
+  // TASK-013: ausente pra quem não tem dashboard.financial.view (gerente,
+  // vendedor, garantia) — não é "custo zero", é "não disponível".
+  cost?: number;
   discount: number;
   freight: number;
   channelFee: number;
@@ -203,10 +213,10 @@ export type OrderItem = {
   qualityName?: string | null;
   quantity: number;
   unitPrice: number;
-  unitCost: number;
+  unitCost?: number;
   unitDiscount: number;
   linePrice: number;
-  lineCost: number;
+  lineCost?: number;
   lineDiscount: number;
 };
 

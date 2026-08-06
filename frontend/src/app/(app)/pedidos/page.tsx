@@ -133,7 +133,7 @@ export default function PedidosPage() {
         statuses={metadata.statuses}
         canCreate={hasPermission("orders.create")}
         canUpdateStatus={hasPermission("orders.update")}
-        canViewProfit={hasPermission("orders.update")}
+        canViewProfit={hasPermission("dashboard.financial.view")}
         onView={setViewOrder}
         onNew={() => setShowNew(true)}
         onUpdateStatus={handleUpdateStatus}
@@ -152,6 +152,7 @@ export default function PedidosPage() {
           products={products}
           customers={customers}
           metadata={metadata}
+          canViewFinancials={hasPermission("dashboard.financial.view")}
           onSave={handleSaveOrder}
           onClose={() => setShowNew(false)}
           onToast={pushToast}

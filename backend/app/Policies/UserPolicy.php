@@ -13,8 +13,12 @@ class UserPolicy
             return false;
         }
 
-        // Gerente não pode editar, bloquear ou redefinir senha de um admin
-        if ($actor->role === UserRole::Manager && $target->role === UserRole::Admin) {
+        // Gerente não pode editar, bloquear ou redefinir senha de um admin ou
+        // owner (TASK-013 — mesma restrição, papel do proprietário incluído)
+        if (
+            $actor->role === UserRole::Manager
+            && in_array($target->role, [UserRole::Admin, UserRole::Owner], true)
+        ) {
             return false;
         }
 

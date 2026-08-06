@@ -122,52 +122,56 @@ const OrderList: React.FC<Props> = ({
             </tr>
           </thead>
           <tbody>
-            {filtered.map((o) => (
-              <tr
-                key={o.id}
-                className={styles.tbodyRow}
-                onClick={() => onView(o)}
-              >
-                <td className={styles.cellId}>#{o.id}</td>
-                <td className={styles.cellMuted}>{fmtDate(o.saleDate)}</td>
-                <td className={styles.cellText}>
-                  {customers.find((c) => c.id === o.customerId)?.name || "—"}
-                </td>
-                <td className={styles.cellText}>
-                  {o.productName}
-                  {o.itemsCount > 1 ? ` (${o.itemsCount} itens)` : ""}
-                </td>
-                <td className={styles.cellMuted}>{o.channel}</td>
-                <td className={styles.cellMuted}>{o.seller}</td>
-                <td className={styles.cellAccent}>
-                  {fmtBRL(o.salePrice - o.discount)}
-                </td>
-                {canViewProfit && (
-                  <td
-                    className={styles.cellProfit}
-                    style={{ color: calcProfit(o) > 0 ? "var(--crm-success)" : "var(--crm-danger)" }}
-                  >
-                    {fmtBRL(calcProfit(o))}
+            {filtered.map((o) => {
+              const profit = calcProfit(o);
+
+              return (
+                <tr
+                  key={o.id}
+                  className={styles.tbodyRow}
+                  onClick={() => onView(o)}
+                >
+                  <td className={styles.cellId}>#{o.id}</td>
+                  <td className={styles.cellMuted}>{fmtDate(o.saleDate)}</td>
+                  <td className={styles.cellText}>
+                    {customers.find((c) => c.id === o.customerId)?.name || "—"}
                   </td>
-                )}
-                <td className={styles.cell}>
-                  <Badge status={o.status} />
-                </td>
-                {canUpdateStatus && (
-                  <td className={styles.cell} onClick={(e) => e.stopPropagation()}>
-                    <select
-                      value={o.status}
-                      onChange={(e) => onUpdateStatus(o.id, e.target.value as OrderStatus)}
-                      className={styles.statusSelect}
+                  <td className={styles.cellText}>
+                    {o.productName}
+                    {o.itemsCount > 1 ? ` (${o.itemsCount} itens)` : ""}
+                  </td>
+                  <td className={styles.cellMuted}>{o.channel}</td>
+                  <td className={styles.cellMuted}>{o.seller}</td>
+                  <td className={styles.cellAccent}>
+                    {fmtBRL(o.salePrice - o.discount)}
+                  </td>
+                  {canViewProfit && profit !== null && (
+                    <td
+                      className={styles.cellProfit}
+                      style={{ color: profit > 0 ? "var(--crm-success)" : "var(--crm-danger)" }}
                     >
-                      {statuses.map((s) => (
-                        <option key={s}>{s}</option>
-                      ))}
-                    </select>
+                      {fmtBRL(profit)}
+                    </td>
+                  )}
+                  <td className={styles.cell}>
+                    <Badge status={o.status} />
                   </td>
-                )}
-              </tr>
-            ))}
+                  {canUpdateStatus && (
+                    <td className={styles.cell} onClick={(e) => e.stopPropagation()}>
+                      <select
+                        value={o.status}
+                        onChange={(e) => onUpdateStatus(o.id, e.target.value as OrderStatus)}
+                        className={styles.statusSelect}
+                      >
+                        {statuses.map((s) => (
+                          <option key={s}>{s}</option>
+                        ))}
+                      </select>
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         {filtered.length === 0 && (

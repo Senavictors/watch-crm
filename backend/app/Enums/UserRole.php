@@ -6,6 +6,7 @@ use App\Support\CrmPermissions;
 
 enum UserRole: string
 {
+    case Owner = 'owner';
     case Admin = 'admin';
     case Manager = 'gerente';
     case Seller = 'vendedor';
@@ -22,10 +23,23 @@ enum UserRole: string
     public static function permissionMap(): array
     {
         return [
-            self::Admin->value     => CrmPermissions::admin(),
-            self::Manager->value   => CrmPermissions::manager(),
-            self::Seller->value    => CrmPermissions::seller(),
+            self::Owner->value => CrmPermissions::owner(),
+            self::Admin->value => CrmPermissions::admin(),
+            self::Manager->value => CrmPermissions::manager(),
+            self::Seller->value => CrmPermissions::seller(),
             self::Guarantee->value => CrmPermissions::guarantee(),
         ];
+    }
+
+    /**
+     * TASK-013: papéis que podem ser atribuídos como vendedor num pedido/meta
+     * — o proprietário (Josué) também vende, além do papel `vendedor`
+     * propriamente dito.
+     *
+     * @return list<string>
+     */
+    public static function sellableRoles(): array
+    {
+        return [self::Seller->value, self::Owner->value];
     }
 }

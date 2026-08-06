@@ -1,12 +1,12 @@
 "use client";
 import React, { useState } from "react";
-import { CrmUser } from "../types";
+import { CrmUser, UserRole } from "../types";
 import { Btn } from "../ui/Primitives";
 import styles from "./Users.module.css";
 
 type Props = {
   users: CrmUser[];
-  currentUserRole: "admin" | "gerente" | "vendedor";
+  currentUserRole: UserRole;
   canCreate: boolean;
   onNew: () => void;
   onEdit: (user: CrmUser) => void;
@@ -15,9 +15,11 @@ type Props = {
 };
 
 const ROLE_LABELS: Record<string, string> = {
+  owner: "Proprietário",
   admin: "Admin",
   gerente: "Gerente",
   vendedor: "Vendedor",
+  garantia: "Garantia",
 };
 
 const Users: React.FC<Props> = ({
@@ -42,7 +44,10 @@ const Users: React.FC<Props> = ({
   });
 
   function canActOnUser(target: CrmUser): boolean {
-    if (currentUserRole === "gerente" && target.role === "admin") return false;
+    // TASK-013: gerente também não age sobre owner (mesma regra do backend,
+    // UserPolicy::update) — mostrar o botão aqui só pra dar 403 depois seria
+    // UX ruim, não controle de acesso (o bloqueio real já é no backend).
+    if (currentUserRole === "gerente" && (target.role === "admin" || target.role === "owner")) return false;
     return true;
   }
 
@@ -79,9 +84,11 @@ const Users: React.FC<Props> = ({
           className={styles.filterSelect}
         >
           <option value="">Todas as funções</option>
+          <option value="owner">Proprietário</option>
           <option value="admin">Admin</option>
           <option value="gerente">Gerente</option>
           <option value="vendedor">Vendedor</option>
+          <option value="garantia">Garantia</option>
         </select>
         <select
           value={statusFilter}

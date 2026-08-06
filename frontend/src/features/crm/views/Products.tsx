@@ -10,15 +10,19 @@ type Props = {
   canCreate: boolean;
   canUpdate: boolean;
   canDelete: boolean;
-  compact: boolean;
+  // TASK-013 (RN-02): custo/margem só aparecem pra quem tem
+  // dashboard.financial.view OU gerencia catálogo (products.create/update) —
+  // ver User::canViewCatalogCost() no backend. Não confundir com `compact`
+  // antigo, que era uma densidade visual, não um controle de acesso.
+  canViewFinancials: boolean;
   onNew: () => void;
   onEdit: (product: Product) => void;
   onDelete: (product: Product) => void;
   onAddQty: (product: Product) => void;
 };
 
-const Products: React.FC<Props> = ({ products, canCreate, canUpdate, canDelete, compact, onNew, onEdit, onDelete, onAddQty }) => {
-  const showActions = !compact && (canUpdate || canDelete);
+const Products: React.FC<Props> = ({ products, canCreate, canUpdate, canDelete, canViewFinancials, onNew, onEdit, onDelete, onAddQty }) => {
+  const showActions = canUpdate || canDelete;
 
   return (
     <div>
@@ -34,9 +38,13 @@ const Products: React.FC<Props> = ({ products, canCreate, canUpdate, canDelete, 
         <table className={styles.table}>
           <thead>
             <tr className={styles.theadRow}>
-              {(compact
-                ? ["Marca / Modelo", "Preço", "Origem", "Estoque"]
-                : ["Marca / Modelo", "Custo", "Preço", "Margem", "Origem", "Estoque", ...(showActions ? ["Ações"] : [])]).map((h) => (
+              {["Marca / Modelo",
+                ...(canViewFinancials ? ["Custo"] : []),
+                "Preço",
+                ...(canViewFinancials ? ["Margem"] : []),
+                "Origem", "Estoque",
+                ...(showActions ? ["Ações"] : []),
+              ].map((h) => (
                 <th key={h} className={styles.theadCell}>
                   {h}
                 </th>
@@ -45,7 +53,7 @@ const Products: React.FC<Props> = ({ products, canCreate, canUpdate, canDelete, 
           </thead>
           <tbody>
             {products.map((p) => {
-              const margin = (((p.price - p.cost) / p.price) * 100).toFixed(0);
+              const margin = p.cost !== undefined ? (((p.price - p.cost) / p.price) * 100).toFixed(0) : null;
               return (
                 <tr key={p.id} className={styles.row}>
                   <td className={styles.cell}>
@@ -59,9 +67,9 @@ const Products: React.FC<Props> = ({ products, canCreate, canUpdate, canDelete, 
                           : ""}
                     </div>
                   </td>
-                  {!compact && <td className={styles.numericSoft}>{fmtBRL(p.cost)}</td>}
+                  {canViewFinancials && <td className={styles.numericSoft}>{fmtBRL(p.cost)}</td>}
                   <td className={styles.numericAccentStrong}>{fmtBRL(p.price)}</td>
-                  {!compact && <td className={styles.numericAccent}>{margin}%</td>}
+                  {canViewFinancials && <td className={styles.numericAccent}>{margin ?? "—"}%</td>}
                   <td className={styles.cell}>
                     <span
                       className={`${styles.pill} ${

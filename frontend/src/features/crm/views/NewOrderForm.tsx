@@ -11,7 +11,7 @@ import {
   Product,
   ShippingMethod,
 } from "../types";
-import { fmtBRL, productLabel } from "../helpers";
+import { fmtBRL, productLabel, suggestedUnitPrice } from "../helpers";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./NewOrderForm.module.css";
 
@@ -19,6 +19,10 @@ type Props = {
   products: Product[];
   customers: Customer[];
   metadata: OrderMetadata;
+  // TASK-013: quem não tem dashboard.financial.view não recebe `cost` na API
+  // (gerente inclusive) — sem essa flag o custo/lucro estimado ficaria
+  // zerado ao invés de simplesmente escondido, o que mentiria pro usuário.
+  canViewFinancials: boolean;
   onSave: (order: OrderInput) => void;
   onClose: () => void;
   onToast: (message: string, variant?: "success" | "error") => void;
@@ -29,6 +33,10 @@ type ItemForm = {
   quantity: string;
   unitPrice: string;
   unitDiscount: string;
+  // TASK-004 (CA-02): true depois que o vendedor edita o preço unitário à
+  // mão — a partir daí a sugestão por forma de pagamento para de sobrescrever
+  // esse item, mesmo que o pagamento mude de novo.
+  priceTouched: boolean;
 };
 
 const emptyItem = (): ItemForm => ({
@@ -36,9 +44,10 @@ const emptyItem = (): ItemForm => ({
   quantity: "1",
   unitPrice: "",
   unitDiscount: "0",
+  priceTouched: false,
 });
 
-const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, onSave, onClose, onToast }) => {
+const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, canViewFinancials, onSave, onClose, onToast }) => {
   const [form, setForm] = useState<{
     customerId: string;
     sellerUserId: string;
@@ -93,10 +102,28 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, onSave, 
 
     updateItem(index, {
       productId,
-      unitPrice: product ? String(product.price) : "",
+      unitPrice: product ? String(suggestedUnitPrice(product, form.paymentMethod)) : "",
       unitDiscount: "0",
+      priceTouched: false,
       quantity: form.items[index]?.quantity || "1",
     });
+  }
+
+  function handleUnitPriceChange(index: number, unitPrice: string) {
+    updateItem(index, { unitPrice, priceTouched: true });
+  }
+
+  function handlePaymentMethodChange(paymentMethod: PaymentMethod) {
+    setForm((current) => ({
+      ...current,
+      paymentMethod,
+      items: current.items.map((item) => {
+        if (item.priceTouched || !item.productId) return item;
+        const product = products.find((entry) => entry.id === Number(item.productId));
+        if (!product) return item;
+        return { ...item, unitPrice: String(suggestedUnitPrice(product, paymentMethod)) };
+      }),
+    }));
   }
 
   const selectedLines = useMemo(
@@ -226,7 +253,7 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, onSave, 
                           <option value="">Selecionar produto...</option>
                           {products.map((product) => (
                             <option key={product.id} value={product.id}>
-                              {productLabel(product)} — {fmtBRL(product.price)}
+                              {productLabel(product)} — {fmtBRL(suggestedUnitPrice(product, form.paymentMethod))}
                             </option>
                           ))}
                         </Select>
@@ -245,7 +272,7 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, onSave, 
                           label="Preço Unit."
                           type="number"
                           value={item.unitPrice}
-                          onChange={(e) => updateItem(index, { unitPrice: e.target.value })}
+                          onChange={(e) => handleUnitPriceChange(index, e.target.value)}
                         />
                       </div>
                       <div className={styles.itemField}>
@@ -267,7 +294,7 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, onSave, 
                       <div className={styles.itemMeta}>
                         <span>{selectedProduct.categoryName}</span>
                         <span>{selectedProduct.stock === "IN_STOCK" ? "✅ Estoque" : "⚠️ Fornecedor"}</span>
-                        <span>Custo: {fmtBRL(selectedProduct.cost)}</span>
+                        {canViewFinancials && <span>Custo: {fmtBRL(selectedProduct.cost)}</span>}
                       </div>
                     )}
                   </div>
@@ -291,7 +318,7 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, onSave, 
           <Select
             label="Pagamento"
             value={form.paymentMethod}
-            onChange={(e) => set("paymentMethod", e.target.value as PaymentMethod)}
+            onChange={(e) => handlePaymentMethodChange(e.target.value as PaymentMethod)}
           >
             {metadata.paymentMethods.map((paymentMethod) => (
               <option key={paymentMethod}>{paymentMethod}</option>
@@ -328,16 +355,18 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, onSave, 
             <br />
             <span className={styles.summaryValueMuted}>{fmtBRL(totalDiscount)}</span>
           </div>
-          <div>
-            <span className={modalStyles.summaryBlockLabel}>LUCRO EST.</span>
-            <br />
-            <span
-              style={{ color: estProfit > 0 ? "var(--crm-success)" : "var(--crm-danger)" }}
-              className={styles.summaryValueAccent}
-            >
-              {fmtBRL(estProfit)}
-            </span>
-          </div>
+          {canViewFinancials && (
+            <div>
+              <span className={modalStyles.summaryBlockLabel}>LUCRO EST.</span>
+              <br />
+              <span
+                style={{ color: estProfit > 0 ? "var(--crm-success)" : "var(--crm-danger)" }}
+                className={styles.summaryValueAccent}
+              >
+                {fmtBRL(estProfit)}
+              </span>
+            </div>
+          )}
           <div>
             <span className={modalStyles.summaryBlockLabel}>ORIGEM</span>
             <br />

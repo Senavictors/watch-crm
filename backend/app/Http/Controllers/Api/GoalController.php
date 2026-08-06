@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Goal;
@@ -17,7 +18,7 @@ class GoalController extends Controller
     public function metadata()
     {
         $sellers = User::query()
-            ->where('role', 'vendedor')
+            ->whereIn('role', UserRole::sellableRoles())
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name'])

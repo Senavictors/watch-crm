@@ -85,6 +85,35 @@ class User extends Authenticatable
 
     public function canAccessAllRecords(): bool
     {
-        return in_array($this->getRoleName(), [UserRole::Admin->value, UserRole::Manager->value], true);
+        return in_array($this->getRoleName(), [
+            UserRole::Owner->value,
+            UserRole::Admin->value,
+            UserRole::Manager->value,
+        ], true);
+    }
+
+    /**
+     * TASK-013 (RN-02) — lucro, despesas e avaliação financeira de estoque
+     * são exclusivos de quem tem `dashboard.financial.view` (owner/admin).
+     * Gerente perdeu essa permissão nesta task; vendedor/garantia nunca a
+     * tiveram.
+     */
+    public function canViewFinancialReports(): bool
+    {
+        return $this->hasPermission('dashboard.financial.view');
+    }
+
+    /**
+     * O custo do produto (catálogo) é informação operacional — quem
+     * cadastra/edita catálogo precisa dele pra fazer o próprio trabalho,
+     * independentemente de ter acesso ao relatório financeiro (RN-02 não se
+     * aplica aqui; só vendedor/garantia, que só têm `products.view`, não
+     * veem custo).
+     */
+    public function canViewCatalogCost(): bool
+    {
+        return $this->hasPermission('products.create')
+            || $this->hasPermission('products.update')
+            || $this->canViewFinancialReports();
     }
 }

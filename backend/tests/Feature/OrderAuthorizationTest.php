@@ -112,7 +112,9 @@ class OrderAuthorizationTest extends TestCase
             ->assertOk()
             ->assertJsonPath('status', 'Pago')
             ->assertJsonPath('salePrice', 600)
-            ->assertJsonPath('cost', 240)
+            // TASK-013: gerente perdeu dashboard.financial.view — não recebe
+            // `cost` no payload (ver FinancialFieldVisibilityTest).
+            ->assertJsonMissingPath('cost')
             ->assertJsonPath('discount', 30)
             ->assertJsonPath('itemsCount', 2)
             ->assertJsonPath('paidByUserId', $manager->id)

@@ -25,7 +25,9 @@ export default function ProdutosPage() {
   const canCreate = hasPermission("products.create");
   const canUpdate = hasPermission("products.update");
   const canDelete = hasPermission("products.delete");
-  const canManageCatalog = hasPermission("settings.view");
+  // TASK-013: custo/margem visíveis pra quem gerencia catálogo OU tem
+  // dashboard.financial.view — mesma regra do backend (User::canViewCatalogCost()).
+  const canViewFinancials = canCreate || canUpdate || hasPermission("dashboard.financial.view");
 
   useEffect(() => {
     const apiBaseUrl = getApiBaseUrl();
@@ -133,7 +135,7 @@ export default function ProdutosPage() {
         canCreate={canCreate}
         canUpdate={canUpdate}
         canDelete={canDelete}
-        compact={!canManageCatalog}
+        canViewFinancials={canViewFinancials}
         onNew={() => setShowNew(true)}
         onEdit={setEditing}
         onDelete={handleDelete}

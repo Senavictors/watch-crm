@@ -45,16 +45,34 @@ class CrmPermissions
         'goals.delete',
         'settings.view',
         'users.manage',
+        'dashboard.financial.view',
     ];
+
+    /**
+     * TASK-013 (ADR-003) — proprietário (Josué): mesmo acesso operacional de
+     * admin, mais as exclusividades financeiras (`dashboard.financial.view`
+     * já incluída em `ALL`). Papel deliberadamente separado de `admin` para
+     * não depender de nome/ID fixo (RN-03) — quem tiver este papel tem as
+     * exclusividades, não uma pessoa específica.
+     */
+    public static function owner(): array
+    {
+        return self::ALL;
+    }
 
     public static function admin(): array
     {
         return self::ALL;
     }
 
+    /**
+     * Gerente perde `dashboard.financial.view` (RN-02: lucro, despesas e
+     * estoque financeiro são restritos) — é a diferença real entre admin e
+     * gerente que o ADR-003 pede; antes desta task os dois eram idênticos.
+     */
     public static function manager(): array
     {
-        return self::ALL;
+        return array_values(array_diff(self::ALL, ['dashboard.financial.view']));
     }
 
     public static function seller(): array

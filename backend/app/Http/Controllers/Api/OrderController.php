@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -18,7 +19,7 @@ class OrderController extends Controller
     public function metadata()
     {
         $assignableSellers = User::query()
-            ->where('role', 'vendedor')
+            ->whereIn('role', UserRole::sellableRoles())
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name'])
@@ -51,11 +52,13 @@ class OrderController extends Controller
             $query->where('customer_id', (int) $request->input('customer_id'));
         }
 
+        $canViewFinancials = $user->canViewFinancialReports();
+
         $orders = $query
             ->with(['sellerUser', 'paidByUser', 'items'])
             ->orderByDesc('sale_date')
             ->get()
-            ->map(fn (Order $order) => $this->toPayload($order));
+            ->map(fn (Order $order) => $this->toPayload($order, $canViewFinancials));
 
         return response()->json($orders);
     }
@@ -115,7 +118,7 @@ class OrderController extends Controller
             ]);
         }
 
-        return response()->json($this->toPayload($order), 201);
+        return response()->json($this->toPayload($order, $request->user()->canViewFinancialReports()), 201);
     }
 
     public function update(Request $request, int $id)
@@ -206,7 +209,7 @@ class OrderController extends Controller
             ]);
         }
 
-        return response()->json($this->toPayload($order));
+        return response()->json($this->toPayload($order, $request->user()->canViewFinancialReports()));
     }
 
     public function destroy(int $id)
@@ -235,7 +238,7 @@ class OrderController extends Controller
                 $required,
                 'integer',
                 Rule::exists('users', 'id')->where(fn ($query) => $query
-                    ->where('role', 'vendedor')
+                    ->whereIn('role', UserRole::sellableRoles())
                     ->where('is_active', true)),
             ],
             'items' => [$required, 'array', 'min:1'],
@@ -267,11 +270,17 @@ class OrderController extends Controller
         return trim($brand.' '.$model.($quality ? ' · '.$quality : ''));
     }
 
-    private function toPayload(Order $o): array
+    /**
+     * TASK-013 (RN-02): `cost` só entra no payload pra quem tem
+     * `dashboard.financial.view` — não é só uma questão de UI, o objetivo é
+     * o vendedor/gerente nunca receberem o custo no JSON, nem inspecionando
+     * a resposta da API diretamente.
+     */
+    private function toPayload(Order $o, bool $canViewFinancials): array
     {
         $items = $o->relationLoaded('items') ? $o->items : $o->items()->get();
 
-        return [
+        $payload = [
             'id' => $o->id,
             'customerId' => $o->customer_id,
             'createdByUserId' => $o->created_by_user_id,
@@ -286,9 +295,8 @@ class OrderController extends Controller
             'productId' => $o->product_id,
             'productName' => $o->product_name,
             'itemsCount' => $items->sum('quantity'),
-            'items' => $items->map(fn (OrderItem $item) => $this->toItemPayload($item))->values(),
+            'items' => $items->map(fn (OrderItem $item) => $this->toItemPayload($item, $canViewFinancials))->values(),
             'salePrice' => (float) $o->sale_price,
-            'cost' => (float) $o->cost,
             'discount' => (float) $o->discount,
             'freight' => (float) $o->freight,
             'channelFee' => (float) $o->channel_fee,
@@ -299,11 +307,17 @@ class OrderController extends Controller
             'shippedDate' => $o->shipped_date ?? '',
             'notes' => $o->notes ?? '',
         ];
+
+        if ($canViewFinancials) {
+            $payload['cost'] = (float) $o->cost;
+        }
+
+        return $payload;
     }
 
-    private function toItemPayload(OrderItem $item): array
+    private function toItemPayload(OrderItem $item, bool $canViewFinancials): array
     {
-        return [
+        $payload = [
             'id' => $item->id,
             'productId' => $item->product_id,
             'productName' => $item->product_name,
@@ -313,12 +327,17 @@ class OrderController extends Controller
             'qualityName' => $item->quality_name,
             'quantity' => $item->quantity,
             'unitPrice' => (float) $item->unit_price,
-            'unitCost' => (float) $item->unit_cost,
             'unitDiscount' => (float) $item->unit_discount,
             'linePrice' => (float) $item->unit_price * $item->quantity,
-            'lineCost' => (float) $item->unit_cost * $item->quantity,
             'lineDiscount' => (float) $item->unit_discount * $item->quantity,
         ];
+
+        if ($canViewFinancials) {
+            $payload['unitCost'] = (float) $item->unit_cost;
+            $payload['lineCost'] = (float) $item->unit_cost * $item->quantity;
+        }
+
+        return $payload;
     }
 
     private function productsById(array $items)

@@ -23,25 +23,25 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name'     => ['required', 'string', 'max:255'],
-            'email'    => ['required', 'email', 'max:255', 'unique:users,email'],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:12'],
-            'role'     => ['required', 'string', Rule::in(array_column(UserRole::cases(), 'value'))],
+            'role' => ['required', 'string', Rule::in(array_column(UserRole::cases(), 'value'))],
         ]);
 
-        // Gerente não pode criar usuários admin
+        // Gerente não pode criar usuários admin nem owner (TASK-013)
         if (
             $request->user()->role === UserRole::Manager
-            && $data['role'] === UserRole::Admin->value
+            && in_array($data['role'], [UserRole::Admin->value, UserRole::Owner->value], true)
         ) {
-            abort(403, 'Gerentes não podem criar usuários administradores.');
+            abort(403, 'Gerentes não podem criar usuários administradores ou proprietários.');
         }
 
         $user = User::create([
-            'name'      => $data['name'],
-            'email'     => $data['email'],
-            'password'  => $data['password'],
-            'role'      => $data['role'],
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => $data['password'],
+            'role' => $data['role'],
             'is_active' => true,
         ]);
 
@@ -61,18 +61,18 @@ class UserController extends Controller
         $this->authorize('update', $target);
 
         $data = $request->validate([
-            'name'  => ['sometimes', 'string', 'max:255'],
+            'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'email', 'max:255', Rule::unique('users', 'email')->ignore($target->id)],
-            'role'  => ['sometimes', 'string', Rule::in(array_column(UserRole::cases(), 'value'))],
+            'role' => ['sometimes', 'string', Rule::in(array_column(UserRole::cases(), 'value'))],
         ]);
 
-        // Gerente não pode atribuir role admin
+        // Gerente não pode atribuir role admin nem owner (TASK-013)
         if (
             isset($data['role'])
             && $request->user()->role === UserRole::Manager
-            && $data['role'] === UserRole::Admin->value
+            && in_array($data['role'], [UserRole::Admin->value, UserRole::Owner->value], true)
         ) {
-            abort(403, 'Gerentes não podem atribuir a função de administrador.');
+            abort(403, 'Gerentes não podem atribuir a função de administrador ou proprietário.');
         }
 
         $target->fill($data)->save();
@@ -130,11 +130,11 @@ class UserController extends Controller
     private function toPayload(User $user): array
     {
         return [
-            'id'          => $user->id,
-            'name'        => $user->name,
-            'email'       => $user->email,
-            'role'        => $user->getRoleName(),
-            'isActive'    => $user->is_active,
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->getRoleName(),
+            'isActive' => $user->is_active,
             'lastLoginAt' => optional($user->last_login_at)->toIso8601String(),
         ];
     }
