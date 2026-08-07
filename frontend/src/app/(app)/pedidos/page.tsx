@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../../features/crm/contexts/AuthContext";
 import { useToast } from "../../../features/crm/contexts/ToastContext";
 import { apiFetch, apiUpdate, apiCreate, getApiBaseUrl } from "../../../features/crm/api";
@@ -25,8 +26,19 @@ const EMPTY_RETURN_METADATA: ReturnMetadata = {
 };
 
 export default function PedidosPage() {
+  return (
+    <Suspense fallback={<div style={{ color: "var(--crm-text-muted)", padding: 32 }}>Carregando...</div>}>
+      <PedidosPageContent />
+    </Suspense>
+  );
+}
+
+function PedidosPageContent() {
   const { hasPermission, handleUnauthorized } = useAuth();
   const { pushToast } = useToast();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -37,16 +49,21 @@ export default function PedidosPage() {
   const [showNew, setShowNew] = useState(false);
   const [returnForOrder, setReturnForOrder] = useState<Order | null>(null);
 
+  // CA-01: a URL é a fonte do estado inicial dos filtros de categoria/período.
+  const [category, setCategory] = useState(() => searchParams.get("category") ?? "");
+  const [from, setFrom] = useState(() => searchParams.get("from") ?? "");
+  const [to, setTo] = useState(() => searchParams.get("to") ?? "");
+
+  // Dados "estáticos" da tela — carregam uma única vez na montagem, não dependem dos filtros.
   useEffect(() => {
     const apiBaseUrl = getApiBaseUrl();
     let alive = true;
 
-    async function load() {
+    async function loadStatic() {
       try {
         setLoading(true);
         const canViewReturns = hasPermission("returns.view");
         const fetches: Promise<Response>[] = [
-          apiFetch(`${apiBaseUrl}/orders`),
           apiFetch(`${apiBaseUrl}/orders/metadata`),
           apiFetch(`${apiBaseUrl}/customers`),
           apiFetch(`${apiBaseUrl}/products`),
@@ -59,15 +76,14 @@ export default function PedidosPage() {
           handleUnauthorized();
           return;
         }
-        if (results.slice(0, 4).some((r) => !r.ok)) {
-          throw new Error("Falha ao carregar pedidos.");
+        if (results.slice(0, 3).some((r) => !r.ok)) {
+          throw new Error("Falha ao carregar dados de pedidos.");
         }
-        const [ordersData, metaData, customersData, productsData] = await Promise.all([
-          results[0].json(), results[1].json(), results[2].json(), results[3].json(),
+        const [metaData, customersData, productsData] = await Promise.all([
+          results[0].json(), results[1].json(), results[2].json(),
         ]);
-        const returnMetaData = canViewReturns && results[4]?.ok ? await results[4].json() : EMPTY_RETURN_METADATA;
+        const returnMetaData = canViewReturns && results[3]?.ok ? await results[3].json() : EMPTY_RETURN_METADATA;
         if (!alive) return;
-        setOrders(ordersData);
         setMetadata(metaData);
         setCustomers(customersData);
         setProducts(productsData);
@@ -79,9 +95,43 @@ export default function PedidosPage() {
       }
     }
 
-    load();
+    loadStatic();
     return () => { alive = false; };
   }, []);
+
+  // Pedidos — refaz o fetch e sincroniza a URL sempre que categoria/período mudam.
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (category) params.set("category", category);
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    const query = params.toString();
+    router.replace(query ? `/pedidos?${query}` : "/pedidos", { scroll: false });
+
+    const apiBaseUrl = getApiBaseUrl();
+    let alive = true;
+
+    async function loadOrders() {
+      try {
+        const response = await apiFetch(`${apiBaseUrl}/orders${query ? `?${query}` : ""}`);
+        if (response.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+        if (!response.ok) {
+          throw new Error("Falha ao carregar pedidos.");
+        }
+        const ordersData = await response.json();
+        if (!alive) return;
+        setOrders(ordersData);
+      } catch (err) {
+        if (alive) pushToast(err instanceof Error ? err.message : "Erro.", "error");
+      }
+    }
+
+    loadOrders();
+    return () => { alive = false; };
+  }, [category, from, to]);
 
   async function handleUpdateStatus(id: number, status: OrderStatus) {
     try {
@@ -121,6 +171,10 @@ export default function PedidosPage() {
     ...orders.map((o) => o.seller).filter(Boolean),
   ].filter(Boolean)));
 
+  const categories = Array.from(
+    new Set(products.map((p) => p.categoryName).filter((c): c is string => Boolean(c)))
+  );
+
   if (loading) return <div style={{ color: "var(--crm-text-muted)", padding: 32 }}>Carregando...</div>;
 
   return (
@@ -131,6 +185,13 @@ export default function PedidosPage() {
         channels={metadata.channels}
         sellers={sellers}
         statuses={metadata.statuses}
+        categories={categories}
+        category={category}
+        from={from}
+        to={to}
+        onCategoryChange={setCategory}
+        onFromChange={setFrom}
+        onToChange={setTo}
         canCreate={hasPermission("orders.create")}
         canUpdateStatus={hasPermission("orders.update")}
         canViewProfit={hasPermission("dashboard.financial.view")}

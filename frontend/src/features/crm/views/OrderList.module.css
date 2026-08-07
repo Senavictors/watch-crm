@@ -53,6 +53,41 @@
   outline: none;
 }
 
+.chips {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--crm-input-bg);
+  border: 1px solid var(--crm-input-border);
+  border-radius: 999px;
+  color: var(--crm-input-text);
+  padding: 4px 6px 4px 12px;
+  font-size: 12px;
+}
+
+.chipRemove {
+  background: transparent;
+  border: none;
+  color: var(--crm-text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+.chipRemove:hover {
+  color: var(--crm-text);
+  background: var(--crm-table-border);
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;

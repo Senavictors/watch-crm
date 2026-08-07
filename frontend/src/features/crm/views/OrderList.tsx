@@ -11,6 +11,13 @@ type Props = {
   channels: string[];
   sellers: string[];
   statuses: string[];
+  categories: string[];
+  category: string;
+  from: string;
+  to: string;
+  onCategoryChange: (value: string) => void;
+  onFromChange: (value: string) => void;
+  onToChange: (value: string) => void;
   canCreate: boolean;
   canUpdateStatus: boolean;
   canViewProfit: boolean;
@@ -25,6 +32,13 @@ const OrderList: React.FC<Props> = ({
   channels,
   sellers,
   statuses,
+  categories,
+  category,
+  from,
+  to,
+  onCategoryChange,
+  onFromChange,
+  onToChange,
   canCreate,
   canUpdateStatus,
   canViewProfit,
@@ -36,6 +50,18 @@ const OrderList: React.FC<Props> = ({
   const [filterStatus, setFilterStatus] = useState<OrderStatus | "">("");
   const [filterChannel, setFilterChannel] = useState("");
   const [filterSeller, setFilterSeller] = useState("");
+
+  const activeChips = [
+    category
+      ? { key: "category", label: `Categoria: ${category}`, onRemove: () => onCategoryChange("") }
+      : null,
+    from
+      ? { key: "from", label: `De: ${fmtDate(from)}`, onRemove: () => onFromChange("") }
+      : null,
+    to
+      ? { key: "to", label: `Até: ${fmtDate(to)}`, onRemove: () => onToChange("") }
+      : null,
+  ].filter((chip): chip is { key: string; label: string; onRemove: () => void } => chip !== null);
 
   const filtered = useMemo(
     () =>
@@ -104,7 +130,52 @@ const OrderList: React.FC<Props> = ({
             <option key={s}>{s}</option>
           ))}
         </select>
+        <select
+          value={category}
+          onChange={(e) => onCategoryChange(e.target.value)}
+          className={styles.select}
+          style={{ color: category ? "var(--crm-input-text)" : "var(--crm-text-soft)" }}
+        >
+          <option value="">Todas categorias</option>
+          {categories.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
+        <input
+          type="date"
+          value={from}
+          onChange={(e) => onFromChange(e.target.value)}
+          className={styles.select}
+          aria-label="Pago a partir de"
+          title="Pago a partir de"
+        />
+        <input
+          type="date"
+          value={to}
+          onChange={(e) => onToChange(e.target.value)}
+          className={styles.select}
+          aria-label="Pago até"
+          title="Pago até"
+        />
       </div>
+
+      {activeChips.length > 0 && (
+        <div className={styles.chips}>
+          {activeChips.map((chip) => (
+            <span key={chip.key} className={styles.chip}>
+              {chip.label}
+              <button
+                type="button"
+                onClick={chip.onRemove}
+                className={styles.chipRemove}
+                aria-label={`Remover filtro: ${chip.label}`}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
 
       <Card className={styles.tableCard}>
         <table className={styles.table}>
