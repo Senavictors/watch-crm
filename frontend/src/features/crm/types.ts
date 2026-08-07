@@ -499,7 +499,10 @@ export type DashboardCurrentKpi = {
 
 export type DashboardEvolutionBucket = {
   bucket: string;
-  revenue: number;
+  // Ausente quando o usuário não tem visibilidade de faturamento (ex.:
+  // gerente sem `dashboard.financial.view`) — ver
+  // `DashboardController::toPayload` (`$canViewRevenue`).
+  revenue?: number;
   salesProfit?: number;
   watchesSold: number;
   ordersCount: number;

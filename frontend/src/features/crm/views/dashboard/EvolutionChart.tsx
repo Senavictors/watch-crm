@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { fmtBRL } from "../../helpers";
 import { DashboardEvolutionBucket } from "../../types";
 import { Card } from "../../ui/Primitives";
@@ -23,8 +23,8 @@ function formatBucketLabel(bucket: string, grouping: "day" | "week" | "month"): 
   return `${day}/${month}`;
 }
 
-const METRICS: { id: MetricId; label: string; requiresProfit?: boolean }[] = [
-  { id: "revenue", label: "Faturamento" },
+const METRICS: { id: MetricId; label: string; requiresProfit?: boolean; requiresRevenue?: boolean }[] = [
+  { id: "revenue", label: "Faturamento", requiresRevenue: true },
   { id: "salesProfit", label: "Lucro", requiresProfit: true },
   { id: "watchesSold", label: "Relógios vendidos" },
   { id: "ordersCount", label: "Pedidos" },
@@ -32,14 +32,20 @@ const METRICS: { id: MetricId; label: string; requiresProfit?: boolean }[] = [
 
 const EvolutionChart: React.FC<Props> = ({ buckets, grouping }) => {
   const hasProfit = buckets.some((b) => b.salesProfit !== undefined);
-  const availableMetrics = METRICS.filter((m) => !m.requiresProfit || hasProfit);
-  const [metric, setMetric] = useState<MetricId>("revenue");
-  const activeMetric = availableMetrics.some((m) => m.id === metric) ? metric : "revenue";
-
-  const values = useMemo(
-    () => buckets.map((b) => (b[activeMetric] as number | undefined) ?? 0),
-    [buckets, activeMetric]
+  // Gerente não tem `dashboard.financial.view` nem visibilidade de
+  // faturamento da empresa: o backend omite `revenue` de cada balde
+  // (ver `DashboardController::toPayload`), então o toggle "Faturamento"
+  // não deve aparecer pra quem não recebe o dado — mesmo padrão de "Lucro".
+  const hasRevenue = buckets.some((b) => b.revenue !== undefined);
+  const availableMetrics = METRICS.filter(
+    (m) => (!m.requiresProfit || hasProfit) && (!m.requiresRevenue || hasRevenue)
   );
+  const [metric, setMetric] = useState<MetricId>("revenue");
+  const activeMetric = availableMetrics.some((m) => m.id === metric)
+    ? metric
+    : availableMetrics[0]?.id ?? "watchesSold";
+
+  const values = buckets.map((b) => (b[activeMetric] as number | undefined) ?? 0);
   const max = Math.max(...values, 1);
   const isMoney = activeMetric === "revenue" || activeMetric === "salesProfit";
 

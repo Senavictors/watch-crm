@@ -73,9 +73,13 @@ class DashboardController extends Controller
             'period' => $period->toArray(),
             'comparison' => $period->comparisonToArray(),
             'kpis' => $kpis,
-            'evolution' => array_map(function (array $bucket) use ($canViewFinancials) {
+            'evolution' => array_map(function (array $bucket) use ($canViewFinancials, $canViewRevenue) {
                 if (! $canViewFinancials) {
                     unset($bucket['salesProfit']);
+                }
+
+                if (! $canViewRevenue) {
+                    unset($bucket['revenue']);
                 }
 
                 return $bucket;
