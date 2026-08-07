@@ -91,6 +91,17 @@ const Dashboard: React.FC<Props> = ({
                 accent="var(--crm-accent)"
               />
             )}
+            {summary.kpis.revenue && (
+              <KpiCard
+                label="Ticket Médio"
+                value={
+                  summary.kpis.ordersCount.value > 0
+                    ? fmtBRL(summary.kpis.revenue.value / summary.kpis.ordersCount.value)
+                    : "—"
+                }
+                accent="var(--crm-primary)"
+              />
+            )}
             {summary.kpis.salesProfit && (
               <KpiCard
                 label="Lucro das Vendas"
