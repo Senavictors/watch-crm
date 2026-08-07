@@ -208,6 +208,8 @@ export const INITIAL_ORDERS: Order[] = [
     saleDate: "2025-01-10",
     shippedDate: "2025-01-13",
     notes: "",
+    nextPostingDate: null,
+    isLate: false,
   },
   {
     id: 1002,
@@ -246,6 +248,8 @@ export const INITIAL_ORDERS: Order[] = [
     saleDate: "2025-01-15",
     shippedDate: "2025-01-17",
     notes: "Cliente VIP",
+    nextPostingDate: null,
+    isLate: false,
   },
   {
     id: 1003,
@@ -284,6 +288,8 @@ export const INITIAL_ORDERS: Order[] = [
     saleDate: "2025-01-18",
     shippedDate: "",
     notes: "",
+    nextPostingDate: null,
+    isLate: false,
   },
   {
     id: 1004,
@@ -322,6 +328,8 @@ export const INITIAL_ORDERS: Order[] = [
     saleDate: "2025-01-19",
     shippedDate: "",
     notes: "Buscar com fornecedor",
+    nextPostingDate: null,
+    isLate: false,
   },
   {
     id: 1005,
@@ -360,6 +368,8 @@ export const INITIAL_ORDERS: Order[] = [
     saleDate: "2025-01-20",
     shippedDate: "",
     notes: "",
+    nextPostingDate: null,
+    isLate: false,
   },
   {
     id: 1006,
@@ -413,6 +423,8 @@ export const INITIAL_ORDERS: Order[] = [
     saleDate: "2025-01-22",
     shippedDate: "",
     notes: "Relógio com caixa vendida separadamente.",
+    nextPostingDate: null,
+    isLate: false,
   },
 ];
 

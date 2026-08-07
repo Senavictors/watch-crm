@@ -75,13 +75,18 @@ export async function apiCreate<T>(path: string, body: unknown, fallback: string
   return response.json() as Promise<T>;
 }
 
-export async function apiUpdate<T>(path: string, body: unknown, fallback: string): Promise<T> {
+export async function apiUpdate<T>(
+  path: string,
+  body: unknown,
+  fallback: string,
+  method: "PATCH" | "PUT" = "PATCH"
+): Promise<T> {
   const apiBaseUrl = getApiBaseUrl();
   await ensureCsrfCookie(apiBaseUrl);
   const response = await apiFetch(
     `${apiBaseUrl}${path}`,
     {
-      method: "PATCH",
+      method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     },

@@ -1,6 +1,6 @@
 "use client";
-import React, { useMemo, useState } from "react";
-import { Brand, Category, Quality } from "../types";
+import React, { useEffect, useMemo, useState } from "react";
+import { Brand, Category, PostingDaySchedule, Quality } from "../types";
 import { Btn, Card } from "../ui/Primitives";
 import styles from "./Settings.module.css";
 
@@ -8,17 +8,37 @@ type Props = {
   brands: Brand[];
   qualities: Quality[];
   categories: Category[];
+  schedule: PostingDaySchedule[];
+  canEditSchedule: boolean;
   onAddBrand: (name: string) => void;
   onAddQuality: (name: string) => void;
   onAddCategory: (name: string, hasQuality: boolean) => void;
+  onSaveSchedule: (days: { weekday: number; enabled: boolean }[]) => Promise<void>;
   onToast: (message: string, variant?: "success" | "error") => void;
 };
 
-const Settings: React.FC<Props> = ({ brands, qualities, categories, onAddBrand, onAddQuality, onAddCategory, onToast }) => {
+const Settings: React.FC<Props> = ({
+  brands,
+  qualities,
+  categories,
+  schedule,
+  canEditSchedule,
+  onAddBrand,
+  onAddQuality,
+  onAddCategory,
+  onSaveSchedule,
+  onToast,
+}) => {
   const [brandName, setBrandName] = useState("");
   const [qualityName, setQualityName] = useState("");
   const [categoryName, setCategoryName] = useState("");
   const [categoryHasQuality, setCategoryHasQuality] = useState(false);
+  const [scheduleDraft, setScheduleDraft] = useState<PostingDaySchedule[]>(schedule);
+  const [savingSchedule, setSavingSchedule] = useState(false);
+
+  useEffect(() => {
+    setScheduleDraft(schedule);
+  }, [schedule]);
 
   const brandRows = useMemo(() => brands, [brands]);
   const qualityRows = useMemo(() => qualities, [qualities]);
@@ -50,6 +70,27 @@ const Settings: React.FC<Props> = ({ brands, qualities, categories, onAddBrand, 
     onAddCategory(categoryName.trim(), categoryHasQuality);
     setCategoryName("");
     setCategoryHasQuality(false);
+  }
+
+  function handleToggleDay(weekday: number) {
+    if (!canEditSchedule) return;
+    setScheduleDraft((days) =>
+      days.map((d) => (d.weekday === weekday ? { ...d, enabled: !d.enabled } : d))
+    );
+  }
+
+  async function handleSaveSchedule() {
+    setSavingSchedule(true);
+    try {
+      await onSaveSchedule(scheduleDraft.map((d) => ({ weekday: d.weekday, enabled: d.enabled })));
+    } catch {
+      // reverte a UI pro estado confirmado pela API em caso de falha (ex.:
+      // 422 de "zero dias habilitados") — o toast de erro é disparado pelo
+      // handler no page.
+      setScheduleDraft(schedule);
+    } finally {
+      setSavingSchedule(false);
+    }
   }
 
   return (
@@ -164,6 +205,33 @@ const Settings: React.FC<Props> = ({ brands, qualities, categories, onAddBrand, 
               </div>
             ))}
           </div>
+        </Card>
+
+        <Card>
+          <div className={styles.cardHeader}>
+            <div className={styles.cardTitle}>Dias de Postagem</div>
+            <div className={styles.cardSubtitle}>
+              Defina em quais dias da semana os pedidos são postados — usado pela fila de envios.
+            </div>
+          </div>
+          <div className={styles.scheduleList}>
+            {scheduleDraft.map((day) => (
+              <label key={day.weekday} className={styles.scheduleRow}>
+                <input
+                  type="checkbox"
+                  checked={day.enabled}
+                  disabled={!canEditSchedule}
+                  onChange={() => handleToggleDay(day.weekday)}
+                />
+                {day.label}
+              </label>
+            ))}
+          </div>
+          {canEditSchedule && (
+            <Btn onClick={handleSaveSchedule} variant="primary" className={styles.actionButton} disabled={savingSchedule}>
+              Salvar
+            </Btn>
+          )}
         </Card>
       </div>
     </div>

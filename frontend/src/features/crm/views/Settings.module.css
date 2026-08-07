@@ -107,6 +107,21 @@
   color: var(--crm-text-muted);
 }
 
+.scheduleList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.scheduleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--crm-text);
+  font-size: 13px;
+}
+
 @media (max-width: 840px) {
   .grid {
     grid-template-columns: 1fr;

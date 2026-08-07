@@ -19,6 +19,7 @@ export type Category = {
 export type Permission =
   | "dashboard.view"
   | "shipping.view"
+  | "shipping.update"
   | "customers.view"
   | "customers.create"
   | "customers.update"
@@ -211,6 +212,11 @@ export type Order = {
   saleDate: string;
   shippedDate: string;
   notes: string;
+  // TASK-016: calculado no backend a partir do schedule de dias de postagem
+  // (`GET /shipping/schedule`) — `null` quando o pedido não é elegível pra
+  // fila de envios (ex.: ainda não está "Pronto para Envio").
+  nextPostingDate: string | null;
+  isLate: boolean;
 };
 
 export type OrderItem = {
@@ -259,6 +265,31 @@ export type OrderItemInput = {
   quantity: number;
   unitPrice: number;
   unitDiscount: number;
+};
+
+/**
+ * TASK-016 — configuração de dias de postagem (`GET/PUT /shipping/schedule`)
+ * e fila de envios (`GET /shipping/queue`). `weekday` segue a convenção do
+ * `Date.getDay()` do JS (0 = domingo ... 6 = sábado).
+ */
+export type PostingDaySchedule = {
+  weekday: number;
+  label: string;
+  enabled: boolean;
+};
+
+export type ShippingQueueItem = {
+  id: number;
+  customerName: string;
+  productName: string;
+  itemsCount: number;
+  channel: Channel;
+  shippingMethod: ShippingMethod;
+  freight: number;
+  saleDate: string;
+  paidAt: string | null;
+  nextPostingDate: string | null;
+  isLate: boolean;
 };
 
 export type GoalScope = "company" | "user";

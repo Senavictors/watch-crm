@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../../features/crm/contexts/AuthContext";
 import { useToast } from "../../../features/crm/contexts/ToastContext";
 import { apiFetch, getApiBaseUrl } from "../../../features/crm/api";
-import { Customer, Order, ProductReturn } from "../../../features/crm/types";
+import { PostingDaySchedule, ProductReturn, ShippingQueueItem } from "../../../features/crm/types";
 import ShippingQueue from "../../../features/crm/views/ShippingQueue";
 
 type Props = {
@@ -13,8 +13,8 @@ type Props = {
 export default function EnviosPage({ onReadyCount }: Props) {
   const { hasPermission, handleUnauthorized } = useAuth();
   const { pushToast } = useToast();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [queue, setQueue] = useState<ShippingQueueItem[]>([]);
+  const [schedule, setSchedule] = useState<PostingDaySchedule[]>([]);
   const [pendingReturns, setPendingReturns] = useState<ProductReturn[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,8 +26,8 @@ export default function EnviosPage({ onReadyCount }: Props) {
       try {
         setLoading(true);
         const fetches: Promise<Response>[] = [
-          apiFetch(`${apiBaseUrl}/orders`),
-          apiFetch(`${apiBaseUrl}/customers`),
+          apiFetch(`${apiBaseUrl}/shipping/queue`),
+          apiFetch(`${apiBaseUrl}/shipping/schedule`),
         ];
 
         const canViewReturns = hasPermission("returns.view");
@@ -39,14 +39,14 @@ export default function EnviosPage({ onReadyCount }: Props) {
         if (results.some((r) => r.status === 401)) { handleUnauthorized(); return; }
         if (results.some((r) => !r.ok)) throw new Error("Falha ao carregar envios.");
 
-        const [ordersData, customersData] = await Promise.all([results[0].json(), results[1].json()]);
+        const [queueData, scheduleData] = await Promise.all([results[0].json(), results[1].json()]);
         const returnsData: ProductReturn[] = canViewReturns ? await results[2].json() : [];
 
         if (!alive) return;
-        setOrders(ordersData);
-        setCustomers(customersData);
+        setQueue(queueData);
+        setSchedule(scheduleData);
         setPendingReturns(returnsData.filter((r) => r.status === "Pronto p/ Reenvio"));
-        onReadyCount?.((ordersData as Order[]).filter((o) => o.status === "Pronto para Envio").length);
+        onReadyCount?.((queueData as ShippingQueueItem[]).length);
       } catch (err) {
         if (alive) pushToast(err instanceof Error ? err.message : "Erro.", "error");
       } finally {
@@ -60,5 +60,5 @@ export default function EnviosPage({ onReadyCount }: Props) {
 
   if (loading) return <div style={{ color: "var(--crm-text-muted)", padding: 32 }}>Carregando...</div>;
 
-  return <ShippingQueue orders={orders} customers={customers} pendingReturns={pendingReturns} />;
+  return <ShippingQueue queue={queue} schedule={schedule} pendingReturns={pendingReturns} />;
 }

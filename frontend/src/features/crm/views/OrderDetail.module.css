@@ -37,6 +37,18 @@
   font-size: 13px;
 }
 
+.lateBadge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  border: 1px solid var(--crm-danger);
+  background: rgba(239, 68, 68, 0.18);
+  color: var(--crm-danger);
+  margin-left: 8px;
+}
+
 .infoGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;

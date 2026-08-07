@@ -1,7 +1,7 @@
 import React from "react";
 import { Badge, Btn } from "../ui/Primitives";
 import { Customer, Order } from "../types";
-import { calcMargin, calcProfit, fmtBRL, fmtDateTime, nextShippingDay } from "../helpers";
+import { calcMargin, calcProfit, fmtBRL, fmtDate, fmtDateTime } from "../helpers";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./OrderDetail.module.css";
 
@@ -17,10 +17,7 @@ const OrderDetail: React.FC<Props> = ({ order, customers, canCreateReturn = fals
   const customer = customers.find((c) => c.id === order.customerId);
   const profit = calcProfit(order);
   const margin = calcMargin(order);
-  const nextShip =
-    order.status === "Pronto para Envio"
-      ? nextShippingDay(new Date().toISOString().slice(0, 10))
-      : null;
+  const nextPostingLabel = order.nextPostingDate ? fmtDate(order.nextPostingDate) : null;
 
   return (
     <div className={modalStyles.overlay}>
@@ -38,8 +35,11 @@ const OrderDetail: React.FC<Props> = ({ order, customers, canCreateReturn = fals
           <span className={styles.pill}>{order.seller}</span>
         </div>
 
-        {nextShip && (
-          <div className={styles.alertInfo}>📦 Próxima postagem sugerida: <strong>{nextShip}</strong></div>
+        {nextPostingLabel && (
+          <div className={order.isLate ? styles.alertDanger : styles.alertInfo}>
+            📦 Próxima postagem sugerida: <strong>{nextPostingLabel}</strong>
+            {order.isLate && <span className={styles.lateBadge}>Atrasado</span>}
+          </div>
         )}
 
         {order.status === "Separação/Fornecedor" && (
