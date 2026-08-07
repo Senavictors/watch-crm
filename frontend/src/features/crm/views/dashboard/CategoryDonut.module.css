@@ -1,0 +1,107 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.title {
+  color: var(--crm-text);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.toggleRow {
+  display: flex;
+  gap: 6px;
+}
+
+.toggleButton {
+  border-radius: 999px;
+  border: 1px solid var(--crm-button-border);
+  background: var(--crm-button-secondary-bg);
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--crm-text-muted);
+  cursor: pointer;
+}
+
+.toggleButtonActive {
+  background: var(--crm-primary);
+  border-color: var(--crm-primary);
+  color: #fff;
+}
+
+.content {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.donut {
+  width: 160px;
+  height: 160px;
+  flex-shrink: 0;
+}
+
+.legend {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.legendRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 6px 4px;
+  cursor: pointer;
+  border-radius: 8px;
+  text-align: left;
+  width: 100%;
+}
+
+.legendRow:hover {
+  background: var(--crm-table-header-bg);
+}
+
+.legendSwatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legendName {
+  flex: 1;
+  color: var(--crm-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.legendValue {
+  color: var(--crm-text-muted);
+  font-size: 12px;
+}
+
+.legendPct {
+  color: var(--crm-text-soft);
+  font-size: 12px;
+  width: 44px;
+  text-align: right;
+}
+
+.empty {
+  color: var(--crm-text-muted);
+  font-size: 13px;
+  padding: 32px 0;
+  text-align: center;
+}

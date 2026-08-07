@@ -1,0 +1,107 @@
+.wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.presetRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.presetButton {
+  border-radius: 999px;
+  border: 1px solid var(--crm-button-border);
+  background: var(--crm-button-secondary-bg);
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--crm-text-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.presetButtonActive {
+  background: var(--crm-primary);
+  border-color: var(--crm-primary);
+  color: #fff;
+}
+
+.rightRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.customRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.customSeparator {
+  color: var(--crm-text-soft);
+  font-size: 12px;
+}
+
+.dateInput {
+  border-radius: 8px;
+  border: 1px solid var(--crm-input-border);
+  background: var(--crm-input-bg);
+  color: var(--crm-input-text);
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.refreshButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--crm-button-border);
+  background: var(--crm-button-secondary-bg);
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--crm-text-muted);
+  cursor: pointer;
+}
+
+.refreshButton:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.refreshIcon {
+  opacity: 0.8;
+}
+
+.refreshIconSpinning {
+  opacity: 0.9;
+  animation: crm-spin 0.9s linear infinite;
+}
+
+@keyframes crm-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 720px) {
+  .wrapper {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rightRow {
+    justify-content: space-between;
+  }
+}

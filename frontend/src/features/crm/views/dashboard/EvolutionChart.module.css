@@ -1,0 +1,92 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.title {
+  color: var(--crm-text);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.toggleRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.toggleButton {
+  border-radius: 999px;
+  border: 1px solid var(--crm-button-border);
+  background: var(--crm-button-secondary-bg);
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--crm-text-muted);
+  cursor: pointer;
+}
+
+.toggleButtonActive {
+  background: var(--crm-primary);
+  border-color: var(--crm-primary);
+  color: #fff;
+}
+
+.chartArea {
+  width: 100%;
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 200px;
+  border-bottom: 1px solid var(--crm-table-border);
+  padding-bottom: 2px;
+}
+
+.barColumn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  min-width: 4px;
+}
+
+.bar {
+  width: 100%;
+  max-width: 22px;
+  border-radius: 4px 4px 0 0;
+  background: var(--crm-primary);
+  transform-origin: bottom;
+  animation: crm-grow-height 0.5s ease forwards;
+}
+
+@keyframes crm-grow-height {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.barLabel {
+  margin-top: 6px;
+  color: var(--crm-text-soft);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.empty {
+  color: var(--crm-text-muted);
+  font-size: 13px;
+  padding: 32px 0;
+  text-align: center;
+}

@@ -1,0 +1,64 @@
+.title {
+  color: var(--crm-text);
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row {
+  border-bottom: 1px solid var(--crm-table-border);
+  padding-bottom: 8px;
+}
+
+.row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.rowMain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.orderId {
+  color: var(--crm-text);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.customerName {
+  color: var(--crm-text-muted);
+  font-size: 13px;
+}
+
+.rowMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.shippingMethod {
+  color: var(--crm-text-soft);
+  font-size: 12px;
+}
+
+.saleDate {
+  color: var(--crm-text-soft);
+  font-size: 12px;
+}
+
+.empty {
+  color: var(--crm-text-muted);
+  font-size: 13px;
+  padding: 12px 0;
+  text-align: center;
+}

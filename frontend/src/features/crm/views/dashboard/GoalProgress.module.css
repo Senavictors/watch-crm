@@ -1,0 +1,58 @@
+.title {
+  color: var(--crm-text);
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.row {
+  margin-bottom: 16px;
+}
+
+.row:last-child {
+  margin-bottom: 0;
+}
+
+.rowHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.rowLabel {
+  color: var(--crm-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rowPct {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.track {
+  height: 8px;
+  background: var(--crm-input-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.values {
+  margin-top: 4px;
+  color: var(--crm-text-soft);
+  font-size: 11px;
+}
+
+.empty {
+  color: var(--crm-text-muted);
+  font-size: 13px;
+  padding: 12px 0;
+  text-align: center;
+}

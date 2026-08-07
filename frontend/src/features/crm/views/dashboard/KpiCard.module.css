@@ -1,0 +1,45 @@
+.card {
+  flex: 1;
+  min-width: 190px;
+}
+
+.label {
+  color: var(--crm-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.value {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  min-height: 16px;
+}
+
+.changePositive {
+  color: var(--crm-success);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.changeNegative {
+  color: var(--crm-danger);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sub {
+  color: var(--crm-text-soft);
+  font-size: 12px;
+}

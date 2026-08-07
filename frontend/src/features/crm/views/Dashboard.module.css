@@ -1,9 +1,21 @@
 .title {
   color: var(--crm-text);
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   font-family: var(--font-inter), sans-serif;
   font-size: 26px;
   font-weight: 600;
+}
+
+.periodCaption {
+  color: var(--crm-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.periodCaptionMuted {
+  color: var(--crm-text-soft);
+  font-weight: 500;
 }
 
 .statsRow {
@@ -20,179 +32,40 @@
   margin-bottom: 24px;
 }
 
-.cardRelative {
-  position: relative;
-  overflow: hidden;
-}
-
-.cardGlow {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(60% 60% at 0% 0%, var(--crm-primary-soft), transparent 70%);
-  opacity: 0.8;
-}
-
-.cardPattern {
-  position: absolute;
-  inset: 0;
-  opacity: 0.15;
-  background-image: radial-gradient(var(--crm-text-soft) 1px, transparent 1px);
-  background-size: 26px 26px;
-}
-
-.cardContent {
-  position: relative;
-  z-index: 1;
-}
-
-.cardHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 18px;
-}
-
-.cardHeaderTitle {
-  color: var(--crm-text);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-}
-
-.pillButton {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border-radius: 999px;
-  border: 1px solid var(--crm-button-border);
-  background: var(--crm-button-secondary-bg);
-  padding: 6px 10px;
-  font-size: 11px;
-  font-weight: 600;
+.placeholder {
   color: var(--crm-text-muted);
-  cursor: pointer;
+  padding: 32px;
+  text-align: center;
 }
 
-.pillIcon {
-  opacity: 0.7;
-}
-
-.channelList {
+.errorCard {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-}
-
-.channelRow {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.channelLine {
-  display: flex;
   align-items: center;
   gap: 12px;
+  padding: 32px;
+  text-align: center;
 }
 
-.channelLabel {
-  width: 110px;
-  flex-shrink: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--crm-text-muted);
-}
-
-.channelTrack {
-  flex: 1;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--crm-table-header-bg);
-  overflow: hidden;
-}
-
-.channelBar {
-  height: 100%;
-  border-radius: 999px;
-}
-
-.channelValue {
-  width: 86px;
-  text-align: right;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--crm-text);
-  font-variant-numeric: tabular-nums;
-}
-
-.channelMeta {
-  color: var(--crm-text-soft);
-  font-size: 11px;
-}
-
-.sectionLabel {
-  color: var(--crm-text-muted);
-  font-size: 12px;
-  margin-bottom: 14px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.funnelRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.funnelValue {
-  color: var(--crm-text);
-  font-weight: 700;
-  font-family: var(--font-inter), sans-serif;
-  font-variant-numeric: tabular-nums;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
+.errorMessage {
+  color: var(--crm-danger);
   font-size: 14px;
 }
 
-.tableHeadRow {
-  border-bottom: 1px solid var(--crm-table-border);
+.errorBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  border: 1px solid var(--crm-danger);
+  color: var(--crm-danger);
+  font-size: 13px;
 }
 
-.tableHeadCell {
-  color: var(--crm-text-muted);
-  font-weight: 600;
-  padding: 6px 10px;
-  text-align: left;
-  font-size: 12px;
-}
-
-.tableRow {
-  border-bottom: 1px solid var(--crm-table-border);
-}
-
-.tableCellName {
-  padding: 8px 10px;
-  color: var(--crm-text);
-  font-weight: 600;
-}
-
-.tableCellMuted {
-  padding: 8px 10px;
-  color: var(--crm-text-muted);
-}
-
-.tableCellAccent {
-  padding: 8px 10px;
-  color: var(--crm-accent);
-  font-weight: 600;
-}
-
-.tableCellPrimary {
-  padding: 8px 10px;
-  color: var(--crm-primary);
-  font-weight: 600;
+@media (max-width: 960px) {
+  .gridTwo {
+    grid-template-columns: 1fr;
+  }
 }

@@ -1,180 +1,164 @@
+"use client";
 import React from "react";
-import { calcProfit, fmtBRL } from "../helpers";
-import { Order } from "../types";
-import { Badge, Card, StatCard } from "../ui/Primitives";
+import { fmtBRL, fmtDate } from "../helpers";
+import { DashboardSummaryResponse } from "../types";
+import { Btn, Card } from "../ui/Primitives";
+import CategoryDonut from "./dashboard/CategoryDonut";
+import ChannelBars from "./dashboard/ChannelBars";
+import EvolutionChart from "./dashboard/EvolutionChart";
+import GoalProgress from "./dashboard/GoalProgress";
+import KpiCard from "./dashboard/KpiCard";
+import NextShipmentsList from "./dashboard/NextShipmentsList";
+import PeriodSelector from "./dashboard/PeriodSelector";
+import { PeriodPresetId } from "./dashboard/periodPresets";
 import styles from "./Dashboard.module.css";
 
 type Props = {
-  orders: Order[];
-  channels: string[];
-  statuses: string[];
-  canViewProfit: boolean;
+  summary: DashboardSummaryResponse | null;
+  refreshing: boolean;
+  error: string | null;
+  preset: PeriodPresetId;
+  customFrom: string;
+  customTo: string;
+  onPresetChange: (preset: PeriodPresetId) => void;
+  onCustomFromChange: (value: string) => void;
+  onCustomToChange: (value: string) => void;
+  onRefresh: () => void;
+  onCategoryClick: (category: string) => void;
 };
 
-const Dashboard: React.FC<Props> = ({ orders, channels, statuses, canViewProfit }) => {
-  const paid = orders.filter(
-    (o) => !["Novo", "Aguardando Pagamento", "Cancelado"].includes(o.status)
-  );
-  const totalRevenue = paid.reduce((s, o) => s + o.salePrice - o.discount, 0);
-  const totalProfit = paid.reduce((s, o) => s + calcProfit(o), 0);
-  const avgMargin = paid.length ? ((totalProfit / totalRevenue) * 100).toFixed(1) : "0";
-
-  const sellerNames = Array.from(new Set(orders.map((order) => order.seller).filter(Boolean)));
-
-  const byChannel = channels.map((ch) => ({
-    name: ch,
-    total: paid
-      .filter((o) => o.channel === ch)
-      .reduce((s, o) => s + o.salePrice - o.discount, 0),
-    count: paid.filter((o) => o.channel === ch).length,
-  })).sort((a, b) => b.total - a.total);
-
-  const bySeller = sellerNames.map((s) => ({
-    name: s,
-    revenue: paid
-      .filter((o) => o.seller === s)
-      .reduce((acc, o) => acc + o.salePrice - o.discount, 0),
-    profit: paid.filter((o) => o.seller === s).reduce((acc, o) => acc + calcProfit(o), 0),
-    count: paid.filter((o) => o.seller === s).length,
-  }));
-
-  const funnel = statuses.map((st) => ({
-    status: st,
-    count: orders.filter((o) => o.status === st).length,
-  }));
-
-  const maxRev = Math.max(...byChannel.map((c) => c.total), 1);
-  const channelPalette = [
-    "var(--crm-primary)",
-    "var(--crm-accent)",
-    "var(--crm-success)",
-    "var(--crm-danger)",
-  ];
-
+const Dashboard: React.FC<Props> = ({
+  summary,
+  refreshing,
+  error,
+  preset,
+  customFrom,
+  customTo,
+  onPresetChange,
+  onCustomFromChange,
+  onCustomToChange,
+  onRefresh,
+  onCategoryClick,
+}) => {
   return (
     <div>
       <h2 className={styles.title}>Dashboard</h2>
 
-      <div className={styles.statsRow}>
-        <StatCard
-          label="Faturamento"
-          value={fmtBRL(totalRevenue)}
-          sub={`${paid.length} pedidos`}
-          color="var(--crm-accent)"
-        />
-        {canViewProfit && (
-          <StatCard
-            label="Lucro Líquido"
-            value={fmtBRL(totalProfit)}
-            sub={`Margem ${avgMargin}%`}
-            color="var(--crm-primary)"
-          />
-        )}
-        <StatCard
-          label="Ticket Médio"
-          value={paid.length ? fmtBRL(totalRevenue / paid.length) : "—"}
-          color="var(--crm-text)"
-        />
-        <StatCard
-          label="Pedidos Ativos"
-          value={orders.filter((o) => !["Entregue", "Cancelado"].includes(o.status)).length}
-          color="var(--crm-accent)"
-        />
-      </div>
+      <PeriodSelector
+        preset={preset}
+        customFrom={customFrom}
+        customTo={customTo}
+        refreshing={refreshing}
+        onPresetChange={onPresetChange}
+        onCustomFromChange={onCustomFromChange}
+        onCustomToChange={onCustomToChange}
+        onRefresh={onRefresh}
+      />
 
-      <div className={styles.gridTwo}>
-        <Card className={styles.cardRelative}>
-          <div className={styles.cardGlow} />
-          <div className={styles.cardPattern} />
-          <div className={styles.cardContent}>
-            <div className={styles.cardHeader}>
-              <div className={styles.cardHeaderTitle}>Vendas por Canal</div>
-              <button type="button" className={styles.pillButton}>
-                Últimos 30d
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={styles.pillIcon}
-                >
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </button>
-            </div>
-            <div className={styles.channelList}>
-              {byChannel.map((ch, index) => {
-                const delay = 0.1 + index * 0.12;
-                return (
-                  <div key={ch.name} className={styles.channelRow}>
-                    <div className={styles.channelLine}>
-                      <span className={styles.channelLabel}>{ch.name}</span>
-                      <div className={styles.channelTrack}>
-                        <div
-                          className={`crm-animate-width ${styles.channelBar}`}
-                          style={{
-                            background: channelPalette[index % channelPalette.length],
-                            width: `${(ch.total / maxRev) * 100}%`,
-                            animationDelay: `${delay}s`,
-                          }}
-                        />
-                      </div>
-                      <span
-                        className={`crm-animate-fade ${styles.channelValue}`}
-                        style={{ animationDelay: `${delay}s` }}
-                      >
-                        {fmtBRL(ch.total)}
-                      </span>
-                    </div>
-                    <div className={styles.channelMeta}>{ch.count} pedidos</div>
-                  </div>
-                );
-              })}
-            </div>
+      {error && !summary && (
+        <Card className={styles.errorCard}>
+          <div className={styles.errorMessage}>{error}</div>
+          <Btn onClick={onRefresh} variant="primary">Tentar novamente</Btn>
+        </Card>
+      )}
+
+      {!summary && !error && (
+        <div className={styles.placeholder}>Carregando...</div>
+      )}
+
+      {summary && (
+        <>
+          <div className={styles.periodCaption}>
+            {fmtDate(summary.period.from)} — {fmtDate(summary.period.to)}
+            <span className={styles.periodCaptionMuted}>
+              {" "}· comparado com {fmtDate(summary.comparison.from)} — {fmtDate(summary.comparison.to)}
+            </span>
           </div>
-        </Card>
 
-        <Card>
-          <div className={styles.sectionLabel}>Funil de Pedidos</div>
-          {funnel.map((f) => (
-            <div key={f.status} className={styles.funnelRow}>
-              <Badge status={f.status} />
-              <span className={styles.funnelValue}>{f.count}</span>
-            </div>
-          ))}
-        </Card>
-      </div>
+          {error && (
+            <Card className={styles.errorBanner}>
+              <span>{error}</span>
+              <Btn onClick={onRefresh} variant="secondary" small>Tentar novamente</Btn>
+            </Card>
+          )}
 
-      {canViewProfit && (
-        <Card>
-          <div className={styles.sectionLabel}>Performance por Vendedor</div>
-          <table className={styles.table}>
-            <thead>
-              <tr className={styles.tableHeadRow}>
-                {["Vendedor", "Pedidos", "Faturamento", "Lucro"].map((h) => (
-                  <th key={h} className={styles.tableHeadCell}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {bySeller.map((s) => (
-                <tr key={s.name} className={styles.tableRow}>
-                  <td className={styles.tableCellName}>{s.name}</td>
-                  <td className={styles.tableCellMuted}>{s.count}</td>
-                  <td className={styles.tableCellAccent}>{fmtBRL(s.revenue)}</td>
-                  <td className={styles.tableCellPrimary}>{fmtBRL(s.profit)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
+          <div className={styles.statsRow}>
+            {summary.kpis.revenue && (
+              <KpiCard
+                label="Faturamento"
+                value={fmtBRL(summary.kpis.revenue.value)}
+                percentageChange={summary.kpis.revenue.percentageChange}
+                accent="var(--crm-accent)"
+              />
+            )}
+            {summary.kpis.salesProfit && (
+              <KpiCard
+                label="Lucro das Vendas"
+                value={fmtBRL(summary.kpis.salesProfit.value)}
+                percentageChange={summary.kpis.salesProfit.percentageChange}
+                accent="var(--crm-primary)"
+              />
+            )}
+            {summary.kpis.netResult && (
+              <KpiCard
+                label="Resultado Líquido"
+                value={fmtBRL(summary.kpis.netResult.value)}
+                percentageChange={summary.kpis.netResult.percentageChange}
+                accent={summary.kpis.netResult.value >= 0 ? "var(--crm-success)" : "var(--crm-danger)"}
+              />
+            )}
+            <KpiCard
+              label="Relógios Vendidos"
+              value={String(summary.kpis.watchesSold.value)}
+              sub={`${summary.kpis.ordersCount.value} pedidos`}
+              percentageChange={summary.kpis.watchesSold.percentageChange}
+            />
+            <KpiCard
+              label="Pedidos Ativos"
+              value={String(summary.kpis.activeOrders.value)}
+            />
+            <KpiCard
+              label="Aguardando Pagamento"
+              value={fmtBRL(summary.kpis.pendingAmount.value)}
+            />
+            {summary.kpis.generalExpenses && (
+              <KpiCard
+                label="Despesas Gerais"
+                value={fmtBRL(summary.kpis.generalExpenses.value)}
+                percentageChange={summary.kpis.generalExpenses.percentageChange}
+                accent="var(--crm-danger)"
+              />
+            )}
+            {summary.commission && (
+              <KpiCard
+                label="Comissões"
+                value={fmtBRL(summary.commission.accrued)}
+                sub={`Pago: ${fmtBRL(summary.commission.paid)} · Pendente: ${fmtBRL(summary.commission.pending)}`}
+              />
+            )}
+            {summary.stock && (
+              <KpiCard
+                label="Estoque Atual"
+                value={fmtBRL(summary.stock.totalCost)}
+                sub={`Potencial: ${fmtBRL(summary.stock.totalPotentialRevenue)}`}
+              />
+            )}
+          </div>
+
+          <div className={styles.gridTwo}>
+            <EvolutionChart buckets={summary.evolution} grouping={summary.period.grouping} />
+            <GoalProgress company={summary.goal.company} individual={summary.goal.individual} />
+          </div>
+
+          <div className={styles.gridTwo}>
+            {summary.categories && (
+              <CategoryDonut categories={summary.categories} onCategoryClick={onCategoryClick} />
+            )}
+            {summary.channels && <ChannelBars channels={summary.channels} />}
+          </div>
+
+          <NextShipmentsList shipments={summary.nextShipments} />
+        </>
       )}
     </div>
   );
