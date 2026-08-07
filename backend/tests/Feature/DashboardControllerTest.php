@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
+use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\ProductReturn;
+use App\Models\ReturnItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -152,6 +155,12 @@ class DashboardControllerTest extends TestCase
         $this->assertArrayNotHasKey('commission', $payload);
         foreach ($payload['evolution'] as $bucket) {
             $this->assertArrayNotHasKey('salesProfit', $bucket);
+            // Vazamento confirmado na homologação da TASK-015: `revenue` de
+            // cada balde de `evolution` não era gateado por `$canViewRevenue`
+            // (mesma variável usada por `kpis.revenue`/`categories`/`channels`),
+            // então gerente via o faturamento diário da empresa toda no
+            // gráfico mesmo sem `dashboard.financial.view`.
+            $this->assertArrayNotHasKey('revenue', $bucket);
         }
     }
 
@@ -175,6 +184,13 @@ class DashboardControllerTest extends TestCase
         $this->assertArrayNotHasKey('netResult', $payload['kpis']);
         $this->assertArrayNotHasKey('generalExpenses', $payload['kpis']);
         $this->assertArrayNotHasKey('stock', $payload);
+        // Não regredir: vendedor continua vendo o próprio faturamento no
+        // gráfico de evolução (é o mesmo dado escopado por ownership que já
+        // aparece em `kpis.revenue`/`categories`/`channels`).
+        foreach ($payload['evolution'] as $bucket) {
+            $this->assertArrayHasKey('revenue', $bucket);
+            $this->assertArrayNotHasKey('salesProfit', $bucket);
+        }
     }
 
     public function test_seller_revenue_is_scoped_to_own_orders_only(): void
@@ -259,5 +275,194 @@ class DashboardControllerTest extends TestCase
         foreach (['stock', 'categories', 'channels', 'commission', 'goal', 'nextShipments', 'evolution'] as $key) {
             $this->assertArrayHasKey($key, $payload, $key);
         }
+    }
+
+    /**
+     * TASK-015 (RN-01): período totalmente vazio (sem nenhum pedido no
+     * intervalo, nem no banco) deve responder 200 com KPIs zerados — não
+     * `null`/exceção — e `categories`/`channels` como arrays vazios (não
+     * ausentes). `evolution` não fica vazio (os baldes do período são
+     * sempre gerados, ver `DashboardSummaryCalculator::bucketKeys`), mas
+     * cada balde deve vir zerado, não ausente.
+     */
+    public function test_empty_period_returns_ok_with_zeroed_kpis_and_no_orders(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin->value]);
+
+        $response = $this->actingAs($admin)
+            ->getJson('/api/dashboard/summary?from=2026-01-01&to=2026-01-31')
+            ->assertOk();
+
+        $payload = $response->json();
+
+        $this->assertEqualsWithDelta(0.0, $payload['kpis']['revenue']['value'], 0.001);
+        $this->assertEqualsWithDelta(0.0, $payload['kpis']['salesProfit']['value'], 0.001);
+        $this->assertEqualsWithDelta(0.0, $payload['kpis']['netResult']['value'], 0.001);
+        $this->assertEqualsWithDelta(0.0, $payload['kpis']['generalExpenses']['value'], 0.001);
+        $this->assertSame(0, $payload['kpis']['watchesSold']['value']);
+        $this->assertSame(0, $payload['kpis']['ordersCount']['value']);
+        $this->assertSame(0, $payload['kpis']['activeOrders']['value']);
+        $this->assertEqualsWithDelta(0.0, $payload['kpis']['pendingAmount']['value'], 0.001);
+
+        $this->assertIsArray($payload['categories']);
+        $this->assertSame([], $payload['categories']);
+        $this->assertIsArray($payload['channels']);
+        $this->assertSame([], $payload['channels']);
+
+        $this->assertIsArray($payload['evolution']);
+        $this->assertNotEmpty($payload['evolution']);
+        foreach ($payload['evolution'] as $bucket) {
+            $this->assertEqualsWithDelta(0.0, $bucket['revenue'], 0.001);
+            $this->assertEqualsWithDelta(0.0, $bucket['salesProfit'], 0.001);
+            $this->assertSame(0, $bucket['watchesSold']);
+            $this->assertSame(0, $bucket['ordersCount']);
+        }
+
+        $this->assertSame(['accrued' => 0, 'paid' => 0, 'pending' => 0], $payload['commission']);
+        $this->assertSame(['company' => null, 'individual' => null], $payload['goal']);
+        $this->assertSame([], $payload['nextShipments']);
+    }
+
+    /**
+     * TASK-015 (RN-03): reconciliação com fonte independente — soma os
+     * dados brutos das tabelas `orders`/`returns` diretamente neste teste
+     * (sem chamar `RevenueCalculator`/`OrderFinancialScope`) e compara com
+     * `kpis.revenue.value` da resposta. Cenário deliberadamente variado:
+     * multi-item, devolução parcial, pedido cancelado (excluído) e pedido
+     * fora do período (excluído).
+     */
+    public function test_dashboard_revenue_reconciles_with_an_independently_computed_source(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin->value]);
+        $seller = User::factory()->create(['role' => UserRole::Seller->value]);
+        $customer = Customer::factory()->create();
+
+        // Pedido A: multi-item, pago, dentro do período, sem devolução.
+        $orderA = Order::factory()->create([
+            'seller_user_id' => $seller->id,
+            'customer_id' => $customer->id,
+            'status' => 'Pago',
+            'paid_at' => '2026-08-05 10:00:00',
+            'sale_price' => 500,
+            'discount' => 10,
+            'freight' => 20,
+        ]);
+
+        // Pedido B: multi-item, pago, dentro do período, com devolução
+        // PARCIAL (reembolso efetuado) sobre um dos itens.
+        $orderB = Order::factory()->create([
+            'seller_user_id' => $seller->id,
+            'customer_id' => $customer->id,
+            'status' => 'Pago',
+            'paid_at' => '2026-08-06 10:00:00',
+            'sale_price' => 690,
+            'discount' => 0,
+            'freight' => 0,
+        ]);
+        $orderB->items()->delete();
+        $watchItem = OrderItem::create([
+            'order_id' => $orderB->id,
+            'product_name' => 'Relógio Reconciliação',
+            'product_type' => 'Relógios',
+            'quantity' => 2,
+            'unit_price' => 300,
+            'unit_cost' => 100,
+            'unit_commission' => 30,
+            'unit_discount' => 0,
+        ]);
+        OrderItem::create([
+            'order_id' => $orderB->id,
+            'product_name' => 'Caixa Reconciliação',
+            'product_type' => 'Caixas',
+            'quantity' => 1,
+            'unit_price' => 90,
+            'unit_cost' => 20,
+            'unit_commission' => 5,
+            'unit_discount' => 0,
+        ]);
+        $orderBReturn = ProductReturn::create([
+            'order_id' => $orderB->id,
+            'customer_id' => $customer->id,
+            'created_by_user_id' => $admin->id,
+            'type' => 'devolucao',
+            'status' => 'Reembolso Efetuado',
+            'refund_amount' => 300,
+        ]);
+        ReturnItem::create([
+            'return_id' => $orderBReturn->id,
+            'order_item_id' => $watchItem->id,
+            'product_name' => 'Relógio Reconciliação',
+            'product_type' => 'Relógios',
+            'quantity' => 1,
+            'unit_price' => 300,
+        ]);
+
+        // Pedido C: pago dentro do período, mas com reembolso ainda
+        // PENDENTE — não deve reduzir o faturamento.
+        $orderC = Order::factory()->create([
+            'seller_user_id' => $seller->id,
+            'customer_id' => $customer->id,
+            'status' => 'Pago',
+            'paid_at' => '2026-08-07 10:00:00',
+            'sale_price' => 200,
+            'discount' => 0,
+            'freight' => 0,
+        ]);
+        ProductReturn::create([
+            'order_id' => $orderC->id,
+            'customer_id' => $customer->id,
+            'created_by_user_id' => $admin->id,
+            'type' => 'devolucao',
+            'status' => 'Reembolso Pendente',
+            'refund_amount' => 50,
+        ]);
+
+        // Pedido D: cancelado (paid_at preenchido, mas status Cancelado) —
+        // excluído de qualquer cálculo (RN-05 das regras do agente).
+        Order::factory()->create([
+            'seller_user_id' => $seller->id,
+            'customer_id' => $customer->id,
+            'status' => 'Cancelado',
+            'paid_at' => '2026-08-05 10:00:00',
+            'sale_price' => 999,
+            'discount' => 0,
+            'freight' => 0,
+        ]);
+
+        // Pedido E: pago, mas fora do período consultado — excluído.
+        Order::factory()->create([
+            'seller_user_id' => $seller->id,
+            'customer_id' => $customer->id,
+            'status' => 'Pago',
+            'paid_at' => '2026-07-01 10:00:00',
+            'sale_price' => 1000,
+            'discount' => 0,
+            'freight' => 0,
+        ]);
+
+        // Fonte independente: soma direta em `orders`/`returns`, sem passar
+        // por nenhuma classe de `Support/`.
+        $grossFromSource = Order::query()
+            ->whereBetween('paid_at', ['2026-08-01 00:00:00', '2026-08-10 23:59:59'])
+            ->where('status', '!=', 'Cancelado')
+            ->get(['sale_price', 'discount', 'freight'])
+            ->sum(fn (Order $o) => (float) $o->sale_price - (float) $o->discount + (float) $o->freight);
+
+        $refundedFromSource = (float) ProductReturn::query()
+            ->whereIn('order_id', [$orderA->id, $orderB->id, $orderC->id])
+            ->where('status', 'Reembolso Efetuado')
+            ->sum('refund_amount');
+
+        $expectedRevenue = $grossFromSource - $refundedFromSource;
+
+        // (500-10+20) + (690-0+0) + (200-0+0) = 1400; menos 300 do
+        // reembolso efetuado do pedido B = 1100.
+        $this->assertEqualsWithDelta(1100.0, $expectedRevenue, 0.001);
+
+        $response = $this->actingAs($admin)
+            ->getJson('/api/dashboard/summary?from=2026-08-01&to=2026-08-10')
+            ->assertOk();
+
+        $this->assertEqualsWithDelta($expectedRevenue, $response->json('kpis.revenue.value'), 0.001);
     }
 }
