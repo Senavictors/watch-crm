@@ -32,6 +32,10 @@
   margin-bottom: 24px;
 }
 
+.gridTwo > * {
+  min-width: 0;
+}
+
 .placeholder {
   color: var(--crm-text-muted);
   padding: 32px;

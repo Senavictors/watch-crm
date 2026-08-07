@@ -3,6 +3,12 @@
   min-width: 190px;
 }
 
+@media (max-width: 480px) {
+  .card {
+    min-width: 130px;
+  }
+}
+
 .label {
   color: var(--crm-text-muted);
   font-size: 12px;
