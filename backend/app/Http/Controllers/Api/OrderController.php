@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Support\OrderMetadata;
 use App\Support\OrderPaymentTransition;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -42,6 +43,18 @@ class OrderController extends Controller
     {
         $user = $request->user();
 
+        $filters = $request->validate([
+            'category' => ['sometimes', 'string'],
+            'from' => ['sometimes', 'date'],
+            'to' => ['sometimes', 'date'],
+        ]);
+
+        if (isset($filters['from']) && isset($filters['to']) && $filters['to'] < $filters['from']) {
+            return response()->json([
+                'message' => 'Período inválido: data final anterior à inicial.',
+            ], 422);
+        }
+
         $query = Order::query();
 
         if (! $user->canAccessAllRecords()) {
@@ -50,6 +63,19 @@ class OrderController extends Controller
 
         if ($request->filled('customer_id')) {
             $query->where('customer_id', (int) $request->input('customer_id'));
+        }
+
+        if (isset($filters['category'])) {
+            $category = $filters['category'];
+            $query->whereHas('items', fn ($q) => $q->where('product_type', $category));
+        }
+
+        if (isset($filters['from'])) {
+            $query->where('paid_at', '>=', Carbon::parse($filters['from'])->startOfDay());
+        }
+
+        if (isset($filters['to'])) {
+            $query->where('paid_at', '<=', Carbon::parse($filters['to'])->endOfDay());
         }
 
         $canViewFinancials = $user->canViewFinancialReports();
