@@ -7,6 +7,12 @@ class CrmPermissions
     public const ALL = [
         'dashboard.view',
         'shipping.view',
+        // TASK-016 (CA-01): "dias são configuráveis por usuário autorizado" —
+        // mesmo tier de `settings.view` (owner/admin/gerente). Não atribuída
+        // explicitamente em `seller()`/`guarantee()` (listas explícitas, já
+        // ficam de fora por padrão) — só quem já configura o resto do
+        // sistema pode reconfigurar a agenda de postagem.
+        'shipping.update',
         'customers.view',
         'customers.create',
         'customers.update',

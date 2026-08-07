@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Support\OrderMetadata;
 use App\Support\OrderPaymentTransition;
+use App\Support\ShippingScheduleCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -314,9 +315,19 @@ class OrderController extends Controller
      * o vendedor/gerente nunca receberem o custo no JSON, nem inspecionando
      * a resposta da API diretamente.
      */
+    /**
+     * TASK-016: `nextPostingDate`/`isLate` sempre presentes (mesmo cálculo
+     * de `ShippingController::queue()`, via `ShippingScheduleCalculator`),
+     * mas `null`/`false` quando o pedido não é elegível pra fila
+     * (`ShippingScheduleCalculator::isEligibleForQueue`) — o frontend
+     * (`OrderDetail.tsx`) usa este campo real em vez do helper hardcoded.
+     */
     private function toPayload(Order $o, bool $canViewFinancials): array
     {
         $items = $o->relationLoaded('items') ? $o->items : $o->items()->get();
+
+        $isEligibleForQueue = ShippingScheduleCalculator::isEligibleForQueue($o);
+        $nextPostingDate = $isEligibleForQueue ? ShippingScheduleCalculator::nextPostingDate($o->paid_at) : null;
 
         $payload = [
             'id' => $o->id,
@@ -344,6 +355,8 @@ class OrderController extends Controller
             'saleDate' => $o->sale_date,
             'shippedDate' => $o->shipped_date ?? '',
             'notes' => $o->notes ?? '',
+            'nextPostingDate' => $nextPostingDate?->toDateString(),
+            'isLate' => $isEligibleForQueue ? ShippingScheduleCalculator::isLate($nextPostingDate, Carbon::today()) : false,
         ];
 
         if ($canViewFinancials) {

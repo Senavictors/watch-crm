@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\QualityController;
 use App\Http\Controllers\Api\ReturnController;
+use App\Http\Controllers\Api\ShippingController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,10 @@ Route::middleware('web')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
 
         Route::get('/dashboard/summary', [DashboardController::class, 'summary'])->middleware('permission:dashboard.view');
+
+        Route::get('/shipping/schedule', [ShippingController::class, 'schedule'])->middleware('permission:shipping.view');
+        Route::put('/shipping/schedule', [ShippingController::class, 'updateSchedule'])->middleware('permission:shipping.update');
+        Route::get('/shipping/queue', [ShippingController::class, 'queue'])->middleware('permission:shipping.view');
 
         Route::get('/customers', [CustomerController::class, 'index'])->middleware('permission:customers.view');
         Route::post('/customers', [CustomerController::class, 'store'])->middleware('permission:customers.create');

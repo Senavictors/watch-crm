@@ -270,6 +270,11 @@ class DashboardSummaryCalculator
      * pagos ainda não enviados, escopados por ownership (vendedor só vê os
      * próprios — mesmo `canAccessAllRecords()` de sempre). Não filtra pelo
      * período do dashboard — é sempre "o que vem a seguir", não histórico.
+     *
+     * TASK-016 (CA-03): "dashboard pode consumir próximos envios" — usa o
+     * mesmo `ShippingScheduleCalculator` da fila de envios
+     * (`ShippingController::queue()`) para não duplicar a regra de cálculo
+     * de data de postagem/atraso.
      */
     private static function nextShipments(User $user): array
     {
@@ -282,13 +287,21 @@ class DashboardSummaryCalculator
             $query->where('seller_user_id', $user->id);
         }
 
-        return $query->limit(5)->get()->map(fn (Order $order) => [
-            'orderId' => $order->id,
-            'customerName' => $order->customer?->name,
-            'status' => $order->status,
-            'shippingMethod' => $order->shipping_method,
-            'saleDate' => $order->sale_date,
-        ])->all();
+        $today = Carbon::today();
+
+        return $query->limit(5)->get()->map(function (Order $order) use ($today) {
+            $nextPostingDate = ShippingScheduleCalculator::nextPostingDate($order->paid_at);
+
+            return [
+                'orderId' => $order->id,
+                'customerName' => $order->customer?->name,
+                'status' => $order->status,
+                'shippingMethod' => $order->shipping_method,
+                'saleDate' => $order->sale_date,
+                'nextPostingDate' => $nextPostingDate?->toDateString(),
+                'isLate' => ShippingScheduleCalculator::isLate($nextPostingDate, $today),
+            ];
+        })->all();
     }
 
     private static function paidOrdersCount(User $user, ?string $startDate, ?string $endDate): int
