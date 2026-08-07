@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\UserRole;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -187,6 +188,62 @@ class DashboardControllerTest extends TestCase
         $response = $this->actingAs($seller)->getJson('/api/dashboard/summary')->assertOk();
 
         $this->assertEqualsWithDelta(100.0, $response->json('kpis.revenue.value'), 0.001);
+    }
+
+    public function test_seller_commission_is_scoped_to_own_items_only(): void
+    {
+        // CA-03 (TASK-012): comissão de terceiros nunca é acessível — mesmo
+        // raciocínio de `test_seller_revenue_is_scoped_to_own_orders_only`,
+        // mas para `commission.accrued`/`commission.pending`. O vendedor B
+        // tem comissão apurada MAIOR no mesmo período para garantir que um
+        // eventual vazamento (soma global) seria detectado pelo valor.
+        $seller = User::factory()->create(['role' => UserRole::Seller->value]);
+        $otherSeller = User::factory()->create(['role' => UserRole::Seller->value]);
+
+        $orderA = Order::factory()->create([
+            'seller_user_id' => $seller->id,
+            'status' => 'Pago',
+            'paid_at' => now(),
+            'sale_price' => 100,
+            'discount' => 0,
+            'freight' => 0,
+        ]);
+        $orderA->items()->delete();
+        OrderItem::create([
+            'order_id' => $orderA->id,
+            'product_name' => 'Produto vendedor A',
+            'product_type' => 'Relógios',
+            'quantity' => 1,
+            'unit_price' => 100,
+            'unit_cost' => 50,
+            'unit_commission' => 40,
+            'unit_discount' => 0,
+        ]);
+
+        $orderB = Order::factory()->create([
+            'seller_user_id' => $otherSeller->id,
+            'status' => 'Pago',
+            'paid_at' => now(),
+            'sale_price' => 900,
+            'discount' => 0,
+            'freight' => 0,
+        ]);
+        $orderB->items()->delete();
+        OrderItem::create([
+            'order_id' => $orderB->id,
+            'product_name' => 'Produto vendedor B',
+            'product_type' => 'Relógios',
+            'quantity' => 1,
+            'unit_price' => 900,
+            'unit_cost' => 300,
+            'unit_commission' => 150,
+            'unit_discount' => 0,
+        ]);
+
+        $response = $this->actingAs($seller)->getJson('/api/dashboard/summary')->assertOk();
+
+        $this->assertEqualsWithDelta(40.0, $response->json('commission.accrued'), 0.001);
+        $this->assertEqualsWithDelta(40.0, $response->json('commission.pending'), 0.001);
     }
 
     public function test_owner_and_admin_receive_full_financial_payload(): void
