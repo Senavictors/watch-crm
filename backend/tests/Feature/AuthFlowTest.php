@@ -72,10 +72,17 @@ class AuthFlowTest extends TestCase
         Order::factory()->create(['seller_user_id' => $vendor->id, 'customer_id' => $vendorCustomer->id]);
         Order::factory()->create(['seller_user_id' => $other->id, 'customer_id' => $otherCustomer->id]);
 
+        // TASK-019: `CustomerController::index()` não filtrava por
+        // ownership antes desta task — este teste chegou a "passar"
+        // afirmando o bug (vendedor via os 2 clientes). Corrigido para
+        // refletir a RN-02 real: vendedor só vê o próprio cliente. Ver
+        // `CustomerControllerTest` para a cobertura completa da matriz de
+        // ownership (inclusive a exceção do papel `garantia`).
         $this->actingAs($vendor)
             ->getJson('/api/customers')
             ->assertOk()
-            ->assertJsonCount(2);
+            ->assertJsonCount(1)
+            ->assertJsonPath('0.id', $vendorCustomer->id);
 
         $this->actingAs($vendor)
             ->getJson('/api/orders')

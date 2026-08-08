@@ -30,7 +30,8 @@ class OrderFinancialScope
         User $user,
         ?string $startDate = null,
         ?string $endDate = null,
-        string $dateColumn = 'sale_date'
+        string $dateColumn = 'sale_date',
+        ?int $customerId = null
     ): Builder {
         if (! $user->canAccessAllRecords()) {
             $query->where('seller_user_id', $user->id);
@@ -46,6 +47,15 @@ class OrderFinancialScope
                 ->whereDate($dateColumn, '<=', $endDate);
         }
 
+        // TASK-019: parâmetro opcional (default null, retrocompatível com
+        // todos os chamadores existentes) — insights de cliente
+        // (`CustomerInsightsCalculator`) reaproveitam o mesmo escopo de
+        // ownership/período em vez de duplicar a lógica de pago/cancelado
+        // em outra classe.
+        if ($customerId !== null) {
+            $query->where('customer_id', $customerId);
+        }
+
         return $query;
     }
 
@@ -58,8 +68,9 @@ class OrderFinancialScope
         User $user,
         ?string $startDate = null,
         ?string $endDate = null,
-        string $dateColumn = 'sale_date'
+        string $dateColumn = 'sale_date',
+        ?int $customerId = null
     ): Builder {
-        return self::apply(Order::query(), $user, $startDate, $endDate, $dateColumn);
+        return self::apply(Order::query(), $user, $startDate, $endDate, $dateColumn, $customerId);
     }
 }

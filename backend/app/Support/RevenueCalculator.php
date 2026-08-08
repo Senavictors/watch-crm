@@ -19,12 +19,17 @@ use App\Models\User;
  *
  * TASK-009 (RN-01): o período filtra por `paid_at` (data de competência),
  * não por `sale_date` — ver `OrderFinancialScope`.
+ *
+ * TASK-019: `$customerId` opcional (default `null`, retrocompatível com
+ * todos os chamadores existentes) — usado por `CustomerInsightsCalculator`
+ * para reaproveitar exatamente esta semântica de "pago, líquido de
+ * devolução" no cálculo de gasto total por cliente, sem duplicar a lógica.
  */
 class RevenueCalculator
 {
-    public static function calculate(User $user, ?string $startDate = null, ?string $endDate = null): float
+    public static function calculate(User $user, ?string $startDate = null, ?string $endDate = null, ?int $customerId = null): float
     {
-        $paidOrders = fn () => OrderFinancialScope::ordersQuery($user, $startDate, $endDate, 'paid_at')
+        $paidOrders = fn () => OrderFinancialScope::ordersQuery($user, $startDate, $endDate, 'paid_at', $customerId)
             ->whereNotNull('paid_at')
             ->where('status', '!=', 'Cancelado');
 

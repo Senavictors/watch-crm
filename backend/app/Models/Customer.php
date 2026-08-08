@@ -75,6 +75,17 @@ class Customer extends Model
         return $this->belongsTo(User::class, 'owner_user_id');
     }
 
+    /**
+     * TASK-019 (RN-03) — histórico imutável de marcações de atrito,
+     * cronológico (`CustomerController::show()`).
+     */
+    public function frictionNotes(): HasMany
+    {
+        return $this->hasMany(CustomerFrictionNote::class)
+            ->orderBy('created_at')
+            ->orderBy('id');
+    }
+
     private function nullableString(?string $value): ?string
     {
         $trimmed = $value !== null ? trim($value) : null;

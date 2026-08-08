@@ -35,10 +35,12 @@ Route::middleware('web')->group(function () {
         Route::get('/shipping/queue', [ShippingController::class, 'queue'])->middleware('permission:shipping.view');
 
         Route::get('/customers', [CustomerController::class, 'index'])->middleware('permission:customers.view');
+        Route::get('/customers/{id}', [CustomerController::class, 'show'])->middleware('permission:customers.view');
         Route::post('/customers', [CustomerController::class, 'store'])->middleware('permission:customers.create');
         Route::put('/customers/{id}', [CustomerController::class, 'update'])->middleware('permission:customers.update');
         Route::patch('/customers/{id}', [CustomerController::class, 'update'])->middleware('permission:customers.update');
         Route::delete('/customers/{id}', [CustomerController::class, 'destroy'])->middleware('permission:customers.delete');
+        Route::post('/customers/{id}/friction-notes', [CustomerController::class, 'addFrictionNote'])->middleware('permission:customers.update');
 
         Route::get('/products', [ProductController::class, 'index'])->middleware('permission:products.view');
         Route::post('/products', [ProductController::class, 'store'])->middleware('permission:products.create');
