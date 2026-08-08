@@ -124,6 +124,34 @@ export type WatchModel = {
   qtyAtSupplier?: number;
 };
 
+/**
+ * TASK-019 — insights de recompra (`GET /customers/{id}`, só no `show`, não
+ * no `index`). `averageTicket`/`lastOrderAt` podem ser `null` (sem compra
+ * paga ainda). `possibleRepurchase` é `bool|null` — `null` significa "dados
+ * insuficientes" (menos de 2 compras pagas), NUNCA tratar como `false`
+ * (CA-03): a UI precisa distinguir os 3 estados, nunca linguagem de certeza.
+ */
+export type CustomerInsights = {
+  totalSpent: number;
+  orderCount: number;
+  averageTicket: number | null;
+  lastOrderAt: string | null;
+  possibleRepurchase: boolean | null;
+};
+
+/**
+ * TASK-019 — histórico de atrito (`POST /customers/{id}/friction-notes`,
+ * permissão `customers.update`). Imutável por design: sem endpoint de
+ * edição/exclusão.
+ */
+export type CustomerFrictionNote = {
+  id: number;
+  note: string;
+  createdByUserId: number | null;
+  createdByUserName: string | null;
+  createdAt: string;
+};
+
 export type Customer = {
   id: number;
   name: string;
@@ -137,6 +165,11 @@ export type Customer = {
   city?: string | null;
   state?: string | null;
   ownerUserId?: number | null;
+  // Presentes só na resposta do `show` (`GET /customers/{id}`), ausentes no
+  // `index` (`GET /customers`).
+  insights?: CustomerInsights;
+  frictionNotes?: CustomerFrictionNote[];
+  hasFrictionHistory?: boolean;
 };
 
 export type CustomerInput = {

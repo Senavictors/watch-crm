@@ -119,3 +119,85 @@
   color: var(--crm-accent);
   border-bottom-color: var(--crm-accent);
 }
+
+.signalRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.signal {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+/* CA-03: nunca uma certeza — "possível" é sinal informativo, não sucesso. */
+.signalPossible {
+  color: var(--crm-accent);
+  border-color: var(--crm-accent);
+  background: color-mix(in srgb, var(--crm-accent) 12%, transparent);
+}
+
+.signalNone {
+  color: var(--crm-text-muted);
+  border-color: var(--crm-table-border);
+  background: transparent;
+}
+
+.signalUnknown {
+  color: var(--crm-text-soft);
+  border-color: var(--crm-table-border);
+  background: transparent;
+  font-style: italic;
+}
+
+.frictionList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.frictionItem {
+  border: 1px solid var(--crm-table-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.frictionMeta {
+  display: flex;
+  justify-content: space-between;
+  color: var(--crm-text-soft);
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.frictionText {
+  color: var(--crm-text);
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+.frictionForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.frictionTextarea {
+  width: 100%;
+  min-height: 64px;
+  resize: vertical;
+  background: var(--crm-input-bg, transparent);
+  border: 1px solid var(--crm-table-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--crm-text);
+  font-size: 13px;
+  font-family: inherit;
+}

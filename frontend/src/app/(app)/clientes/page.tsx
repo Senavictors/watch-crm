@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../../features/crm/contexts/AuthContext";
 import { useToast } from "../../../features/crm/contexts/ToastContext";
 import { apiFetch, apiCreate, apiUpdate, apiGet, getApiBaseUrl } from "../../../features/crm/api";
-import { Customer, CustomerInput, Order, ProductReturn } from "../../../features/crm/types";
+import { Customer, CustomerFrictionNote, CustomerInput, Order, ProductReturn } from "../../../features/crm/types";
 import Customers from "../../../features/crm/views/Customers";
 import NewCustomerForm from "../../../features/crm/views/NewCustomerForm";
 import CustomerDetailModal from "../../../features/crm/views/CustomerDetailModal";
@@ -20,6 +20,7 @@ export default function ClientesPage() {
   const [viewReturns, setViewReturns] = useState<ProductReturn[] | null>(null);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [loadingReturns, setLoadingReturns] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   useEffect(() => {
     const apiBaseUrl = getApiBaseUrl();
@@ -61,6 +62,7 @@ export default function ClientesPage() {
     setViewReturns(null);
     setLoadingOrders(true);
     setLoadingReturns(true);
+    setLoadingDetail(true);
 
     apiGet<Order[]>(`/orders?customer_id=${customer.id}`, "Falha ao carregar pedidos.")
       .then(setViewOrders)
@@ -77,6 +79,33 @@ export default function ClientesPage() {
         setViewReturns([]);
       })
       .finally(() => setLoadingReturns(false));
+
+    // TASK-019: detalhe com insights/histórico de atrito só existe no
+    // `show`, não no `index` já carregado na lista.
+    apiGet<Customer>(`/customers/${customer.id}`, "Falha ao carregar detalhes do cliente.")
+      .then((detail) => {
+        setViewing((current) => (current && current.id === detail.id ? detail : current));
+        setCustomers((cs) => cs.map((c) => (c.id === detail.id ? { ...c, ...detail } : c)));
+      })
+      .catch((err) => {
+        pushToast(err instanceof Error ? err.message : "Erro ao carregar detalhes do cliente.", "error");
+      })
+      .finally(() => setLoadingDetail(false));
+  }
+
+  async function handleAddFrictionNote(note: string) {
+    if (!viewing) return;
+    try {
+      const created = await apiCreate<CustomerFrictionNote>(
+        `/customers/${viewing.id}/friction-notes`,
+        { note },
+        "Falha ao registrar observação."
+      );
+      setViewing((v) => (v ? { ...v, frictionNotes: [...(v.frictionNotes ?? []), created], hasFrictionHistory: true } : v));
+      pushToast("Observação registrada.", "success");
+    } catch (err) {
+      pushToast(err instanceof Error ? err.message : "Erro ao registrar observação.", "error");
+    }
   }
 
   async function handleUpdate(data: CustomerInput) {
@@ -116,6 +145,9 @@ export default function ClientesPage() {
           returns={viewReturns}
           loadingOrders={loadingOrders}
           loadingReturns={loadingReturns}
+          loadingDetail={loadingDetail}
+          canRegisterFrictionNote={hasPermission("customers.update")}
+          onAddFrictionNote={handleAddFrictionNote}
           onClose={() => setViewing(null)}
         />
       )}
