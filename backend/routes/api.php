@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\QualityController;
 use App\Http\Controllers\Api\ReturnController;
 use App\Http\Controllers\Api\ShippingController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\WaitlistController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
@@ -100,6 +101,13 @@ Route::middleware('web')->group(function () {
         Route::put('/goals/{id}', [GoalController::class, 'update'])->middleware('permission:goals.update');
         Route::patch('/goals/{id}', [GoalController::class, 'update'])->middleware('permission:goals.update');
         Route::delete('/goals/{id}', [GoalController::class, 'destroy'])->middleware('permission:goals.delete');
+
+        Route::get('/waitlist/metadata', [WaitlistController::class, 'metadata'])->middleware('permission:waitlist.view');
+        Route::get('/waitlist', [WaitlistController::class, 'index'])->middleware('permission:waitlist.view');
+        Route::post('/waitlist', [WaitlistController::class, 'store'])->middleware('permission:waitlist.create');
+        Route::put('/waitlist/{id}', [WaitlistController::class, 'update'])->middleware('permission:waitlist.update');
+        Route::patch('/waitlist/{id}', [WaitlistController::class, 'update'])->middleware('permission:waitlist.update');
+        Route::delete('/waitlist/{id}', [WaitlistController::class, 'destroy'])->middleware('permission:waitlist.delete');
 
         Route::get('/users', [UserController::class, 'index'])->middleware('permission:users.manage');
         Route::post('/users', [UserController::class, 'store'])->middleware('permission:users.manage');

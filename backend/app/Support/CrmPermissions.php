@@ -58,6 +58,15 @@ class CrmPermissions
         'expenses.create',
         'expenses.update',
         'expenses.delete',
+        // TASK-018 — lista de espera por produto. Recurso novo, sem
+        // dependência de `dashboard.financial.view`/RN-02 financeira (não
+        // cria oportunidade financeira, ver RN-01 da task): entra em `ALL`
+        // igual a qualquer outro CRUD operacional, sem exclusão em
+        // `manager()` abaixo.
+        'waitlist.view',
+        'waitlist.create',
+        'waitlist.update',
+        'waitlist.delete',
     ];
 
     /**
@@ -123,6 +132,21 @@ class CrmPermissions
             // vendedor quando ele não tem `canAccessAllRecords()`, então
             // conceder a permissão aqui não abre visão sobre outros.
             'commissions.view',
+            // TASK-018 (RN-02): vendedor registra e atualiza as próprias
+            // entradas de lista de espera — `WaitlistController` força o
+            // escopo por `seller_user_id` (index) e checa ownership direto
+            // (update/destroy), então conceder create/update aqui não abre
+            // acesso a entradas de outro vendedor. Sem `waitlist.delete`:
+            // nota-se que `returns.*` hoje só concede `returns.view` ao
+            // vendedor (nem create nem update — checado em `CrmPermissions::
+            // seller()` antes desta task), então este não é literalmente "o
+            // mesmo padrão de returns.*". Optamos por seguir a decisão
+            // explícita da task (view/create/update, sem delete) em vez de
+            // replicar `returns.*`; ver relatório da TASK-018 para o agente
+            // `auth-permissoes` confirmar/ajustar se achar inconsistente.
+            'waitlist.view',
+            'waitlist.create',
+            'waitlist.update',
         ];
     }
 
