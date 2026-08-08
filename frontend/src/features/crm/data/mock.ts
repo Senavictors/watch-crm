@@ -452,12 +452,22 @@ export const RETURN_TYPE_COLORS: Record<string, string> = {
   devolucao: "#F87171",
 };
 
+// TASK-018 — status simples (sem grafo de transição formal), cores só de
+// exibição.
+export const WAITLIST_STATUS_COLORS: Record<string, string> = {
+  Pendente: "#94A3B8",
+  Avisado: "#FBBF24",
+  Convertido: "#34D399",
+  Encerrado: "#F87171",
+};
+
 export const NAV = [
   { id: "dashboard",  label: "Dashboard",       path: "/dashboard",      permission: "dashboard.view" },
   { id: "orders",     label: "Pedidos",          path: "/pedidos",        permission: "orders.view" },
   { id: "returns",    label: "Garantias/Trocas", path: "/garantias",      permission: "returns.view" },
   { id: "shipping",   label: "Envios",           path: "/envios",         permission: "shipping.view" },
   { id: "customers",  label: "Clientes",         path: "/clientes",       permission: "customers.view" },
+  { id: "waitlist",   label: "Lista de Espera",  path: "/lista-espera",   permission: "waitlist.view" },
   { id: "products",   label: "Produtos",         path: "/produtos",       permission: "products.view" },
   { id: "models",     label: "Modelos",          path: "/modelos",        permission: "models.view" },
   { id: "goals",      label: "Metas",             path: "/metas",          permission: "goals.view" },

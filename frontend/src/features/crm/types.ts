@@ -64,7 +64,11 @@ export type Permission =
   | "expenses.view"
   | "expenses.create"
   | "expenses.update"
-  | "expenses.delete";
+  | "expenses.delete"
+  | "waitlist.view"
+  | "waitlist.create"
+  | "waitlist.update"
+  | "waitlist.delete";
 
 export type UserRole = "owner" | "admin" | "gerente" | "vendedor" | "garantia";
 
@@ -617,4 +621,57 @@ export type DashboardSummaryResponse = {
   channels?: DashboardChannelBreakdown[];
   commission?: DashboardCommissionSummary;
   stock?: DashboardStock;
+};
+
+/**
+ * TASK-018 — lista de espera por produto (`GET/POST/PUT/PATCH/DELETE
+ * /waitlist`). RN-02: `index` é escopado por ownership no backend — um
+ * vendedor sempre recebe só as próprias entradas, mesmo enviando
+ * `sellerUserId` de outra pessoa no filtro. RN-03: `productCurrentQty` /
+ * `isAvailable` são calculados no momento da consulta — só leitura, nunca
+ * recalculado no frontend.
+ */
+export type WaitlistStatus = "Pendente" | "Avisado" | "Convertido" | "Encerrado";
+
+export type WaitlistEntry = {
+  id: number;
+  customerId: number;
+  customerName: string;
+  customerPhone: string;
+  productId: number | null;
+  productName: string;
+  brandName: string | null;
+  modelName: string | null;
+  qualityName: string | null;
+  sellerUserId: number | null;
+  sellerUserName: string | null;
+  createdByUserId: number | null;
+  createdByUserName: string | null;
+  status: WaitlistStatus;
+  notes: string;
+  notifiedAt: string | null;
+  orderId: number | null;
+  productCurrentQty: number | null;
+  isAvailable: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WaitlistMetadata = {
+  statuses: WaitlistStatus[];
+  assignableUsers: UserOption[];
+};
+
+export type WaitlistInput = {
+  customerId: number;
+  productId?: number | null;
+  productName: string;
+  brandName?: string | null;
+  modelName?: string | null;
+  qualityName?: string | null;
+  sellerUserId?: number | null;
+  status?: WaitlistStatus;
+  notes?: string;
+  notifiedAt?: string | null;
+  orderId?: number | null;
 };
