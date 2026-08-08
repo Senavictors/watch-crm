@@ -63,4 +63,15 @@ class ProductReturn extends Model
     {
         return $this->hasMany(ReturnItem::class, 'return_id');
     }
+
+    /**
+     * Ordenado por `created_at`/`id` asc (log cronológico) — ver
+     * `ReturnController::toStatusHistoryPayload()`.
+     */
+    public function statusHistories(): HasMany
+    {
+        return $this->hasMany(ReturnStatusHistory::class, 'return_id')
+            ->orderBy('created_at')
+            ->orderBy('id');
+    }
 }

@@ -3,18 +3,25 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Customer;
-use App\Models\OrderItem;
 use App\Models\ProductReturn;
 use App\Models\ReturnItem;
+use App\Models\ReturnStatusHistory;
 use App\Models\User;
 use App\Support\ReturnMetadata;
+use App\Support\ReturnStatusTransition;
+use App\Support\ReturnWarrantyWindow;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class ReturnController extends Controller
 {
+    /**
+     * @var list<string>
+     */
+    private const EAGER_LOADS = ['customer', 'assignedUser', 'items', 'order', 'statusHistories.actor'];
+
     public function metadata()
     {
         $assignableUsers = User::query()
@@ -29,17 +36,23 @@ class ReturnController extends Controller
             ])
             ->values();
 
+        $transitions = [];
+        foreach (ReturnMetadata::STATUSES as $status) {
+            $transitions[$status] = ReturnStatusTransition::validNextStatuses($status);
+        }
+
         return response()->json([
             'types' => ReturnMetadata::TYPES,
             'typeLabels' => ReturnMetadata::TYPE_LABELS,
             'statuses' => ReturnMetadata::STATUSES,
+            'transitions' => $transitions,
             'assignableUsers' => $assignableUsers,
         ]);
     }
 
     public function index(Request $request)
     {
-        $query = ProductReturn::query()->with(['customer', 'assignedUser', 'items']);
+        $query = ProductReturn::query()->with(self::EAGER_LOADS);
 
         if ($request->filled('orderId')) {
             $query->where('order_id', $request->integer('orderId'));
@@ -51,6 +64,14 @@ class ReturnController extends Controller
 
         if ($request->filled('customer_id')) {
             $query->where('customer_id', (int) $request->input('customer_id'));
+        }
+
+        if ($request->filled('assignedUserId')) {
+            $query->where('assigned_user_id', $request->integer('assignedUserId'));
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->string('status'));
         }
 
         $returns = $query
@@ -72,7 +93,11 @@ class ReturnController extends Controller
                 'created_by_user_id' => $request->user()->id,
                 'assigned_user_id' => $data['assignedUserId'] ?? null,
                 'type' => $data['type'],
-                'status' => $data['status'] ?? 'Aguardando Recebimento',
+                // RN-03/CA-01: nasce sempre em "Aguardando Recebimento",
+                // ignorando qualquer `status` enviado no body de criação —
+                // não faz sentido uma devolução nascer em outra etapa do
+                // fluxo.
+                'status' => 'Aguardando Recebimento',
                 'reason' => $data['reason'] ?? null,
                 'internal_notes' => $data['internalNotes'] ?? null,
                 'resolution_notes' => $data['resolutionNotes'] ?? null,
@@ -89,10 +114,18 @@ class ReturnController extends Controller
 
             $this->syncItems($productReturn, $data['items']);
 
+            ReturnStatusHistory::create([
+                'return_id' => $productReturn->id,
+                'from_status' => null,
+                'to_status' => $productReturn->status,
+                'actor_user_id' => $request->user()->id,
+                'created_at' => now(),
+            ]);
+
             return $productReturn;
         });
 
-        $productReturn->load(['customer', 'assignedUser', 'items']);
+        $productReturn->load(self::EAGER_LOADS);
 
         $this->audit('returns.created', 'Garantia/Troca criada.', $productReturn, [
             'type' => $productReturn->type,
@@ -104,7 +137,7 @@ class ReturnController extends Controller
 
     public function update(Request $request, int $id)
     {
-        $productReturn = ProductReturn::query()->with(['customer', 'assignedUser', 'items'])->find($id);
+        $productReturn = ProductReturn::query()->with(self::EAGER_LOADS)->find($id);
 
         if (! $productReturn) {
             return response()->json(['message' => 'Garantia/Troca não encontrada.'], 404);
@@ -112,25 +145,32 @@ class ReturnController extends Controller
 
         $data = $this->validateData($request, true);
         $previousStatus = $productReturn->status;
+        $newStatus = $data['status'] ?? $previousStatus;
+
+        if ($newStatus !== $previousStatus && ! ReturnStatusTransition::isValid($previousStatus, $newStatus)) {
+            return response()->json([
+                'message' => "Transição de '{$previousStatus}' para '{$newStatus}' não é permitida.",
+            ], 422);
+        }
 
         $fieldMap = [
-            'orderId'             => 'order_id',
-            'customerId'          => 'customer_id',
-            'assignedUserId'      => 'assigned_user_id',
-            'type'                => 'type',
-            'status'              => 'status',
-            'reason'              => 'reason',
-            'internalNotes'       => 'internal_notes',
-            'resolutionNotes'     => 'resolution_notes',
-            'receivedDate'        => 'received_date',
-            'resolvedDate'        => 'resolved_date',
-            'freightCostIn'       => 'freight_cost_in',
-            'watchmakerCost'      => 'watchmaker_cost',
-            'freightCostOut'      => 'freight_cost_out',
-            'otherCosts'          => 'other_costs',
-            'refundAmount'        => 'refund_amount',
-            'returnTrackingCode'  => 'return_tracking_code',
-            'shippedBackDate'     => 'shipped_back_date',
+            'orderId' => 'order_id',
+            'customerId' => 'customer_id',
+            'assignedUserId' => 'assigned_user_id',
+            'type' => 'type',
+            'status' => 'status',
+            'reason' => 'reason',
+            'internalNotes' => 'internal_notes',
+            'resolutionNotes' => 'resolution_notes',
+            'receivedDate' => 'received_date',
+            'resolvedDate' => 'resolved_date',
+            'freightCostIn' => 'freight_cost_in',
+            'watchmakerCost' => 'watchmaker_cost',
+            'freightCostOut' => 'freight_cost_out',
+            'otherCosts' => 'other_costs',
+            'refundAmount' => 'refund_amount',
+            'returnTrackingCode' => 'return_tracking_code',
+            'shippedBackDate' => 'shipped_back_date',
         ];
 
         foreach ($fieldMap as $input => $column) {
@@ -139,15 +179,25 @@ class ReturnController extends Controller
             }
         }
 
-        DB::transaction(function () use ($productReturn, $data) {
+        DB::transaction(function () use ($productReturn, $data, $previousStatus, $newStatus, $request) {
             $productReturn->save();
 
             if (array_key_exists('items', $data)) {
                 $this->syncItems($productReturn, $data['items']);
             }
+
+            if ($newStatus !== $previousStatus) {
+                ReturnStatusHistory::create([
+                    'return_id' => $productReturn->id,
+                    'from_status' => $previousStatus,
+                    'to_status' => $newStatus,
+                    'actor_user_id' => $request->user()->id,
+                    'created_at' => now(),
+                ]);
+            }
         });
 
-        $productReturn->load(['customer', 'assignedUser', 'items']);
+        $productReturn->load(self::EAGER_LOADS);
 
         $metadata = [
             'type' => $productReturn->type,
@@ -182,33 +232,33 @@ class ReturnController extends Controller
         $nullable = $partial ? 'sometimes' : 'nullable';
 
         return $request->validate([
-            'orderId'            => [$nullable, 'integer', Rule::exists('orders', 'id')],
-            'customerId'         => [$required, 'integer', Rule::exists('customers', 'id')],
-            'assignedUserId'     => [$nullable, 'integer', Rule::exists('users', 'id')],
-            'type'               => [$required, 'string', Rule::in(ReturnMetadata::TYPES)],
-            'status'             => [$nullable, 'string', Rule::in(ReturnMetadata::STATUSES)],
-            'reason'             => [$nullable, 'string'],
-            'internalNotes'      => [$nullable, 'string'],
-            'resolutionNotes'    => [$nullable, 'string'],
-            'receivedDate'       => [$nullable, 'date'],
-            'resolvedDate'       => [$nullable, 'date'],
-            'freightCostIn'      => [$nullable, 'numeric', 'min:0'],
-            'watchmakerCost'     => [$nullable, 'numeric', 'min:0'],
-            'freightCostOut'     => [$nullable, 'numeric', 'min:0'],
-            'otherCosts'         => [$nullable, 'numeric', 'min:0'],
-            'refundAmount'       => [$nullable, 'numeric', 'min:0'],
+            'orderId' => [$nullable, 'integer', Rule::exists('orders', 'id')],
+            'customerId' => [$required, 'integer', Rule::exists('customers', 'id')],
+            'assignedUserId' => [$nullable, 'integer', Rule::exists('users', 'id')],
+            'type' => [$required, 'string', Rule::in(ReturnMetadata::TYPES)],
+            'status' => [$nullable, 'string', Rule::in(ReturnMetadata::STATUSES)],
+            'reason' => [$nullable, 'string'],
+            'internalNotes' => [$nullable, 'string'],
+            'resolutionNotes' => [$nullable, 'string'],
+            'receivedDate' => [$nullable, 'date'],
+            'resolvedDate' => [$nullable, 'date'],
+            'freightCostIn' => [$nullable, 'numeric', 'min:0'],
+            'watchmakerCost' => [$nullable, 'numeric', 'min:0'],
+            'freightCostOut' => [$nullable, 'numeric', 'min:0'],
+            'otherCosts' => [$nullable, 'numeric', 'min:0'],
+            'refundAmount' => [$nullable, 'numeric', 'min:0'],
             'returnTrackingCode' => [$nullable, 'string', 'max:255'],
-            'shippedBackDate'    => [$nullable, 'date'],
-            'items'              => [$required, 'array', 'min:1'],
+            'shippedBackDate' => [$nullable, 'date'],
+            'items' => [$required, 'array', 'min:1'],
             'items.*.orderItemId' => ['nullable', 'integer', Rule::exists('order_items', 'id')],
-            'items.*.productId'   => ['nullable', 'integer', Rule::exists('products', 'id')],
+            'items.*.productId' => ['nullable', 'integer', Rule::exists('products', 'id')],
             'items.*.productName' => ['required', 'string'],
             'items.*.productType' => ['required', 'string'],
-            'items.*.brandName'   => ['nullable', 'string'],
-            'items.*.modelName'   => ['nullable', 'string'],
+            'items.*.brandName' => ['nullable', 'string'],
+            'items.*.modelName' => ['nullable', 'string'],
             'items.*.qualityName' => ['nullable', 'string'],
-            'items.*.quantity'    => ['required', 'integer', 'min:1'],
-            'items.*.unitPrice'   => ['required', 'numeric', 'min:0'],
+            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.unitPrice' => ['required', 'numeric', 'min:0'],
         ]);
     }
 
@@ -218,18 +268,18 @@ class ReturnController extends Controller
 
         $payload = collect($items)
             ->map(fn (array $item) => [
-                'return_id'     => $productReturn->id,
+                'return_id' => $productReturn->id,
                 'order_item_id' => $item['orderItemId'] ?? null,
-                'product_id'    => $item['productId'] ?? null,
-                'product_name'  => $item['productName'],
-                'product_type'  => $item['productType'],
-                'brand_name'    => $item['brandName'] ?? null,
-                'model_name'    => $item['modelName'] ?? null,
-                'quality_name'  => $item['qualityName'] ?? null,
-                'quantity'      => (int) $item['quantity'],
-                'unit_price'    => (float) $item['unitPrice'],
-                'created_at'    => now(),
-                'updated_at'    => now(),
+                'product_id' => $item['productId'] ?? null,
+                'product_name' => $item['productName'],
+                'product_type' => $item['productType'],
+                'brand_name' => $item['brandName'] ?? null,
+                'model_name' => $item['modelName'] ?? null,
+                'quality_name' => $item['qualityName'] ?? null,
+                'quantity' => (int) $item['quantity'],
+                'unit_price' => (float) $item['unitPrice'],
+                'created_at' => now(),
+                'updated_at' => now(),
             ])
             ->all();
 
@@ -241,49 +291,94 @@ class ReturnController extends Controller
         $items = $r->relationLoaded('items') ? $r->items : $r->items()->get();
 
         return [
-            'id'                  => $r->id,
-            'orderId'             => $r->order_id,
-            'customerId'          => $r->customer_id,
-            'customerName'        => $r->customer?->name ?? '',
-            'customerPhone'       => $r->customer?->phone ?? '',
-            'createdByUserId'     => $r->created_by_user_id,
-            'assignedUserId'      => $r->assigned_user_id,
-            'assignedUserName'    => $r->assignedUser?->name ?? null,
-            'type'                => $r->type,
-            'typeLabel'           => ReturnMetadata::TYPE_LABELS[$r->type] ?? $r->type,
-            'status'              => $r->status,
-            'reason'              => $r->reason ?? '',
-            'internalNotes'       => $r->internal_notes ?? '',
-            'resolutionNotes'     => $r->resolution_notes ?? '',
-            'receivedDate'        => $r->received_date ?? '',
-            'resolvedDate'        => $r->resolved_date ?? '',
-            'freightCostIn'       => (float) $r->freight_cost_in,
-            'watchmakerCost'      => (float) $r->watchmaker_cost,
-            'freightCostOut'      => (float) $r->freight_cost_out,
-            'otherCosts'          => (float) $r->other_costs,
-            'totalCost'           => $r->total_cost,
-            'refundAmount'        => $r->refund_amount !== null ? (float) $r->refund_amount : null,
-            'returnTrackingCode'  => $r->return_tracking_code ?? '',
-            'shippedBackDate'     => $r->shipped_back_date ?? '',
-            'items'               => $items->map(fn (ReturnItem $item) => $this->toItemPayload($item))->values(),
-            'createdAt'           => $r->created_at?->toDateString() ?? '',
-            'updatedAt'           => $r->updated_at?->toDateString() ?? '',
+            'id' => $r->id,
+            'orderId' => $r->order_id,
+            'customerId' => $r->customer_id,
+            'customerName' => $r->customer?->name ?? '',
+            'customerPhone' => $r->customer?->phone ?? '',
+            'createdByUserId' => $r->created_by_user_id,
+            'assignedUserId' => $r->assigned_user_id,
+            'assignedUserName' => $r->assignedUser?->name ?? null,
+            'type' => $r->type,
+            'typeLabel' => ReturnMetadata::TYPE_LABELS[$r->type] ?? $r->type,
+            'status' => $r->status,
+            'reason' => $r->reason ?? '',
+            'internalNotes' => $r->internal_notes ?? '',
+            'resolutionNotes' => $r->resolution_notes ?? '',
+            'receivedDate' => $r->received_date ?? '',
+            'resolvedDate' => $r->resolved_date ?? '',
+            'freightCostIn' => (float) $r->freight_cost_in,
+            'watchmakerCost' => (float) $r->watchmaker_cost,
+            'freightCostOut' => (float) $r->freight_cost_out,
+            'otherCosts' => (float) $r->other_costs,
+            'totalCost' => $r->total_cost,
+            'refundAmount' => $r->refund_amount !== null ? (float) $r->refund_amount : null,
+            'returnTrackingCode' => $r->return_tracking_code ?? '',
+            'shippedBackDate' => $r->shipped_back_date ?? '',
+            'items' => $items->map(fn (ReturnItem $item) => $this->toItemPayload($item))->values(),
+            'statusHistory' => $this->toStatusHistoryPayload($r),
+            'withinWarrantyWindow' => $this->withinWarrantyWindow($r),
+            'createdAt' => $r->created_at?->toDateString() ?? '',
+            'updatedAt' => $r->updated_at?->toDateString() ?? '',
         ];
     }
 
     private function toItemPayload(ReturnItem $item): array
     {
         return [
-            'id'          => $item->id,
+            'id' => $item->id,
             'orderItemId' => $item->order_item_id,
-            'productId'   => $item->product_id,
+            'productId' => $item->product_id,
             'productName' => $item->product_name,
             'productType' => $item->product_type,
-            'brandName'   => $item->brand_name,
-            'modelName'   => $item->model_name,
+            'brandName' => $item->brand_name,
+            'modelName' => $item->model_name,
             'qualityName' => $item->quality_name,
-            'quantity'    => $item->quantity,
-            'unitPrice'   => (float) $item->unit_price,
+            'quantity' => $item->quantity,
+            'unitPrice' => (float) $item->unit_price,
         ];
+    }
+
+    /**
+     * Ordenado por `created_at` asc — a própria relação `ProductReturn::
+     * statusHistories()` já ordena assim, mas re-afirmamos a ordenação aqui
+     * caso a coleção chegue de outro caminho (ex.: relação carregada sem o
+     * `orderBy` da definição, hipótese que não ocorre hoje, mas evita
+     * acoplar o contrato do payload à implementação da relação).
+     */
+    private function toStatusHistoryPayload(ProductReturn $r): array
+    {
+        $histories = $r->relationLoaded('statusHistories')
+            ? $r->statusHistories
+            : $r->statusHistories()->with('actor')->get();
+
+        return $histories
+            ->sortBy([['created_at', 'asc'], ['id', 'asc']])
+            ->map(fn (ReturnStatusHistory $h) => [
+                'fromStatus' => $h->from_status,
+                'toStatus' => $h->to_status,
+                'actorUserId' => $h->actor_user_id,
+                'actorUserName' => $h->actor?->name ?? null,
+                'notes' => $h->notes,
+                'createdAt' => $h->created_at?->toIso8601String() ?? '',
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * RN-01: `null` quando a devolução não tem `order_id` vinculado ou o
+     * pedido vinculado não tem `sale_date`; cálculo em si isolado em
+     * `Support\ReturnWarrantyWindow`.
+     */
+    private function withinWarrantyWindow(ProductReturn $r): ?bool
+    {
+        $order = $r->relationLoaded('order') ? $r->order : $r->order()->first();
+
+        if ($order === null || $order->sale_date === null) {
+            return null;
+        }
+
+        return ReturnWarrantyWindow::isWithinWindow(Carbon::parse($order->sale_date));
     }
 }
