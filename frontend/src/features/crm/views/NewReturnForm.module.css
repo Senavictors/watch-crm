@@ -58,6 +58,15 @@
   font-size: 12px;
 }
 
+.statusInfo {
+  color: var(--crm-text-muted);
+  background: var(--crm-input-bg);
+  border: 1px solid var(--crm-input-border);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 13px;
+}
+
 .summaryValue {
   color: var(--crm-text-muted);
   font-weight: 700;

@@ -22,6 +22,7 @@ const EMPTY_RETURN_METADATA: ReturnMetadata = {
   types: [],
   typeLabels: { garantia: "Garantia", troca: "Troca", devolucao: "Devolução" },
   statuses: [],
+  transitions: {},
   assignableUsers: [],
 };
 

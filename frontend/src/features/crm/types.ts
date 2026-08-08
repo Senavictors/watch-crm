@@ -394,6 +394,21 @@ export type ProductReturn = {
   shippedBackDate: string;
   items: ReturnItemType[];
   createdAt: string;
+  // TASK-017 — timeline de transições de status (ordenada cronologicamente,
+  // `fromStatus: null` no primeiro item, criado junto com a devolução).
+  statusHistory: ReturnStatusHistoryEntry[];
+  // TASK-017 — `null` quando não calculável (sem pedido vinculado, ou pedido
+  // sem data de venda); não é um terceiro estado a exibir, é "não há dado".
+  withinWarrantyWindow: boolean | null;
+};
+
+export type ReturnStatusHistoryEntry = {
+  fromStatus: string | null;
+  toStatus: string;
+  actorUserId: number | null;
+  actorUserName: string | null;
+  notes: string | null;
+  createdAt: string;
 };
 
 export type ReturnItemType = {
@@ -413,6 +428,9 @@ export type ReturnMetadata = {
   types: ReturnType[];
   typeLabels: Record<ReturnType, string>;
   statuses: ReturnStatus[];
+  // TASK-017 — `transitions[status]` é a lista de status que são destino
+  // válido a partir dele; lista vazia = status terminal (fim do fluxo).
+  transitions: Record<string, string[]>;
   assignableUsers: UserOption[];
 };
 

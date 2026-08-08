@@ -1,7 +1,7 @@
 import React from "react";
 import { Btn } from "../ui/Primitives";
 import { ProductReturn, ReturnType } from "../types";
-import { fmtBRL, fmtDate } from "../helpers";
+import { fmtBRL, fmtDate, fmtDateTime } from "../helpers";
 import { RETURN_STATUS_COLORS, RETURN_TYPE_COLORS } from "../data/mock";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./ReturnDetail.module.css";
@@ -46,6 +46,22 @@ const ReturnDetail: React.FC<Props> = ({ productReturn: r, canUpdate, onClose, o
           </span>
           {r.orderId && (
             <span className={styles.pill}>Pedido #{r.orderId}</span>
+          )}
+          {r.withinWarrantyWindow === true && (
+            <span
+              className={styles.statusPill}
+              style={{ background: "#34D39922", color: "#34D399", borderColor: "#34D39955" }}
+            >
+              Dentro da garantia
+            </span>
+          )}
+          {r.withinWarrantyWindow === false && (
+            <span
+              className={styles.statusPill}
+              style={{ background: "#F9731622", color: "#F97316", borderColor: "#F9731655" }}
+            >
+              Fora da garantia
+            </span>
           )}
         </div>
 
@@ -141,6 +157,28 @@ const ReturnDetail: React.FC<Props> = ({ productReturn: r, canUpdate, onClose, o
           <div className={styles.notesBlock}>
             <div className={styles.infoLabel}>Notas de Resolução</div>
             <div className={styles.noteText}>{r.resolutionNotes}</div>
+          </div>
+        )}
+
+        {/* TASK-017 — timeline de transições (CA-01: etapa atual com
+            proveniência); já vem ordenada cronologicamente da API. */}
+        {r.statusHistory.length > 0 && (
+          <div className={styles.itemsSection}>
+            <div className={styles.infoLabel}>Histórico</div>
+            <div className={styles.itemsList}>
+              {r.statusHistory.map((entry, index) => (
+                <div key={`${entry.createdAt}-${index}`} className={styles.itemCard}>
+                  <div>
+                    <div className={styles.itemTitle}>
+                      {entry.fromStatus ?? "Criação"} → {entry.toStatus}
+                    </div>
+                    <div className={styles.infoMuted}>por {entry.actorUserName ?? "—"}</div>
+                    {entry.notes && <div className={styles.infoMuted}>{entry.notes}</div>}
+                  </div>
+                  <div className={styles.infoMuted}>{fmtDateTime(entry.createdAt)}</div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

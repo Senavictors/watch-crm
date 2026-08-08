@@ -1,7 +1,7 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { fmtBRL, fmtDate } from "../helpers";
-import { ProductReturn, ReturnStatus, ReturnType } from "../types";
+import { ProductReturn, ReturnMetadata, ReturnStatus, ReturnType } from "../types";
 import { Btn, Card } from "../ui/Primitives";
 import { RETURN_STATUS_COLORS, RETURN_TYPE_COLORS } from "../data/mock";
 import styles from "./ReturnList.module.css";
@@ -14,17 +14,17 @@ const TYPE_LABELS: Record<ReturnType, string> = {
 
 type Props = {
   returns: ProductReturn[];
-  statuses: string[];
+  metadata: ReturnMetadata;
   canCreate: boolean;
   canUpdateStatus: boolean;
   onView: (r: ProductReturn) => void;
   onNew: () => void;
-  onUpdateStatus: (id: number, status: ReturnStatus) => void;
+  onUpdateStatus: (id: number, status: ReturnStatus) => Promise<void>;
 };
 
 const ReturnList: React.FC<Props> = ({
   returns,
-  statuses,
+  metadata,
   canCreate,
   canUpdateStatus,
   onView,
@@ -34,12 +34,20 @@ const ReturnList: React.FC<Props> = ({
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<ReturnType | "">("");
   const [filterStatus, setFilterStatus] = useState<ReturnStatus | "">("");
+  const [filterAssignedUserId, setFilterAssignedUserId] = useState("");
+  // TASK-017 — status "otimista" por linha enquanto a chamada de update está
+  // em voo; some (volta a refletir `r.status`) quando a chamada termina,
+  // com sucesso (prop já atualizada pelo handler) ou falha (reverte visual).
+  const [pendingStatus, setPendingStatus] = useState<Record<number, ReturnStatus>>({});
+
+  const statuses = metadata.statuses;
 
   const filtered = useMemo(
     () =>
       returns.filter((r) => {
         if (filterType && r.type !== filterType) return false;
         if (filterStatus && r.status !== filterStatus) return false;
+        if (filterAssignedUserId && String(r.assignedUserId ?? "") !== filterAssignedUserId) return false;
         if (
           search &&
           !`${r.id} ${r.customerName}`.toLowerCase().includes(search.toLowerCase())
@@ -47,8 +55,29 @@ const ReturnList: React.FC<Props> = ({
           return false;
         return true;
       }),
-    [returns, filterType, filterStatus, search]
+    [returns, filterType, filterStatus, filterAssignedUserId, search]
   );
+
+  function statusOptionsFor(currentStatus: ReturnStatus) {
+    const nextStatuses = metadata.transitions?.[currentStatus] ?? [];
+    return [currentStatus, ...nextStatuses.filter((s) => s !== currentStatus)];
+  }
+
+  async function handleStatusChange(id: number, nextStatus: ReturnStatus) {
+    setPendingStatus((current) => ({ ...current, [id]: nextStatus }));
+    try {
+      await onUpdateStatus(id, nextStatus);
+    } catch {
+      // erro já foi mostrado via toast pelo handler; aqui só garantimos que
+      // o select da linha reverta pro status confirmado (`r.status`).
+    } finally {
+      setPendingStatus((current) => {
+        const next = { ...current };
+        delete next[id];
+        return next;
+      });
+    }
+  }
 
   return (
     <div>
@@ -88,6 +117,17 @@ const ReturnList: React.FC<Props> = ({
           <option value="">Todos status</option>
           {statuses.map((s) => (
             <option key={s}>{s}</option>
+          ))}
+        </select>
+        <select
+          value={filterAssignedUserId}
+          onChange={(e) => setFilterAssignedUserId(e.target.value)}
+          className={styles.select}
+          style={{ color: filterAssignedUserId ? "var(--crm-input-text)" : "var(--crm-text-soft)" }}
+        >
+          <option value="">Todos responsáveis</option>
+          {metadata.assignableUsers.map((u) => (
+            <option key={u.id} value={u.id}>{u.name}</option>
           ))}
         </select>
       </div>
@@ -141,11 +181,11 @@ const ReturnList: React.FC<Props> = ({
                   {canUpdateStatus && (
                     <td className={styles.cell} onClick={(e) => e.stopPropagation()}>
                       <select
-                        value={r.status}
-                        onChange={(e) => onUpdateStatus(r.id, e.target.value)}
+                        value={pendingStatus[r.id] ?? r.status}
+                        onChange={(e) => handleStatusChange(r.id, e.target.value)}
                         className={styles.statusSelect}
                       >
-                        {statuses.map((s) => (
+                        {statusOptionsFor(r.status).map((s) => (
                           <option key={s}>{s}</option>
                         ))}
                       </select>

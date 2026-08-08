@@ -19,6 +19,7 @@ const EMPTY_METADATA: ReturnMetadata = {
   types: [],
   typeLabels: { garantia: "Garantia", troca: "Troca", devolucao: "Devolução" },
   statuses: [],
+  transitions: {},
   assignableUsers: [],
 };
 
@@ -78,12 +79,18 @@ export default function GarantiasPage() {
 
   async function handleUpdateStatus(id: number, status: ReturnStatus) {
     try {
+      // apiUpdate já lança com a mensagem exata do backend quando presente
+      // (`getErrorMessage`) — inclui o 422 de transição inválida
+      // ("Transição de 'X' para 'Y' não é permitida.").
       const updated = await apiUpdate<ProductReturn>(`/returns/${id}`, { status }, "Falha ao atualizar status.");
       setReturns((prev) => prev.map((r) => (r.id === id ? updated : r)));
       setViewReturn((current) => (current?.id === id ? updated : current));
       pushToast("Status atualizado.", "success");
     } catch (err) {
       pushToast(err instanceof Error ? err.message : "Erro.", "error");
+      // Rethrow pra ReturnList reverter a seleção visual do select da linha
+      // (ela não foi confirmada — `returns` não mudou).
+      throw err;
     }
   }
 
@@ -121,7 +128,7 @@ export default function GarantiasPage() {
     <>
       <ReturnList
         returns={returns}
-        statuses={metadata.statuses}
+        metadata={metadata}
         canCreate={hasPermission("returns.create")}
         canUpdateStatus={hasPermission("returns.update")}
         onView={(r) => { setViewReturn(r); setEditReturn(null); }}

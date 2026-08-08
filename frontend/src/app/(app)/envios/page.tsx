@@ -45,7 +45,7 @@ export default function EnviosPage({ onReadyCount }: Props) {
         if (!alive) return;
         setQueue(queueData);
         setSchedule(scheduleData);
-        setPendingReturns(returnsData.filter((r) => r.status === "Pronto p/ Reenvio"));
+        setPendingReturns(returnsData.filter((r) => r.status === "Pronto para Reenvio"));
         onReadyCount?.((queueData as ShippingQueueItem[]).length);
       } catch (err) {
         if (alive) pushToast(err instanceof Error ? err.message : "Erro.", "error");

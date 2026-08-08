@@ -15,12 +15,12 @@ import { fmtBRL } from "../helpers";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./NewReturnForm.module.css";
 
-const REENVIO_STATUSES = [
-  "Pronto p/ Reenvio",
-  "Enviado",
-  "Entregue",
-  "Concluído",
-];
+const REENVIO_STATUSES = ["Pronto para Reenvio", "Reenviado", "Concluído"];
+
+// TASK-017 — toda devolução nasce em "Aguardando Recebimento" no backend
+// (o campo `status` enviado na criação é ignorado); mantido como constante
+// pra não hardcodear a string em mais de um lugar deste arquivo.
+const INITIAL_RETURN_STATUS = "Aguardando Recebimento";
 
 type Props = {
   customers: Customer[];
@@ -51,7 +51,7 @@ const emptyForm = (metadata: ReturnMetadata, prefilledOrderId?: number) => ({
   selectedOrderItemIds: [] as number[],
   assignedUserId: "",
   type: "garantia" as ReturnType,
-  status: "Aguardando Recebimento",
+  status: INITIAL_RETURN_STATUS,
   reason: "",
   internalNotes: "",
   resolutionNotes: "",
@@ -121,6 +121,17 @@ const NewReturnForm: React.FC<Props> = ({
     [orders, form.orderId]
   );
 
+  // TASK-017 — ao editar, só oferece o status atual (registro já é válido
+  // permanecer nele) + os destinos válidos a partir dele
+  // (`metadata.transitions[statusAtual]`); o backend rejeita (422) qualquer
+  // outra transição.
+  const allowedStatusOptions = useMemo(() => {
+    if (!returnToEdit) return [];
+    const currentStatus = returnToEdit.status;
+    const nextStatuses = metadata.transitions?.[currentStatus] ?? [];
+    return [currentStatus, ...nextStatuses.filter((s) => s !== currentStatus)];
+  }, [returnToEdit, metadata.transitions]);
+
   // Auto-select customer when order is prefilled
   useEffect(() => {
     if (prefilledOrderId && !returnToEdit) {
@@ -185,7 +196,9 @@ const NewReturnForm: React.FC<Props> = ({
       customerId: Number(form.customerId),
       assignedUserId: form.assignedUserId ? Number(form.assignedUserId) : null,
       type: form.type,
-      status: form.status,
+      // TASK-017 — na criação o backend ignora `status` (nasce sempre em
+      // "Aguardando Recebimento"); só enviamos o valor editável na edição.
+      ...(returnToEdit ? { status: form.status } : {}),
       reason: form.reason,
       internalNotes: form.internalNotes,
       resolutionNotes: form.resolutionNotes,
@@ -283,11 +296,18 @@ const NewReturnForm: React.FC<Props> = ({
             <option value="devolucao">Devolução</option>
           </Select>
 
-          <Select label="Status" value={form.status} onChange={(e) => set("status", e.target.value)}>
-            {metadata.statuses.map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </Select>
+          {returnToEdit ? (
+            <Select label="Status" value={form.status} onChange={(e) => set("status", e.target.value)}>
+              {allowedStatusOptions.map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </Select>
+          ) : (
+            <div>
+              <span className={styles.label}>Status</span>
+              <div className={styles.statusInfo}>Nasce em: {INITIAL_RETURN_STATUS}</div>
+            </div>
+          )}
 
           {/* Responsável */}
           <div className={styles.fullSpan}>
