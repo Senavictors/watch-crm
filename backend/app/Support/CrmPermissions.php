@@ -52,6 +52,12 @@ class CrmPermissions
         'settings.view',
         'users.manage',
         'dashboard.financial.view',
+        // TASK-021 — piloto do resumo inteligente. A geração e a gestão da
+        // credencial ficam separadas para permitir ampliar a leitura no
+        // futuro sem conceder acesso ao segredo do provedor.
+        'ai.summary.generate',
+        'ai.settings.view',
+        'ai.settings.update',
         'commissions.view',
         'commissions.pay',
         'expenses.view',
@@ -107,6 +113,9 @@ class CrmPermissions
     {
         return array_values(array_diff(self::ALL, [
             'dashboard.financial.view',
+            'ai.summary.generate',
+            'ai.settings.view',
+            'ai.settings.update',
             'commissions.view',
             'commissions.pay',
             'expenses.view',

@@ -1,9 +1,10 @@
 "use client";
 import React from "react";
 import { fmtBRL, fmtDate } from "../helpers";
-import { DashboardSummaryResponse } from "../types";
+import { AiSummaryResponse, DashboardSummaryResponse } from "../types";
 import { Btn, Card } from "../ui/Primitives";
 import CategoryDonut from "./dashboard/CategoryDonut";
+import AiSummaryCard from "./dashboard/AiSummaryCard";
 import ChannelBars from "./dashboard/ChannelBars";
 import EvolutionChart from "./dashboard/EvolutionChart";
 import GoalProgress from "./dashboard/GoalProgress";
@@ -25,6 +26,10 @@ type Props = {
   onCustomToChange: (value: string) => void;
   onRefresh: () => void;
   onCategoryClick: (category: string) => void;
+  aiSummary?: AiSummaryResponse | null;
+  aiLoading?: boolean;
+  aiError?: string | null;
+  onGenerateAi?: () => void;
 };
 
 const Dashboard: React.FC<Props> = ({
@@ -39,6 +44,10 @@ const Dashboard: React.FC<Props> = ({
   onCustomToChange,
   onRefresh,
   onCategoryClick,
+  aiSummary,
+  aiLoading = false,
+  aiError = null,
+  onGenerateAi,
 }) => {
   return (
     <div>
@@ -74,6 +83,15 @@ const Dashboard: React.FC<Props> = ({
               {" "}· comparado com {fmtDate(summary.comparison.from)} — {fmtDate(summary.comparison.to)}
             </span>
           </div>
+
+          {onGenerateAi && (
+            <AiSummaryCard
+              summary={aiSummary ?? null}
+              loading={aiLoading}
+              error={aiError}
+              onGenerate={onGenerateAi}
+            />
+          )}
 
           {error && (
             <Card className={styles.errorBanner}>

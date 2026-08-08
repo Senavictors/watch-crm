@@ -1,0 +1,91 @@
+.card {
+  margin-bottom: 24px;
+  border: 1px solid color-mix(in srgb, var(--crm-primary) 30%, var(--crm-card-border));
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.title {
+  color: var(--crm-text);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.subtitle,
+.empty,
+.footer {
+  color: var(--crm-text-muted);
+  font-size: 12px;
+}
+
+.subtitle {
+  margin-top: 4px;
+}
+
+.empty,
+.unavailable {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 10px;
+  background: var(--crm-input-bg);
+}
+
+.unavailable {
+  color: var(--crm-danger);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.list {
+  display: grid;
+  gap: 14px;
+  margin: 18px 0 0;
+  padding-left: 20px;
+}
+
+.item {
+  color: var(--crm-text);
+  padding-left: 4px;
+}
+
+.statement {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.source {
+  border: 1px solid var(--crm-table-border);
+  border-radius: 999px;
+  color: var(--crm-text-muted);
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+.source strong {
+  color: var(--crm-text);
+}
+
+.footer {
+  border-top: 1px solid var(--crm-table-border);
+  margin-top: 16px;
+  padding-top: 12px;
+}
+
+@media (max-width: 640px) {
+  .header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

@@ -3,15 +3,15 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../features/crm/contexts/AuthContext";
 import { useToast } from "../../../features/crm/contexts/ToastContext";
-import { apiFetch, getApiBaseUrl, getErrorMessage } from "../../../features/crm/api";
-import { DashboardSummaryResponse } from "../../../features/crm/types";
+import { apiCreate, apiFetch, getApiBaseUrl, getErrorMessage } from "../../../features/crm/api";
+import { AiSummaryResponse, DashboardSummaryResponse } from "../../../features/crm/types";
 import Dashboard from "../../../features/crm/views/Dashboard";
 import { PeriodPresetId, resolvePresetRange } from "../../../features/crm/views/dashboard/periodPresets";
 
 const AUTO_REFRESH_INTERVAL_MS = 5 * 60 * 1000; // RN-03: atualização automática a cada 5 minutos.
 
 export default function DashboardPage() {
-  const { handleUnauthorized } = useAuth();
+  const { hasPermission, handleUnauthorized } = useAuth();
   const { pushToast } = useToast();
   const router = useRouter();
 
@@ -26,6 +26,10 @@ export default function DashboardPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const [aiSummary, setAiSummary] = useState<AiSummaryResponse | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const canUseAiSummary = hasPermission("ai.summary.generate");
 
   const range = preset === "custom" ? { from: customFrom, to: customTo } : resolvePresetRange(preset);
   const from = range?.from ?? "";
@@ -93,6 +97,59 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Recupera somente um cache existente; abrir o dashboard ou trocar o
+  // período nunca dispara uma chamada paga ao provedor.
+  useEffect(() => {
+    if (!canUseAiSummary || !summary?.period.from || !summary?.period.to) return;
+
+    const apiBaseUrl = getApiBaseUrl();
+    let alive = true;
+    setAiSummary(null);
+    setAiError(null);
+
+    async function loadCachedSummary() {
+      const params = new URLSearchParams({ from: summary!.period.from, to: summary!.period.to });
+      try {
+        const response = await apiFetch(`${apiBaseUrl}/ai/summary?${params.toString()}`);
+        if (response.status === 401) { handleUnauthorized(); return; }
+        if (response.status === 204) return;
+        if (!response.ok) throw new Error("Resumo indisponível.");
+        const data = (await response.json()) as AiSummaryResponse;
+        if (alive) setAiSummary(data);
+      } catch {
+        if (alive) setAiError("Resumo indisponível.");
+      }
+    }
+
+    loadCachedSummary();
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canUseAiSummary, summary?.period.from, summary?.period.to]);
+
+  async function handleGenerateAiSummary() {
+    if (!summary) return;
+
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const generated = await apiCreate<AiSummaryResponse>(
+        "/ai/summary",
+        {
+          from: summary.period.from,
+          to: summary.period.to,
+          refresh: Boolean(aiSummary),
+        },
+        "Resumo indisponível."
+      );
+      setAiSummary(generated);
+    } catch {
+      setAiSummary(null);
+      setAiError("Resumo indisponível.");
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
   function handleCategoryClick(category: string) {
     // CA-02: usa o período efetivamente resolvido pela API (`period`), não o
     // `from`/`to` local — evita divergência se o backend normalizar as datas.
@@ -119,6 +176,10 @@ export default function DashboardPage() {
       onCustomToChange={setCustomTo}
       onRefresh={() => setReloadToken((t) => t + 1)}
       onCategoryClick={handleCategoryClick}
+      aiSummary={canUseAiSummary ? aiSummary : undefined}
+      aiLoading={canUseAiSummary ? aiLoading : undefined}
+      aiError={canUseAiSummary ? aiError : undefined}
+      onGenerateAi={canUseAiSummary ? handleGenerateAiSummary : undefined}
     />
   );
 }

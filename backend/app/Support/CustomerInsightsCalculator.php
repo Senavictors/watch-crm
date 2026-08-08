@@ -44,6 +44,38 @@ class CustomerInsightsCalculator
     }
 
     /**
+     * TASK-021 — contagem agregada, sem carregar ou expor qualquer dado
+     * pessoal. Reaproveita exatamente a mesma heurística de recompra usada
+     * no detalhe do cliente.
+     */
+    public static function repurchaseAggregate(User $user): array
+    {
+        $ordersByCustomer = OrderFinancialScope::ordersQuery($user, null, null, 'paid_at')
+            ->whereNotNull('paid_at')
+            ->where('status', '!=', 'Cancelado')
+            ->orderBy('paid_at')
+            ->get(['customer_id', 'paid_at'])
+            ->groupBy('customer_id');
+
+        $evaluated = 0;
+        $possible = 0;
+
+        foreach ($ordersByCustomer as $orders) {
+            $signal = self::possibleRepurchase($orders->values());
+            if ($signal === null) {
+                continue;
+            }
+
+            $evaluated++;
+            if ($signal) {
+                $possible++;
+            }
+        }
+
+        return ['evaluated' => $evaluated, 'possible' => $possible];
+    }
+
+    /**
      * Heurística determinística e transparente (CA-03) — NÃO é um modelo
      * preditivo/IA (fora de escopo desta task por decisão explícita): é uma
      * média aritmética simples do intervalo (em dias) entre compras pagas

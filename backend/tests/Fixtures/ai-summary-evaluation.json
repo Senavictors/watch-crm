@@ -1,0 +1,37 @@
+[
+  {
+    "name": "valid-three-facts",
+    "factIds": ["financial.revenue", "shipping.queue", "returns.open"],
+    "valid": true
+  },
+  {
+    "name": "valid-five-facts",
+    "factIds": ["financial.revenue", "financial.net_result", "shipping.queue", "returns.open", "waitlist.active"],
+    "valid": true
+  },
+  {
+    "name": "hallucinated-fact-id",
+    "factIds": ["financial.revenue", "shipping.queue", "prediction.next_month"],
+    "valid": false
+  },
+  {
+    "name": "duplicated-fact",
+    "factIds": ["financial.revenue", "financial.revenue", "shipping.queue"],
+    "valid": false
+  },
+  {
+    "name": "too-few-facts",
+    "factIds": ["financial.revenue", "shipping.queue"],
+    "valid": false
+  },
+  {
+    "name": "too-many-facts",
+    "factIds": ["financial.revenue", "financial.net_result", "sales.volume", "shipping.queue", "returns.open", "waitlist.active"],
+    "valid": false
+  },
+  {
+    "name": "non-string-injection",
+    "factIds": ["financial.revenue", "shipping.queue", {"customerName": "Pessoa Sentinela"}],
+    "valid": false
+  }
+]

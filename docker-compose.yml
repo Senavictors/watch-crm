@@ -31,6 +31,13 @@ services:
       DB_DATABASE: watch_crm
       DB_USERNAME: watchcrm
       DB_PASSWORD: secret
+      AI_SUMMARY_ENABLED: "${AI_SUMMARY_ENABLED:-true}"
+      AI_SUMMARY_CACHE_TTL: "${AI_SUMMARY_CACHE_TTL:-900}"
+      AI_SUMMARY_TIMEOUT: "${AI_SUMMARY_TIMEOUT:-20}"
+      AI_SUMMARY_TIMEZONE: "${AI_SUMMARY_TIMEZONE:-America/Sao_Paulo}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      OPENAI_PROJECT: "${OPENAI_PROJECT:-}"
+      OPENAI_MODEL: "${OPENAI_MODEL:-gpt-5.6-luna}"
     volumes:
       - ./backend:/var/www
       - backend_vendor:/var/www/vendor
@@ -40,7 +47,7 @@ services:
     command: >
       sh -c "cp -n .env.example .env
       && composer install
-      && php artisan key:generate --force
+      && (grep -q '^APP_KEY=base64:' .env || php artisan key:generate --force)
       && php artisan config:clear
       && php artisan migrate --force --seed
       && php artisan serve --host=0.0.0.0 --port=8000"

@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\AiSettingsController;
+use App\Http\Controllers\Api\AiSummaryController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CategoryController;
@@ -29,6 +31,12 @@ Route::middleware('web')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
 
         Route::get('/dashboard/summary', [DashboardController::class, 'summary'])->middleware('permission:dashboard.view');
+
+        Route::get('/ai/summary', [AiSummaryController::class, 'cached'])->middleware(['permission:dashboard.view', 'permission:ai.summary.generate']);
+        Route::post('/ai/summary', [AiSummaryController::class, 'generate'])->middleware(['permission:dashboard.view', 'permission:ai.summary.generate', 'throttle:10,60']);
+        Route::get('/ai/settings', [AiSettingsController::class, 'show'])->middleware('permission:ai.settings.view');
+        Route::put('/ai/settings', [AiSettingsController::class, 'update'])->middleware('permission:ai.settings.update');
+        Route::delete('/ai/settings/key', [AiSettingsController::class, 'destroyKey'])->middleware('permission:ai.settings.update');
 
         Route::get('/shipping/schedule', [ShippingController::class, 'schedule'])->middleware('permission:shipping.view');
         Route::put('/shipping/schedule', [ShippingController::class, 'updateSchedule'])->middleware('permission:shipping.update');

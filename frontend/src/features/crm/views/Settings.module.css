@@ -122,6 +122,67 @@
   font-size: 13px;
 }
 
+.fieldLabel {
+  display: grid;
+  gap: 6px;
+  color: var(--crm-text);
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 12px;
+}
+
+.integrationStatus,
+.integrationActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.integrationActions {
+  margin-top: 16px;
+}
+
+.statusOk,
+.statusPending {
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 9px;
+}
+
+.statusOk {
+  background: color-mix(in srgb, var(--crm-success) 14%, transparent);
+  color: var(--crm-success);
+}
+
+.statusPending {
+  background: color-mix(in srgb, var(--crm-danger) 12%, transparent);
+  color: var(--crm-danger);
+}
+
+.statusDetail {
+  color: var(--crm-text-muted);
+  font-size: 11px;
+}
+
+.warning {
+  background: color-mix(in srgb, var(--crm-danger) 10%, transparent);
+  border-radius: 10px;
+  color: var(--crm-danger);
+  font-size: 12px;
+  margin-top: 12px;
+  padding: 10px;
+}
+
+.helpLink {
+  color: var(--crm-primary);
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 14px;
+}
+
 @media (max-width: 840px) {
   .grid {
     grid-template-columns: 1fr;

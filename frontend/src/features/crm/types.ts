@@ -59,6 +59,9 @@ export type Permission =
   | "settings.view"
   | "users.manage"
   | "dashboard.financial.view"
+  | "ai.summary.generate"
+  | "ai.settings.view"
+  | "ai.settings.update"
   | "commissions.view"
   | "commissions.pay"
   | "expenses.view"
@@ -654,6 +657,35 @@ export type DashboardSummaryResponse = {
   channels?: DashboardChannelBreakdown[];
   commission?: DashboardCommissionSummary;
   stock?: DashboardStock;
+};
+
+export type AiSummarySource = {
+  label: string;
+  value: string;
+};
+
+export type AiSummaryItem = {
+  id: string;
+  text: string;
+  sources: AiSummarySource[];
+};
+
+export type AiSummaryResponse = {
+  items: AiSummaryItem[];
+  period: { from: string; to: string };
+  generatedAt: string;
+  model: string;
+  cached: boolean;
+};
+
+export type AiSettingsResponse = {
+  provider: "openai";
+  model: string;
+  projectId: string | null;
+  enabled: boolean;
+  featureEnabled: boolean;
+  configured: boolean;
+  apiKeySource: "database" | "environment" | "none";
 };
 
 /**
