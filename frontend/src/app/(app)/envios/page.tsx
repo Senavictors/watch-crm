@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../../features/crm/contexts/AuthContext";
 import { useToast } from "../../../features/crm/contexts/ToastContext";
-import { apiFetch, getApiBaseUrl } from "../../../features/crm/api";
+import { apiFetch, apiUpdate, getApiBaseUrl } from "../../../features/crm/api";
 import { PaginatedResponse, PaginationMeta, PostingDaySchedule, ProductReturn, ShippingQueueItem } from "../../../features/crm/types";
 import { EMPTY_PAGINATION } from "../../../features/crm/pagination";
 import PaginationBar from "../../../features/crm/ui/PaginationBar";
@@ -20,6 +20,7 @@ export default function EnviosPage() {
   const [queueMeta, setQueueMeta] = useState<PaginationMeta>(EMPTY_PAGINATION);
   const [returnMeta, setReturnMeta] = useState<PaginationMeta>(EMPTY_PAGINATION);
   const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -59,11 +60,41 @@ export default function EnviosPage() {
     }
     loadLists();
     return () => { alive = false; };
-  }, [handleUnauthorized, hasPermission, queuePage, pushToast, returnPage]);
+  }, [handleUnauthorized, hasPermission, queuePage, pushToast, reloadKey, returnPage]);
+
+  async function handleUpdateShipping(item: ShippingQueueItem, trackingCode: string) {
+    try {
+      await apiUpdate(
+        `/orders/${item.id}`,
+        {
+          status: "Enviado",
+          trackingCode,
+        },
+        "Falha ao atualizar o envio."
+      );
+
+      pushToast(`Pedido #${item.id} marcado como enviado.`, "success");
+
+      if (queue.length === 1 && queuePage > 1) {
+        setQueuePage((page) => page - 1);
+      } else {
+        setReloadKey((key) => key + 1);
+      }
+    } catch (error) {
+      pushToast(error instanceof Error ? error.message : "Erro ao atualizar o envio.", "error");
+      throw error;
+    }
+  }
 
   return (
     <>
-      <ShippingQueue queue={queue} schedule={schedule} pendingReturns={pendingReturns} />
+      <ShippingQueue
+        queue={queue}
+        schedule={schedule}
+        pendingReturns={pendingReturns}
+        canUpdateShipping={hasPermission("orders.update")}
+        onUpdateShipping={handleUpdateShipping}
+      />
       <PaginationBar meta={queueMeta} onPageChange={setQueuePage} disabled={loading} />
       {hasPermission("returns.view") && returnMeta.total > 0 && (
         <div style={{ marginTop: 12 }}>

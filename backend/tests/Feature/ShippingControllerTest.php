@@ -251,6 +251,66 @@ class ShippingControllerTest extends TestCase
         $this->assertNull(collect($response->json('data'))->firstWhere('id', $order->id));
     }
 
+    public function test_correios_shipment_requires_tracking_code(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin->value]);
+        $order = Order::factory()->paid()->create([
+            'status' => 'Pronto para Envio',
+            'shipping_method' => 'Sedex',
+            'tracking_code' => null,
+            'shipped_date' => null,
+        ]);
+
+        $this->actingAs($admin)
+            ->withSession(['_token' => 'csrf-token'])
+            ->patchJson('/api/orders/'.$order->id, [
+                'status' => 'Enviado',
+                'trackingCode' => '',
+            ], self::CSRF_HEADERS)
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'O código de rastreio é obrigatório para envios pelos Correios.');
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'Pronto para Envio',
+            'shipped_date' => null,
+        ]);
+    }
+
+    public function test_updating_shipment_sets_date_and_removes_order_from_queue(): void
+    {
+        Carbon::setTestNow('2026-08-09 14:00:00');
+
+        $admin = User::factory()->create(['role' => UserRole::Admin->value]);
+        $order = Order::factory()->paid()->create([
+            'status' => 'Pronto para Envio',
+            'shipping_method' => 'Correios PAC',
+            'tracking_code' => null,
+            'shipped_date' => null,
+        ]);
+
+        $this->actingAs($admin)
+            ->withSession(['_token' => 'csrf-token'])
+            ->patchJson('/api/orders/'.$order->id, [
+                'status' => 'Enviado',
+                'trackingCode' => 'BR123456789BR',
+            ], self::CSRF_HEADERS)
+            ->assertOk()
+            ->assertJsonPath('status', 'Enviado')
+            ->assertJsonPath('trackingCode', 'BR123456789BR')
+            ->assertJsonPath('shippedDate', '2026-08-09');
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'Enviado',
+            'tracking_code' => 'BR123456789BR',
+            'shipped_date' => '2026-08-09',
+        ]);
+
+        $response = $this->actingAs($admin)->getJson('/api/shipping/queue')->assertOk();
+        $this->assertNull(collect($response->json('data'))->firstWhere('id', $order->id));
+    }
+
     public function test_unpaid_order_never_appears_in_the_queue(): void
     {
         $order = Order::factory()->create([

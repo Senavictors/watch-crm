@@ -37,6 +37,11 @@ class OrderMetadata
         'Retirada',
     ];
 
+    public const CORREIOS_SHIPPING_METHODS = [
+        'Sedex',
+        'Correios PAC',
+    ];
+
     /**
      * Status em que um pedido é considerado "pago" (TASK-003). Usado por
      * `OrderPaymentTransition` para decidir quando confirmar/reverter

@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { fmtBRL, fmtDate } from "../helpers";
 import { PostingDaySchedule, ProductReturn, ShippingQueueItem } from "../types";
 import { RETURN_TYPE_COLORS } from "../data/mock";
-import { Card } from "../ui/Primitives";
+import ModalBackdrop from "../components/Modal/ModalBackdrop";
+import { Btn, Card, Input } from "../ui/Primitives";
+import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./ShippingQueue.module.css";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -15,7 +17,11 @@ type Props = {
   queue: ShippingQueueItem[];
   schedule: PostingDaySchedule[];
   pendingReturns?: ProductReturn[];
+  canUpdateShipping?: boolean;
+  onUpdateShipping?: (item: ShippingQueueItem, trackingCode: string) => Promise<void>;
 };
+
+const CORREIOS_METHODS = new Set(["Sedex", "Correios PAC"]);
 
 /**
  * Próximo dia habilitado a partir de `today` (inclusive) — só percorre a
@@ -41,7 +47,17 @@ function nextEnabledDateFrom(today: Date, schedule: PostingDaySchedule[]): strin
   return null;
 }
 
-const ShippingQueue: React.FC<Props> = ({ queue, schedule, pendingReturns = [] }) => {
+const ShippingQueue: React.FC<Props> = ({
+  queue,
+  schedule,
+  pendingReturns = [],
+  canUpdateShipping = false,
+  onUpdateShipping,
+}) => {
+  const [selectedItem, setSelectedItem] = useState<ShippingQueueItem | null>(null);
+  const [trackingCode, setTrackingCode] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const today = new Date();
   const todaySchedule = schedule.find((s) => s.weekday === today.getDay());
   const isShippingDay = todaySchedule?.enabled ?? false;
@@ -50,6 +66,45 @@ const ShippingQueue: React.FC<Props> = ({ queue, schedule, pendingReturns = [] }
   // pedido mais atrasado da fila — evita mostrar uma data passada quando há
   // pedidos atrasados (ver TASK-016, achado da validação manual).
   const nextPostingDate = isShippingDay ? null : nextEnabledDateFrom(today, schedule);
+
+  const requiresTrackingCode = selectedItem
+    ? CORREIOS_METHODS.has(selectedItem.shippingMethod)
+    : false;
+
+  function openUpdateModal(item: ShippingQueueItem) {
+    setSelectedItem(item);
+    setTrackingCode("");
+    setFormError(null);
+  }
+
+  function closeUpdateModal() {
+    if (saving) return;
+    setSelectedItem(null);
+    setTrackingCode("");
+    setFormError(null);
+  }
+
+  async function handleUpdateShipping() {
+    if (!selectedItem || !onUpdateShipping) return;
+
+    const normalizedTrackingCode = trackingCode.trim();
+    if (requiresTrackingCode && !normalizedTrackingCode) {
+      setFormError("Informe o código de rastreio para este envio pelos Correios.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setFormError(null);
+      await onUpdateShipping(selectedItem, normalizedTrackingCode);
+      setSelectedItem(null);
+      setTrackingCode("");
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Não foi possível atualizar o envio.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div>
@@ -89,7 +144,16 @@ const ShippingQueue: React.FC<Props> = ({ queue, schedule, pendingReturns = [] }
                 </div>
                 <div className={styles.rightSub}>{fmtBRL(item.freight)} frete</div>
               </div>
-              <div className={styles.check} title="Marcar como postado" />
+              {canUpdateShipping && onUpdateShipping && (
+                <Btn
+                  variant="secondary"
+                  small
+                  className={styles.updateButton}
+                  onClick={() => openUpdateModal(item)}
+                >
+                  Atualizar envio
+                </Btn>
+              )}
             </Card>
           ))}
         </div>
@@ -131,6 +195,73 @@ const ShippingQueue: React.FC<Props> = ({ queue, schedule, pendingReturns = [] }
             })}
           </div>
         </div>
+      )}
+
+      {selectedItem && (
+        <ModalBackdrop onClose={closeUpdateModal}>
+          <div
+            className={`${modalStyles.modal} ${styles.updateModal}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="update-shipping-title"
+          >
+            <div className={modalStyles.header}>
+              <h3 id="update-shipping-title" className={modalStyles.title}>Atualizar envio</h3>
+              <button
+                type="button"
+                onClick={closeUpdateModal}
+                className={modalStyles.close}
+                aria-label="Fechar modal"
+                disabled={saving}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className={styles.modalSummary}>
+              <div>
+                <span>Pedido</span>
+                <strong>#{selectedItem.id}</strong>
+              </div>
+              <div>
+                <span>Cliente</span>
+                <strong>{selectedItem.customerName}</strong>
+              </div>
+              <div>
+                <span>Forma de envio</span>
+                <strong>{selectedItem.shippingMethod}</strong>
+              </div>
+              <div>
+                <span>Novo status</span>
+                <strong className={styles.modalStatus}>Enviado</strong>
+              </div>
+            </div>
+
+            <Input
+              label={`Código de rastreio${requiresTrackingCode ? " *" : " (opcional)"}`}
+              value={trackingCode}
+              onChange={(event) => setTrackingCode(event.target.value)}
+              placeholder={requiresTrackingCode ? "Ex.: BR123456789BR" : "Informe se houver"}
+              autoFocus
+              disabled={saving}
+            />
+
+            <p className={styles.modalHelp}>
+              Ao confirmar, o pedido será marcado como enviado com a data de hoje e sairá da fila.
+            </p>
+
+            {formError && <div className={styles.modalError} role="alert">{formError}</div>}
+
+            <div className={styles.modalActions}>
+              <Btn onClick={closeUpdateModal} variant="secondary" disabled={saving}>
+                Cancelar
+              </Btn>
+              <Btn onClick={handleUpdateShipping} variant="primary" disabled={saving}>
+                {saving ? "Salvando..." : "Confirmar envio"}
+              </Btn>
+            </div>
+          </div>
+        </ModalBackdrop>
       )}
     </div>
   );

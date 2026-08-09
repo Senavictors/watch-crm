@@ -299,6 +299,8 @@ Limitação atual: pedido pago/vendido não decrementa automaticamente `products
 - É obrigatório manter ao menos um dia de postagem habilitado.
 - A fila considera pedidos pagos ainda não enviados.
 - A próxima postagem é calculada a partir de `paid_at` e da agenda semanal.
+- Usuários com `orders.update` podem concluir um item da fila pela modal **Atualizar envio**; a operação define o status `Enviado`, grava a data atual em `shipped_date` e remove o pedido da fila.
+- O código de rastreio é obrigatório ao concluir envios por Sedex ou Correios PAC e opcional para os demais métodos.
 - A interface também mostra pós-vendas prontos para reenvio.
 - A integração automática com rastreamento dos Correios ainda não está implementada.
 

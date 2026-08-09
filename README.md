@@ -45,7 +45,7 @@ O Watch CRM centraliza a operação de uma loja de relógios em uma aplicação 
 ### Envio e pós-venda
 
 - **Agenda de postagem** — dias da semana configuráveis e cálculo da próxima data de envio.
-- **Fila de envios** — pedidos pagos aguardando postagem, com paginação e indicação de atraso/prontidão.
+- **Fila de envios** — pedidos pagos aguardando postagem, com paginação, indicação de atraso/prontidão e atualização do envio em modal.
 - **Garantias, trocas e devoluções** — itens, custos, reembolso, rastreio de retorno/reenvio, janela de garantia, máquina de estados e histórico de transições.
 
 ### Plataforma

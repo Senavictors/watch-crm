@@ -237,6 +237,30 @@ class OrderController extends Controller
 
         $data = $this->validateData($request, true);
 
+        $effectiveStatus = $data['status'] ?? $order->status;
+        $effectiveShippingMethod = $data['shippingMethod'] ?? $order->shipping_method;
+        $effectiveTrackingCode = array_key_exists('trackingCode', $data)
+            ? $data['trackingCode']
+            : $order->tracking_code;
+
+        if (
+            $effectiveStatus === 'Enviado'
+            && in_array($effectiveShippingMethod, OrderMetadata::CORREIOS_SHIPPING_METHODS, true)
+            && blank($effectiveTrackingCode)
+        ) {
+            return response()->json([
+                'message' => 'O código de rastreio é obrigatório para envios pelos Correios.',
+            ], 422);
+        }
+
+        $effectiveShippedDate = array_key_exists('shippedDate', $data)
+            ? $data['shippedDate']
+            : $order->shipped_date;
+
+        if ($effectiveStatus === 'Enviado' && blank($effectiveShippedDate)) {
+            $data['shippedDate'] = Carbon::today(config('app.timezone'))->toDateString();
+        }
+
         // TASK-005 (CA-03): `syncItems` recria as linhas do pedido (delete +
         // insert), o que apagaria silenciosamente `commission_paid_at` de
         // qualquer item já conciliado. Uma comissão paga não pode ser
@@ -375,7 +399,7 @@ class OrderController extends Controller
             'paymentMethod' => [$partial ? 'sometimes' : 'nullable', 'string', Rule::in(OrderMetadata::PAYMENT_METHODS)],
             'paymentExpiresAt' => [$partial ? 'sometimes' : 'nullable', 'date'],
             'shippingMethod' => [$required, 'string', Rule::in(OrderMetadata::SHIPPING_METHODS)],
-            'trackingCode' => [$partial ? 'sometimes' : 'nullable', 'string', 'max:255'],
+            'trackingCode' => [...($partial ? ['sometimes'] : []), 'nullable', 'string', 'max:255'],
             'saleDate' => [$required, 'date'],
             'shippedDate' => [$partial ? 'sometimes' : 'nullable', 'date'],
             'notes' => [$partial ? 'sometimes' : 'nullable', 'string'],
