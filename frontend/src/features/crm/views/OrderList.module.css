@@ -26,7 +26,7 @@
 
 .filters {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 16px;
   flex-wrap: wrap;
 }
@@ -39,8 +39,10 @@
   padding: 7px 12px;
   font-size: 13px;
   outline: none;
-  flex: 1;
-  min-width: 160px;
+  box-sizing: border-box;
+  flex: 1 1 160px;
+  min-width: 150px;
+  max-width: 190px;
 }
 
 .select {
@@ -51,6 +53,28 @@
   padding: 7px 12px;
   font-size: 13px;
   outline: none;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.filterStatus {
+  flex: 0 0 155px;
+}
+
+.filterChannel {
+  flex: 0 0 130px;
+}
+
+.filterSeller {
+  flex: 0 0 150px;
+}
+
+.filterCategory {
+  flex: 0 0 145px;
+}
+
+.dateFilter {
+  flex: 0 0 135px;
 }
 
 .chips {
@@ -191,4 +215,19 @@
   padding: 40px;
   text-align: center;
   color: var(--crm-text-soft);
+}
+
+@media (max-width: 720px) {
+  .search {
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  .filterStatus,
+  .filterChannel,
+  .filterSeller,
+  .filterCategory,
+  .dateFilter {
+    flex: 1 1 140px;
+  }
 }

@@ -81,24 +81,24 @@ const OrderList: React.FC<Props> = ({
 
       <div className={styles.filters}>
         <input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="Buscar pedido..." className={styles.search} />
-        <select value={status} onChange={(event) => onStatusChange(event.target.value as OrderStatus | "")} className={styles.select}>
+        <select value={status} onChange={(event) => onStatusChange(event.target.value as OrderStatus | "")} className={`${styles.select} ${styles.filterStatus}`}>
           <option value="">Todos status</option>
           {statuses.map((item) => <option key={item}>{item}</option>)}
         </select>
-        <select value={channel} onChange={(event) => onChannelChange(event.target.value)} className={styles.select}>
+        <select value={channel} onChange={(event) => onChannelChange(event.target.value)} className={`${styles.select} ${styles.filterChannel}`}>
           <option value="">Todos canais</option>
           {channels.map((item) => <option key={item}>{item}</option>)}
         </select>
-        <select value={sellerUserId} onChange={(event) => onSellerChange(event.target.value)} className={styles.select}>
+        <select value={sellerUserId} onChange={(event) => onSellerChange(event.target.value)} className={`${styles.select} ${styles.filterSeller}`}>
           <option value="">Todos vendedores</option>
           {sellers.map((seller) => <option key={seller.id} value={seller.id}>{seller.name}</option>)}
         </select>
-        <select value={category} onChange={(event) => onCategoryChange(event.target.value)} className={styles.select}>
+        <select value={category} onChange={(event) => onCategoryChange(event.target.value)} className={`${styles.select} ${styles.filterCategory}`}>
           <option value="">Todas categorias</option>
           {categories.map((item) => <option key={item}>{item}</option>)}
         </select>
-        <input type="date" value={from} onChange={(event) => onFromChange(event.target.value)} className={styles.select} aria-label="Pago a partir de" />
-        <input type="date" value={to} onChange={(event) => onToChange(event.target.value)} className={styles.select} aria-label="Pago até" />
+        <input type="date" value={from} onChange={(event) => onFromChange(event.target.value)} className={`${styles.select} ${styles.dateFilter}`} aria-label="Pago a partir de" />
+        <input type="date" value={to} onChange={(event) => onToChange(event.target.value)} className={`${styles.select} ${styles.dateFilter}`} aria-label="Pago até" />
       </div>
 
       {activeChips.length > 0 && (
