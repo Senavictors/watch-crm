@@ -1,10 +1,14 @@
-.header {
+.card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.headerTop {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 18px;
+  gap: 16px;
+  margin-bottom: 14px;
 }
 
 .title {
@@ -13,59 +17,241 @@
   font-weight: 700;
 }
 
-.toggleRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+.periodContext {
+  margin-top: 4px;
+  color: var(--crm-text-soft);
+  font-size: 11px;
 }
 
-.toggleButton {
-  border-radius: 999px;
-  border: 1px solid var(--crm-button-border);
-  background: var(--crm-button-secondary-bg);
-  padding: 5px 10px;
+.periodSelectLabel {
+  flex-shrink: 0;
+}
+
+.periodSelect {
+  max-width: 170px;
+  border: 1px solid var(--crm-input-border);
+  border-radius: 10px;
+  background: var(--crm-input-bg);
+  color: var(--crm-input-text);
+  padding: 7px 28px 7px 10px;
   font-size: 11px;
   font-weight: 600;
-  color: var(--crm-text-muted);
+  outline: none;
   cursor: pointer;
 }
 
-.toggleButtonActive {
-  background: var(--crm-primary);
+.periodSelect:focus-visible {
   border-color: var(--crm-primary);
-  color: #fff;
+  box-shadow: 0 0 0 3px var(--crm-primary-soft);
 }
 
-.chartArea {
+.periodSelect:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.summaryRow {
+  display: grid;
+  grid-template-columns: minmax(185px, 0.85fr) minmax(0, 1.4fr);
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 18px;
+}
+
+.summaryPanel {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--crm-primary) 22%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--crm-primary) 8%, transparent);
+}
+
+.summaryLabel {
+  color: var(--crm-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.summaryValue {
+  margin-top: 4px;
+  color: var(--crm-text);
+  font-size: 22px;
+  font-weight: 750;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.trendBadge {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 8px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.trendPositive {
+  color: var(--crm-success);
+  background: color-mix(in srgb, var(--crm-success) 12%, transparent);
+}
+
+.trendNegative {
+  color: var(--crm-danger);
+  background: color-mix(in srgb, var(--crm-danger) 12%, transparent);
+}
+
+.trendNeutral {
+  color: var(--crm-text-muted);
+  background: var(--crm-input-bg);
+}
+
+.toggleRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--crm-table-border);
+  scrollbar-width: none;
+}
+
+.toggleRow::-webkit-scrollbar {
+  display: none;
+}
+
+.toggleButton {
+  flex-shrink: 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  padding: 8px 5px;
+  color: var(--crm-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toggleButton:hover {
+  color: var(--crm-text);
+}
+
+.toggleButtonActive {
+  border-bottom-color: var(--crm-primary);
+  color: var(--crm-primary);
+}
+
+.chartFrame {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.yAxis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 200px;
+  margin-top: 42px;
+  padding-right: 8px;
+  color: var(--crm-text-soft);
+  font-size: 9px;
+  line-height: 1;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.plotScroll {
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--crm-panel-border) transparent;
+}
+
+.plot {
+  position: relative;
+  height: 270px;
+}
+
+.gridLines {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  bottom: 28px;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.gridLines span {
+  display: block;
   width: 100%;
+  border-top: 1px solid var(--crm-table-border);
 }
 
 .bars {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  bottom: 0;
+  left: 0;
   display: flex;
-  align-items: flex-end;
-  gap: 4px;
-  height: 200px;
-  border-bottom: 1px solid var(--crm-table-border);
-  padding-bottom: 2px;
+  align-items: flex-start;
 }
 
 .barColumn {
-  flex: 1;
+  position: relative;
+  display: grid;
+  grid-template-rows: 200px 28px;
+  flex: 1 0 32px;
+  min-width: 32px;
+  outline: none;
+}
+
+.barTrack {
+  position: relative;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  height: 100%;
-  min-width: 4px;
+  align-items: flex-end;
+  justify-content: center;
+  height: 200px;
 }
 
 .bar {
-  width: 100%;
-  max-width: 22px;
-  border-radius: 4px 4px 0 0;
-  background: var(--crm-primary);
+  width: min(64%, 20px);
+  height: var(--bar-height);
+  min-height: 0;
+  border-radius: 5px 5px 1px 1px;
+  background: linear-gradient(180deg, var(--crm-primary), var(--crm-accent));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--crm-primary) 24%, transparent);
   transform-origin: bottom;
   animation: crm-grow-height 0.5s ease forwards;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.barColumn:hover .bar,
+.barColumn:focus-visible .bar {
+  filter: brightness(1.12);
+}
+
+.barColumn:focus-visible .bar {
+  box-shadow: 0 0 0 3px var(--crm-primary-soft);
 }
 
 @keyframes crm-grow-height {
@@ -78,10 +264,65 @@
 }
 
 .barLabel {
-  margin-top: 6px;
+  margin-top: 7px;
   color: var(--crm-text-soft);
-  font-size: 10px;
+  font-size: 9px;
+  line-height: 1;
+  text-align: center;
   white-space: nowrap;
+}
+
+.tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--bar-height) + 8px);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: max-content;
+  max-width: 150px;
+  padding: 7px 9px;
+  border: 1px solid var(--crm-card-border);
+  border-radius: 9px;
+  background: var(--crm-card-bg);
+  box-shadow: var(--crm-card-shadow);
+  color: var(--crm-text-muted);
+  font-size: 10px;
+  line-height: 1.25;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.tooltip strong {
+  color: var(--crm-text);
+  font-size: 11px;
+}
+
+.barColumn:first-child .tooltip {
+  left: 2px;
+  transform: translate(0, 4px);
+}
+
+.barColumn:last-child .tooltip {
+  right: 2px;
+  left: auto;
+  transform: translate(0, 4px);
+}
+
+.barColumn:hover .tooltip,
+.barColumn:focus-visible .tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.barColumn:first-child:hover .tooltip,
+.barColumn:first-child:focus-visible .tooltip,
+.barColumn:last-child:hover .tooltip,
+.barColumn:last-child:focus-visible .tooltip {
+  transform: translate(0, 0);
 }
 
 .empty {
@@ -89,4 +330,26 @@
   font-size: 13px;
   padding: 32px 0;
   text-align: center;
+}
+
+@media (max-width: 720px) {
+  .headerTop {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .periodSelectLabel,
+  .periodSelect {
+    width: 100%;
+    max-width: none;
+  }
+
+  .summaryRow {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .chartFrame {
+    grid-template-columns: 46px minmax(0, 1fr);
+  }
 }

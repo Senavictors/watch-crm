@@ -33,7 +33,7 @@ Route::middleware('web')->group(function () {
         Route::get('/dashboard/summary', [DashboardController::class, 'summary'])->middleware('permission:dashboard.view');
 
         Route::get('/ai/summary', [AiSummaryController::class, 'cached'])->middleware(['permission:dashboard.view', 'permission:ai.summary.generate']);
-        Route::post('/ai/summary', [AiSummaryController::class, 'generate'])->middleware(['permission:dashboard.view', 'permission:ai.summary.generate', 'throttle:10,60']);
+        Route::post('/ai/summary', [AiSummaryController::class, 'generate'])->middleware(['permission:dashboard.view', 'permission:ai.summary.generate', 'throttle:ai-summary']);
         Route::get('/ai/settings', [AiSettingsController::class, 'show'])->middleware('permission:ai.settings.view');
         Route::put('/ai/settings', [AiSettingsController::class, 'update'])->middleware('permission:ai.settings.update');
         Route::delete('/ai/settings/key', [AiSettingsController::class, 'destroyKey'])->middleware('permission:ai.settings.update');
@@ -43,6 +43,7 @@ Route::middleware('web')->group(function () {
         Route::get('/shipping/queue', [ShippingController::class, 'queue'])->middleware('permission:shipping.view');
 
         Route::get('/customers', [CustomerController::class, 'index'])->middleware('permission:customers.view');
+        Route::get('/customers/lookup', [CustomerController::class, 'lookup'])->middleware('permission:customers.view');
         Route::get('/customers/{id}', [CustomerController::class, 'show'])->middleware('permission:customers.view');
         Route::post('/customers', [CustomerController::class, 'store'])->middleware('permission:customers.create');
         Route::put('/customers/{id}', [CustomerController::class, 'update'])->middleware('permission:customers.update');
@@ -51,6 +52,7 @@ Route::middleware('web')->group(function () {
         Route::post('/customers/{id}/friction-notes', [CustomerController::class, 'addFrictionNote'])->middleware('permission:customers.update');
 
         Route::get('/products', [ProductController::class, 'index'])->middleware('permission:products.view');
+        Route::get('/products/lookup', [ProductController::class, 'lookup'])->middleware('permission:products.view');
         Route::post('/products', [ProductController::class, 'store'])->middleware('permission:products.create');
         Route::put('/products/{id}', [ProductController::class, 'update'])->middleware('permission:products.update');
         Route::patch('/products/{id}', [ProductController::class, 'update'])->middleware('permission:products.update');
@@ -76,13 +78,16 @@ Route::middleware('web')->group(function () {
         Route::delete('/categories/{id}', [CategoryController::class, 'destroy'])->middleware('permission:categories.delete');
 
         Route::get('/models', [ModelController::class, 'index'])->middleware('permission:models.view');
+        Route::get('/models/lookup', [ModelController::class, 'lookup'])->middleware('permission:models.view');
         Route::post('/models', [ModelController::class, 'store'])->middleware('permission:models.create');
         Route::put('/models/{id}', [ModelController::class, 'update'])->middleware('permission:models.update');
         Route::patch('/models/{id}', [ModelController::class, 'update'])->middleware('permission:models.update');
         Route::delete('/models/{id}', [ModelController::class, 'destroy'])->middleware('permission:models.delete');
 
         Route::get('/orders/metadata', [OrderController::class, 'metadata'])->middleware('permission:orders.view');
+        Route::get('/orders/lookup', [OrderController::class, 'lookup'])->middleware('permission:orders.view');
         Route::get('/orders', [OrderController::class, 'index'])->middleware('permission:orders.view');
+        Route::get('/orders/{id}', [OrderController::class, 'show'])->middleware('permission:orders.view');
         Route::post('/orders', [OrderController::class, 'store'])->middleware('permission:orders.create');
         Route::put('/orders/{id}', [OrderController::class, 'update'])->middleware('permission:orders.update');
         Route::patch('/orders/{id}', [OrderController::class, 'update'])->middleware('permission:orders.update');
@@ -90,6 +95,7 @@ Route::middleware('web')->group(function () {
 
         Route::get('/returns/metadata', [ReturnController::class, 'metadata'])->middleware('permission:returns.view');
         Route::get('/returns', [ReturnController::class, 'index'])->middleware('permission:returns.view');
+        Route::get('/returns/{id}', [ReturnController::class, 'show'])->middleware('permission:returns.view');
         Route::post('/returns', [ReturnController::class, 'store'])->middleware('permission:returns.create');
         Route::put('/returns/{id}', [ReturnController::class, 'update'])->middleware('permission:returns.update');
         Route::patch('/returns/{id}', [ReturnController::class, 'update'])->middleware('permission:returns.update');

@@ -1,5 +1,4 @@
 .root {
-  display: flex;
   min-height: 100vh;
   position: relative;
   z-index: 1;
@@ -7,6 +6,12 @@
 
 .sidebar {
   width: 220px;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  box-sizing: border-box;
   background: var(--crm-panel-bg);
   border-right: 1px solid var(--crm-panel-border);
   padding: 28px 16px;
@@ -24,17 +29,21 @@
 }
 
 .content {
-  flex: 1;
+  width: calc(100% - 220px);
+  margin-left: 220px;
+  box-sizing: border-box;
   padding: 36px 32px;
   min-width: 0;
   overflow-x: auto;
-  transition: max-width 0.22s ease;
+  transition: width 0.22s ease, margin-left 0.22s ease;
 }
 
 .root[data-collapsed="false"] .content {
-  max-width: calc(100vw - 220px);
+  width: calc(100% - 220px);
+  margin-left: 220px;
 }
 
 .root[data-collapsed="true"] .content {
-  max-width: calc(100vw - 64px);
+  width: calc(100% - 64px);
+  margin-left: 64px;
 }

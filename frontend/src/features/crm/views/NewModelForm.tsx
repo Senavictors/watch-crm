@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from "react";
 import { Btn, Input, Select } from "../ui/Primitives";
 import { Brand, Category, Quality, WatchModel } from "../types";
+import ModalBackdrop from "../components/Modal/ModalBackdrop";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./NewModelForm.module.css";
 
@@ -44,7 +45,7 @@ const NewModelForm: React.FC<Props> = ({ brands, categories, qualities, onSave, 
   }
 
   return (
-    <div className={modalStyles.overlay}>
+    <ModalBackdrop onClose={onClose}>
       <div className={`${modalStyles.modal} ${styles.modal}`}>
         <div className={modalStyles.header}>
           <h3 className={modalStyles.title}>Novo Modelo</h3>
@@ -112,7 +113,7 @@ const NewModelForm: React.FC<Props> = ({ brands, categories, qualities, onSave, 
           </Btn>
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 };
 

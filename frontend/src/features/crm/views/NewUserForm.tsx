@@ -1,14 +1,15 @@
 "use client";
 import React, { useState } from "react";
 import { Btn, Input, Select } from "../ui/Primitives";
-import { CrmUser, CrmUserInput } from "../types";
+import { CrmUser, CrmUserInput, UserRole } from "../types";
+import ModalBackdrop from "../components/Modal/ModalBackdrop";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./NewUserForm.module.css";
 
 type Props = {
   user?: CrmUser | null;
   resetPasswordMode?: boolean;
-  currentUserRole: "admin" | "gerente" | "vendedor";
+  currentUserRole: UserRole;
   onSave: (data: CrmUserInput) => void;
   onClose: () => void;
   onToast: (message: string, variant?: "success" | "error") => void;
@@ -28,7 +29,7 @@ const NewUserForm: React.FC<Props> = ({
     name: user?.name ?? "",
     email: user?.email ?? "",
     password: "",
-    role: user?.role ?? "vendedor" as "admin" | "gerente" | "vendedor",
+    role: user?.role ?? "vendedor" as UserRole,
   });
 
   function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
@@ -78,7 +79,7 @@ const NewUserForm: React.FC<Props> = ({
   }
 
   return (
-    <div className={modalStyles.overlay}>
+    <ModalBackdrop onClose={onClose}>
       <div className={`${modalStyles.modal} ${styles.modal}`}>
         <div className={modalStyles.header}>
           <h3 className={modalStyles.title}>{getTitle()}</h3>
@@ -124,7 +125,7 @@ const NewUserForm: React.FC<Props> = ({
             >
               <option value="vendedor">Vendedor</option>
               <option value="gerente">Gerente</option>
-              {currentUserRole === "admin" && <option value="admin">Admin</option>}
+              {(currentUserRole === "admin" || currentUserRole === "owner") && <option value="admin">Admin</option>}
             </Select>
           </div>
         )}
@@ -138,7 +139,7 @@ const NewUserForm: React.FC<Props> = ({
           </Btn>
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 };
 

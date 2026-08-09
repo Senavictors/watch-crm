@@ -81,13 +81,13 @@ class AuthFlowTest extends TestCase
         $this->actingAs($vendor)
             ->getJson('/api/customers')
             ->assertOk()
-            ->assertJsonCount(1)
-            ->assertJsonPath('0.id', $vendorCustomer->id);
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $vendorCustomer->id);
 
         $this->actingAs($vendor)
             ->getJson('/api/orders')
             ->assertOk()
-            ->assertJsonCount(1);
+            ->assertJsonCount(1, 'data');
     }
 
     public function test_manager_can_view_all_records(): void
@@ -99,7 +99,7 @@ class AuthFlowTest extends TestCase
         $this->actingAs($manager)
             ->getJson('/api/customers')
             ->assertOk()
-            ->assertJsonCount(2);
+            ->assertJsonCount(2, 'data');
     }
 
     public function test_vendor_cannot_access_settings_resources(): void

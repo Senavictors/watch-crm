@@ -185,6 +185,31 @@ class AiSummaryControllerTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    public function test_summary_generation_is_limited_per_user_to_ten_attempts_per_minute(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin->value]);
+        $owner = User::factory()->create(['role' => UserRole::Owner->value]);
+        AiSetting::query()->create([
+            'api_key' => 'sk-proj-rate-limit-test-1234567890',
+            'model' => 'gpt-5.6-luna',
+            'enabled' => true,
+        ]);
+        Http::fake([
+            'api.openai.com/*' => Http::response($this->openAiResponse([
+                'financial.revenue',
+                'shipping.queue',
+                'returns.open',
+            ])),
+        ]);
+
+        for ($attempt = 1; $attempt <= 10; $attempt++) {
+            $this->postSummary($admin)->assertOk();
+        }
+
+        $this->postSummary($admin)->assertTooManyRequests();
+        $this->postSummary($owner)->assertOk();
+    }
+
     public function test_provider_failure_does_not_affect_regular_dashboard(): void
     {
         $admin = User::factory()->create(['role' => UserRole::Admin->value]);

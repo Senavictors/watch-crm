@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { fmtBRL } from "../../helpers";
 import { DashboardGoalSummary } from "../../types";
 import { Card } from "../../ui/Primitives";
 import styles from "./GoalProgress.module.css";
@@ -14,6 +15,14 @@ function progressColor(pct: number): string {
   if (pct >= 70) return "#60a5fa";
   if (pct >= 40) return "#fbbf24";
   return "var(--crm-danger)";
+}
+
+function formatGoalValue(goal: DashboardGoalSummary, value: number): string {
+  if (goal.calculationType === "quantity") {
+    return `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(value)} un.`;
+  }
+
+  return fmtBRL(value);
 }
 
 const GoalRow: React.FC<{ label: string; goal: DashboardGoalSummary }> = ({ label, goal }) => (
@@ -34,7 +43,7 @@ const GoalRow: React.FC<{ label: string; goal: DashboardGoalSummary }> = ({ labe
       />
     </div>
     <div className={styles.values}>
-      {goal.totalCurrent} de {goal.totalTarget}
+      {formatGoalValue(goal, goal.totalCurrent)} de {formatGoalValue(goal, goal.totalTarget)}
     </div>
   </div>
 );

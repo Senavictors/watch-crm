@@ -1,26 +1,25 @@
 import React from "react";
 import { Badge, Btn } from "../ui/Primitives";
-import { Customer, Order } from "../types";
+import { Order } from "../types";
 import { calcMargin, calcProfit, fmtBRL, fmtDate, fmtDateTime } from "../helpers";
+import ModalBackdrop from "../components/Modal/ModalBackdrop";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./OrderDetail.module.css";
 
 type Props = {
   order: Order;
-  customers: Customer[];
   canCreateReturn?: boolean;
   onClose: () => void;
   onCreateReturn?: (order: Order) => void;
 };
 
-const OrderDetail: React.FC<Props> = ({ order, customers, canCreateReturn = false, onClose, onCreateReturn }) => {
-  const customer = customers.find((c) => c.id === order.customerId);
+const OrderDetail: React.FC<Props> = ({ order, canCreateReturn = false, onClose, onCreateReturn }) => {
   const profit = calcProfit(order);
   const margin = calcMargin(order);
   const nextPostingLabel = order.nextPostingDate ? fmtDate(order.nextPostingDate) : null;
 
   return (
-    <div className={modalStyles.overlay}>
+    <ModalBackdrop onClose={onClose}>
       <div className={`${modalStyles.modal} ${styles.modal}`}>
         <div className={modalStyles.header}>
           <h3 className={modalStyles.title}>Pedido #{order.id}</h3>
@@ -58,15 +57,16 @@ const OrderDetail: React.FC<Props> = ({ order, customers, canCreateReturn = fals
         <div className={styles.infoGrid}>
           <div>
             <div className={styles.infoLabel}>Cliente</div>
-            <div className={styles.infoValue}>{customer?.name}</div>
-            <div className={styles.infoMuted}>{customer?.phone}</div>
-            <div className={styles.infoMuted}>{customer?.instagram}</div>
+            <div className={styles.infoValue}>{order.customerName ?? `Cliente #${order.customerId}`}</div>
           </div>
           <div>
             <div className={styles.infoLabel}>Resumo do Pedido</div>
             <div className={styles.infoValue}>{order.productName}</div>
             <div className={styles.infoMuted}>{order.itemsCount} item(ns)</div>
             <div className={styles.infoMuted}>Pagamento: {order.paymentMethod}</div>
+            {!order.paidAt && order.paymentExpiresAt && (
+              <div className={styles.infoMuted}>Vence em {fmtDateTime(order.paymentExpiresAt)}</div>
+            )}
             <div className={styles.infoMuted}>Envio: {order.shippingMethod}</div>
           </div>
         </div>
@@ -150,7 +150,7 @@ const OrderDetail: React.FC<Props> = ({ order, customers, canCreateReturn = fals
           )}
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 };
 

@@ -1,143 +1,122 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { useAuth } from "../../../features/crm/contexts/AuthContext";
 import { useToast } from "../../../features/crm/contexts/ToastContext";
-import { apiFetch, apiCreate, apiUpdate, apiDelete, getApiBaseUrl } from "../../../features/crm/api";
-import {
-  Customer,
-  Order,
-  Product,
-  WaitlistEntry,
-  WaitlistInput,
-  WaitlistMetadata,
-  WaitlistStatus,
-} from "../../../features/crm/types";
+import { apiCreate, apiDelete, apiFetch, apiUpdate, getApiBaseUrl } from "../../../features/crm/api";
+import { PaginatedResponse, PaginationMeta, WaitlistEntry, WaitlistInput, WaitlistMetadata, WaitlistStatus } from "../../../features/crm/types";
+import { appendPagination, EMPTY_PAGINATION } from "../../../features/crm/pagination";
+import { useDebouncedValue } from "../../../features/crm/hooks/useDebouncedValue";
+import PaginationBar from "../../../features/crm/ui/PaginationBar";
 import WaitlistList from "../../../features/crm/views/WaitlistList";
 import NewWaitlistForm from "../../../features/crm/views/NewWaitlistForm";
 
-const EMPTY_METADATA: WaitlistMetadata = {
-  statuses: [],
-  assignableUsers: [],
-};
+const EMPTY_METADATA: WaitlistMetadata = { statuses: [], assignableUsers: [] };
 
 export default function ListaEsperaPage() {
   const { hasPermission, handleUnauthorized } = useAuth();
   const { pushToast } = useToast();
   const [entries, setEntries] = useState<WaitlistEntry[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
   const [metadata, setMetadata] = useState<WaitlistMetadata>(EMPTY_METADATA);
   const [loading, setLoading] = useState(true);
   const [editEntry, setEditEntry] = useState<WaitlistEntry | null>(null);
   const [showNew, setShowNew] = useState(false);
-
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<WaitlistStatus | "">("");
+  const [sellerUserId, setSellerUserId] = useState("");
+  const [page, setPage] = useState(1);
+  const [meta, setMeta] = useState<PaginationMeta>(EMPTY_PAGINATION);
+  const [reloadKey, setReloadKey] = useState(0);
+  const debouncedSearch = useDebouncedValue(search);
   const canCreate = hasPermission("waitlist.create");
   const canUpdate = hasPermission("waitlist.update");
   const canDelete = hasPermission("waitlist.delete");
 
   useEffect(() => {
-    const apiBaseUrl = getApiBaseUrl();
     let alive = true;
+    async function loadMetadata() {
+      try {
+        const response = await apiFetch(`${getApiBaseUrl()}/waitlist/metadata`);
+        if (response.status === 401) { handleUnauthorized(); return; }
+        if (!response.ok) throw new Error("Falha ao carregar dados da lista de espera.");
+        const payload = await response.json() as WaitlistMetadata;
+        if (alive) setMetadata(payload);
+      } catch (error) { if (alive) pushToast(error instanceof Error ? error.message : "Erro.", "error"); }
+    }
+    loadMetadata();
+    return () => { alive = false; };
+  }, [handleUnauthorized, pushToast]);
 
-    async function load() {
+  useEffect(() => {
+    const params = appendPagination(new URLSearchParams(), page);
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (status) params.set("status", status);
+    if (sellerUserId) params.set("sellerUserId", sellerUserId);
+    let alive = true;
+    async function loadEntries() {
       try {
         setLoading(true);
-        const [entriesRes, metaRes, customersRes, productsRes, ordersRes] = await Promise.all([
-          apiFetch(`${apiBaseUrl}/waitlist`),
-          apiFetch(`${apiBaseUrl}/waitlist/metadata`),
-          apiFetch(`${apiBaseUrl}/customers`),
-          apiFetch(`${apiBaseUrl}/products`),
-          apiFetch(`${apiBaseUrl}/orders`),
-        ]);
-        if ([entriesRes, metaRes, customersRes, productsRes, ordersRes].some((r) => r.status === 401)) {
-          handleUnauthorized();
-          return;
-        }
-        if (!entriesRes.ok || !metaRes.ok || !customersRes.ok || !productsRes.ok || !ordersRes.ok) {
-          throw new Error("Falha ao carregar lista de espera.");
-        }
-        const [entriesData, metaData, customersData, productsData, ordersData] = await Promise.all([
-          entriesRes.json(),
-          metaRes.json(),
-          customersRes.json(),
-          productsRes.json(),
-          ordersRes.json(),
-        ]);
+        const response = await apiFetch(`${getApiBaseUrl()}/waitlist?${params}`);
+        if (response.status === 401) { handleUnauthorized(); return; }
+        if (!response.ok) throw new Error("Falha ao carregar lista de espera.");
+        const payload = await response.json() as PaginatedResponse<WaitlistEntry>;
         if (!alive) return;
-        setEntries(entriesData);
-        setMetadata(metaData);
-        setCustomers(customersData);
-        setProducts(productsData);
-        setOrders(ordersData);
-      } catch (err) {
-        if (alive) pushToast(err instanceof Error ? err.message : "Erro.", "error");
-      } finally {
-        if (alive) setLoading(false);
-      }
+        setEntries(payload.data); setMeta(payload.meta);
+      } catch (error) { if (alive) pushToast(error instanceof Error ? error.message : "Erro.", "error"); }
+      finally { if (alive) setLoading(false); }
     }
-
-    load();
+    loadEntries();
     return () => { alive = false; };
-  }, []);
+  }, [debouncedSearch, handleUnauthorized, page, pushToast, reloadKey, sellerUserId, status]);
 
-  async function handleUpdateStatus(id: number, status: WaitlistStatus) {
+  useEffect(() => { setPage(1); }, [debouncedSearch]);
+  function filter<T>(setter: (value: T) => void, value: T) { setPage(1); setter(value); }
+  function reload() { setReloadKey((key) => key + 1); }
+
+  async function handleUpdateStatus(id: number, nextStatus: WaitlistStatus) {
     try {
-      // apiUpdate já lança com a mensagem exata do backend quando presente
-      // (`getErrorMessage`) — inclui o 422 de duplicidade/conversão sem
-      // pedido/reabertura de status terminal.
-      const updated = await apiUpdate<WaitlistEntry>(`/waitlist/${id}`, { status }, "Falha ao atualizar status.");
-      setEntries((prev) => prev.map((e) => (e.id === id ? updated : e)));
+      const updated = await apiUpdate<WaitlistEntry>(`/waitlist/${id}`, { status: nextStatus }, "Falha ao atualizar status.");
+      setEntries((current) => current.map((entry) => entry.id === id ? updated : entry));
       pushToast("Status atualizado.", "success");
-    } catch (err) {
-      pushToast(err instanceof Error ? err.message : "Erro.", "error");
-      // Rethrow pra WaitlistList reverter a seleção visual do select da linha
-      // (ela não foi confirmada — `entries` não mudou).
-      throw err;
-    }
+    } catch (error) { pushToast(error instanceof Error ? error.message : "Erro.", "error"); throw error; }
   }
 
   async function handleSaveEntry(data: WaitlistInput) {
     try {
-      const created = await apiCreate<WaitlistEntry>("/waitlist", data, "Falha ao registrar.");
-      setEntries((prev) => [created, ...prev]);
-      setShowNew(false);
+      await apiCreate<WaitlistEntry>("/waitlist", data, "Falha ao registrar.");
+      setShowNew(false); setPage(1); reload();
       pushToast("Entrada registrada com sucesso.", "success");
-    } catch (err) {
-      pushToast(err instanceof Error ? err.message : "Erro.", "error");
-    }
+    } catch (error) { pushToast(error instanceof Error ? error.message : "Erro.", "error"); }
   }
 
   async function handleUpdateEntry(data: WaitlistInput) {
     if (!editEntry) return;
     try {
-      const updated = await apiUpdate<WaitlistEntry>(`/waitlist/${editEntry.id}`, data, "Falha ao atualizar.");
-      setEntries((prev) => prev.map((e) => (e.id === editEntry.id ? updated : e)));
-      setEditEntry(null);
+      await apiUpdate<WaitlistEntry>(`/waitlist/${editEntry.id}`, data, "Falha ao atualizar.");
+      setEditEntry(null); reload();
       pushToast("Atualizado com sucesso.", "success");
-    } catch (err) {
-      pushToast(err instanceof Error ? err.message : "Erro.", "error");
-    }
+    } catch (error) { pushToast(error instanceof Error ? error.message : "Erro.", "error"); }
   }
 
   async function handleDeleteEntry(entry: WaitlistEntry) {
     if (!confirm(`Remover a entrada de ${entry.customerName} para "${entry.productName}"?`)) return;
     try {
       await apiDelete(`/waitlist/${entry.id}`, "Falha ao excluir.");
-      setEntries((prev) => prev.filter((e) => e.id !== entry.id));
-      pushToast("Entrada removida com sucesso.", "success");
-    } catch (err) {
-      pushToast(err instanceof Error ? err.message : "Erro.", "error");
-    }
+      reload(); pushToast("Entrada removida com sucesso.", "success");
+    } catch (error) { pushToast(error instanceof Error ? error.message : "Erro.", "error"); }
   }
-
-  if (loading) return <div style={{ color: "var(--crm-text-muted)", padding: 32 }}>Carregando...</div>;
 
   return (
     <>
       <WaitlistList
         entries={entries}
         metadata={metadata}
+        search={search}
+        status={status}
+        sellerUserId={sellerUserId}
+        onSearchChange={setSearch}
+        onStatusFilterChange={(value) => filter(setStatus, value)}
+        onSellerChange={(value) => filter(setSellerUserId, value)}
         canCreate={canCreate}
         canUpdate={canUpdate}
         canDelete={canDelete}
@@ -146,29 +125,9 @@ export default function ListaEsperaPage() {
         onDelete={handleDeleteEntry}
         onUpdateStatus={handleUpdateStatus}
       />
-      {showNew && (
-        <NewWaitlistForm
-          customers={customers}
-          products={products}
-          orders={orders}
-          metadata={metadata}
-          onSave={handleSaveEntry}
-          onClose={() => setShowNew(false)}
-          onToast={pushToast}
-        />
-      )}
-      {editEntry && (
-        <NewWaitlistForm
-          customers={customers}
-          products={products}
-          orders={orders}
-          metadata={metadata}
-          entryToEdit={editEntry}
-          onSave={handleUpdateEntry}
-          onClose={() => setEditEntry(null)}
-          onToast={pushToast}
-        />
-      )}
+      <PaginationBar meta={meta} onPageChange={setPage} disabled={loading} />
+      {showNew && <NewWaitlistForm metadata={metadata} onSave={handleSaveEntry} onClose={() => setShowNew(false)} onToast={pushToast} />}
+      {editEntry && <NewWaitlistForm metadata={metadata} entryToEdit={editEntry} onSave={handleUpdateEntry} onClose={() => setEditEntry(null)} onToast={pushToast} />}
     </>
   );
 }

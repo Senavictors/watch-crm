@@ -43,13 +43,13 @@ const Commissions: React.FC<Props> = ({
   // ids selecionados anteriormente — filtra a seleção pelo conjunto atual
   // de itens em vez de resetar via efeito (evita setState síncrono no
   // corpo de um `useEffect`, ver react-hooks/set-state-in-effect).
-  const currentItemIds = useMemo(() => new Set(report.items.map((item) => item.orderItemId)), [report.items]);
+  const currentItemIds = useMemo(() => new Set(report.data.map((item) => item.orderItemId)), [report.data]);
   const activeSelected = useMemo(
     () => new Set(Array.from(selected).filter((id) => currentItemIds.has(id))),
     [selected, currentItemIds]
   );
 
-  const payableIds = report.items.filter((item) => !item.paid).map((item) => item.orderItemId);
+  const payableIds = report.data.filter((item) => !item.paid).map((item) => item.orderItemId);
   const allPayableSelected = payableIds.length > 0 && payableIds.every((id) => activeSelected.has(id));
 
   function toggle(id: number) {
@@ -65,7 +65,7 @@ const Commissions: React.FC<Props> = ({
     setSelected(allPayableSelected ? new Set() : new Set(payableIds));
   }
 
-  const selectedTotal = report.items
+  const selectedTotal = report.data
     .filter((item) => activeSelected.has(item.orderItemId))
     .reduce((sum, item) => sum + item.lineCommission, 0);
 
@@ -167,7 +167,7 @@ const Commissions: React.FC<Props> = ({
             </tr>
           </thead>
           <tbody>
-            {report.items.length === 0 && (
+            {report.data.length === 0 && (
               <tr>
                 <td
                   colSpan={(canPay ? 1 : 0) + (showSellerColumn ? 1 : 0) + 6}
@@ -177,7 +177,7 @@ const Commissions: React.FC<Props> = ({
                 </td>
               </tr>
             )}
-            {report.items.map((item) => (
+            {report.data.map((item) => (
               <tr key={item.orderItemId} className={styles.row}>
                 {canPay && (
                   <td className={styles.cell}>

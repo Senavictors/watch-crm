@@ -55,6 +55,7 @@ class DashboardController extends Controller
         $kpis = [
             'watchesSold' => $data['kpis']['watchesSold'],
             'ordersCount' => $data['kpis']['ordersCount'],
+            'conversionRate' => $data['kpis']['conversionRate'],
             'activeOrders' => $data['kpis']['activeOrders'],
             'pendingAmount' => $data['kpis']['pendingAmount'],
         ];
@@ -85,6 +86,9 @@ class DashboardController extends Controller
                 return $bucket;
             }, $data['evolution']),
             'goal' => $data['goal'],
+            'conversion' => $data['conversion'],
+            'pendingPayments' => $data['pendingPayments'],
+            'operationalAlerts' => $data['operationalAlerts'],
             'nextShipments' => $data['nextShipments'],
         ];
 

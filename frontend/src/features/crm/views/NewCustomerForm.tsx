@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Btn, Input } from "../ui/Primitives";
 import { Customer, CustomerInput } from "../types";
+import ModalBackdrop from "../components/Modal/ModalBackdrop";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./NewCustomerForm.module.css";
 
@@ -63,7 +64,7 @@ const NewCustomerForm: React.FC<Props> = ({ customer, onSave, onClose, onToast }
   }
 
   return (
-    <div className={modalStyles.overlay}>
+    <ModalBackdrop onClose={onClose}>
       <div className={`${modalStyles.modal} ${styles.modal}`}>
         <div className={modalStyles.header}>
           <h3 className={modalStyles.title}>{isEditing ? "Editar Cliente" : "Novo Cliente"}</h3>
@@ -102,7 +103,7 @@ const NewCustomerForm: React.FC<Props> = ({ customer, onSave, onClose, onToast }
           </Btn>
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 };
 

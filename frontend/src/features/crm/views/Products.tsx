@@ -7,6 +7,8 @@ import styles from "./Products.module.css";
 
 type Props = {
   products: Product[];
+  search: string;
+  onSearchChange: (value: string) => void;
   canCreate: boolean;
   canUpdate: boolean;
   canDelete: boolean;
@@ -21,7 +23,7 @@ type Props = {
   onAddQty: (product: Product) => void;
 };
 
-const Products: React.FC<Props> = ({ products, canCreate, canUpdate, canDelete, canViewFinancials, onNew, onEdit, onDelete, onAddQty }) => {
+const Products: React.FC<Props> = ({ products, search, onSearchChange, canCreate, canUpdate, canDelete, canViewFinancials, onNew, onEdit, onDelete, onAddQty }) => {
   const showActions = canUpdate || canDelete;
 
   return (
@@ -34,6 +36,12 @@ const Products: React.FC<Props> = ({ products, canCreate, canUpdate, canDelete, 
           </Btn>
         )}
       </div>
+      <input
+        className={styles.search}
+        value={search}
+        onChange={(event) => onSearchChange(event.target.value)}
+        placeholder="Buscar marca, modelo, categoria ou qualidade..."
+      />
       <Card className={styles.tableCard}>
         <table className={styles.table}>
           <thead>

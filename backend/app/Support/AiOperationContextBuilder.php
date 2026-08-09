@@ -34,12 +34,75 @@ class AiOperationContextBuilder
         }
 
         $watches = $dashboard['kpis']['watchesSold']['value'];
+        $previousWatches = $dashboard['kpis']['watchesSold']['previousValue'];
+        $watchesDifference = $watches - $previousWatches;
         $orders = $dashboard['kpis']['ordersCount']['value'];
         $facts['sales.volume'] = self::fact(
             'sales.volume',
-            sprintf('Foram vendidos %d relógios em %d pedidos pagos no período.', $watches, $orders),
-            [self::source('Relógios vendidos', (string) $watches), self::source('Pedidos pagos', (string) $orders)]
+            sprintf(
+                'Foram vendidos %d relógios em %d pedidos pagos no período, %s em relação ao período anterior.',
+                $watches,
+                $orders,
+                $watchesDifference === 0 ? 'sem variação de volume' : sprintf('%d %s', abs($watchesDifference), $watchesDifference > 0 ? 'peças a mais' : 'peças a menos')
+            ),
+            [
+                self::source('Relógios vendidos', (string) $watches),
+                self::source('Relógios no período anterior', (string) $previousWatches),
+                self::source('Diferença de volume', (string) $watchesDifference),
+                self::source('Pedidos pagos', (string) $orders),
+            ],
+            'sales_volume',
+            'quantity',
+            ['currentValue' => $watches, 'previousValue' => $previousWatches, 'difference' => $watchesDifference, 'paidOrders' => $orders]
         );
+
+        $conversion = $dashboard['conversion'];
+        $currentConversion = $conversion['current'];
+        $conversionText = $currentConversion['rate'] === null
+            ? 'Não houve pedidos registrados no período para calcular a conversão de pagamento.'
+            : sprintf(
+                'Dos %d pedidos registrados, %d foram pagos: conversão de %s, %s.',
+                $currentConversion['ordersCreated'],
+                $currentConversion['paidOrders'],
+                self::percent($currentConversion['rate']),
+                $conversion['percentagePointChange'] === null
+                    ? 'sem comparação disponível com o período anterior'
+                    : sprintf('%s de %s pontos percentuais frente ao período anterior', $conversion['percentagePointChange'] >= 0 ? 'alta' : 'queda', self::decimal(abs($conversion['percentagePointChange'])))
+            );
+        $facts['sales.conversion'] = self::fact(
+            'sales.conversion',
+            $conversionText,
+            [
+                self::source('Pedidos registrados', (string) $currentConversion['ordersCreated']),
+                self::source('Pedidos pagos', (string) $currentConversion['paidOrders']),
+                self::source('Taxa de conversão', $currentConversion['rate'] === null ? 'Não calculável' : self::percent($currentConversion['rate'])),
+                self::source('Variação', $conversion['percentagePointChange'] === null ? 'Não comparável' : self::signedDecimal($conversion['percentagePointChange']).' p.p.'),
+            ],
+            'conversion_rate',
+            'percentage',
+            [
+                'currentValue' => $currentConversion['rate'],
+                'previousValue' => $conversion['previous']['rate'],
+                'percentagePointChange' => $conversion['percentagePointChange'],
+                'ordersCreated' => $currentConversion['ordersCreated'],
+                'paidOrders' => $currentConversion['paidOrders'],
+            ]
+        );
+
+        $channelConversions = collect($currentConversion['channels'])->take(3);
+        if ($channelConversions->isNotEmpty()) {
+            $channelText = $channelConversions
+                ->map(fn (array $channel) => sprintf('%s: %s (%d de %d)', $channel['channel'], $channel['rate'] === null ? 'não calculável' : self::percent($channel['rate']), $channel['paidOrders'], $channel['ordersCreated']))
+                ->implode('; ');
+            $facts['sales.conversion_channels'] = self::fact(
+                'sales.conversion_channels',
+                'Conversão de pagamento nos principais canais: '.$channelText.'.',
+                $channelConversions->map(fn (array $channel) => self::source($channel['channel'], $channel['rate'] === null ? 'Não calculável' : self::percent($channel['rate'])))->all(),
+                'conversion_by_channel',
+                'percentage',
+                ['channels' => $channelConversions->values()->all()]
+            );
+        }
 
         $activeOrders = $dashboard['kpis']['activeOrders']['value'];
         $facts['operation.active_orders'] = self::fact(
@@ -48,25 +111,62 @@ class AiOperationContextBuilder
             [self::source('Pedidos ativos', (string) $activeOrders)]
         );
 
-        $pendingAmount = $dashboard['kpis']['pendingAmount']['value'];
+        $pendingPayments = $dashboard['pendingPayments'];
+        $pendingAmount = $pendingPayments['amount'];
         $facts['operation.pending_payment'] = self::fact(
             'operation.pending_payment',
-            sprintf('O valor atualmente aguardando pagamento é %s.', self::money($pendingAmount)),
-            [self::source('Aguardando pagamento', self::money($pendingAmount))]
+            sprintf(
+                'Há %d pedidos aguardando pagamento, somando %s; espera média de %s horas e maior espera de %s horas.',
+                $pendingPayments['count'],
+                self::money($pendingAmount),
+                self::decimal($pendingPayments['averageWaitHours']),
+                self::decimal($pendingPayments['oldestWaitHours'])
+            ),
+            [
+                self::source('Pedidos aguardando pagamento', (string) $pendingPayments['count']),
+                self::source('Valor aguardando pagamento', self::money($pendingAmount)),
+                self::source('Espera média', self::decimal($pendingPayments['averageWaitHours']).' h'),
+                self::source('Maior espera', self::decimal($pendingPayments['oldestWaitHours']).' h'),
+            ],
+            'payment_recovery',
+            'currency',
+            [
+                'count' => $pendingPayments['count'],
+                'currentValue' => $pendingAmount,
+                'averageWaitHours' => $pendingPayments['averageWaitHours'],
+                'oldestWaitHours' => $pendingPayments['oldestWaitHours'],
+            ]
         );
 
         $companyGoal = $dashboard['goal']['company'];
+        $goalIsQuantity = ($companyGoal['calculationType'] ?? null) === 'quantity';
         $goalText = $companyGoal
-            ? sprintf('A meta geral está em %s, com %s de %s realizados.', self::percent($companyGoal['totalPercentage']), self::money($companyGoal['totalCurrent']), self::money($companyGoal['totalTarget']))
+            ? sprintf(
+                'A meta geral está em %s, com %s de %s realizados.',
+                self::percent($companyGoal['totalPercentage']),
+                $goalIsQuantity ? self::quantity($companyGoal['totalCurrent']) : self::money($companyGoal['totalCurrent']),
+                $goalIsQuantity ? self::quantity($companyGoal['totalTarget']) : self::money($companyGoal['totalTarget'])
+            )
             : 'Não há meta geral ativa neste momento.';
         $goalSources = $companyGoal
             ? [
                 self::source('Progresso da meta', self::percent($companyGoal['totalPercentage'])),
-                self::source('Realizado', self::money($companyGoal['totalCurrent'])),
-                self::source('Meta', self::money($companyGoal['totalTarget'])),
+                self::source('Realizado', $goalIsQuantity ? self::quantity($companyGoal['totalCurrent']) : self::money($companyGoal['totalCurrent'])),
+                self::source('Meta', $goalIsQuantity ? self::quantity($companyGoal['totalTarget']) : self::money($companyGoal['totalTarget'])),
             ]
             : [self::source('Meta geral ativa', 'Não')];
-        $facts['goal.company'] = self::fact('goal.company', $goalText, $goalSources);
+        $facts['goal.company'] = self::fact(
+            'goal.company',
+            $goalText,
+            $goalSources,
+            'goal_achievement',
+            $goalIsQuantity ? 'quantity' : ($companyGoal ? 'currency' : 'count'),
+            $companyGoal ? [
+                'currentValue' => $companyGoal['totalCurrent'],
+                'targetValue' => $companyGoal['totalTarget'],
+                'percentage' => $companyGoal['totalPercentage'],
+            ] : ['active' => false]
+        );
 
         $shipments = collect($dashboard['nextShipments']);
         $lateShipments = $shipments->where('isLate', true)->count();
@@ -135,13 +235,29 @@ class AiOperationContextBuilder
                 self::source($label, self::money($kpi['value'])),
                 self::source($label.' anterior', self::money($kpi['previousValue'])),
                 self::source('Variação', $change === null ? 'Não comparável' : self::signedPercent($change)),
-            ]
+            ],
+            $id,
+            'currency',
+            ['currentValue' => $kpi['value'], 'previousValue' => $kpi['previousValue'], 'percentageChange' => $change]
         );
     }
 
-    private static function fact(string $id, string $text, array $sources): array
-    {
-        return ['id' => $id, 'text' => $text, 'sources' => $sources];
+    private static function fact(
+        string $id,
+        string $text,
+        array $sources,
+        ?string $context = null,
+        string $type = 'count',
+        array $values = []
+    ): array {
+        return [
+            'id' => $id,
+            'context' => $context ?? $id,
+            'type' => $type,
+            'values' => $values,
+            'text' => $text,
+            'sources' => $sources,
+        ];
     }
 
     private static function source(string $label, string $value): array
@@ -157,6 +273,23 @@ class AiOperationContextBuilder
     private static function percent(float|int $value): string
     {
         return number_format((float) $value, 1, ',', '.').'%';
+    }
+
+    private static function decimal(float|int $value): string
+    {
+        return number_format((float) $value, 1, ',', '.');
+    }
+
+    private static function signedDecimal(float|int $value): string
+    {
+        return ($value > 0 ? '+' : '').self::decimal($value);
+    }
+
+    private static function quantity(float|int $value): string
+    {
+        $decimals = fmod((float) $value, 1.0) === 0.0 ? 0 : 1;
+
+        return number_format((float) $value, $decimals, ',', '.').' unidades';
     }
 
     private static function signedPercent(float|int $value): string

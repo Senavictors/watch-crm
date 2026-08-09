@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Expense;
+use App\Support\ApiPagination;
 use App\Support\ExpenseMetadata;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -36,13 +37,17 @@ class ExpenseController extends Controller
             $query->whereBetween('expense_date', [$request->input('startDate'), $request->input('endDate')]);
         }
 
+        $summary = [
+            'totalAmount' => (float) (clone $query)->sum('amount'),
+            'totalCount' => (clone $query)->count(),
+        ];
+
         $expenses = $query
             ->orderByDesc('expense_date')
             ->orderByDesc('id')
-            ->get()
-            ->map(fn (Expense $expense) => $this->toPayload($expense));
+            ->paginate(ApiPagination::perPage($request));
 
-        return response()->json($expenses);
+        return ApiPagination::response($expenses, fn (Expense $expense) => $this->toPayload($expense), ['summary' => $summary]);
     }
 
     public function store(Request $request)

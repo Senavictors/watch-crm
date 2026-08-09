@@ -3,9 +3,13 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../../features/crm/contexts/AuthContext";
 import { useToast } from "../../../features/crm/contexts/ToastContext";
 import { apiFetch, apiCreate, apiUpdate, apiDelete, getApiBaseUrl, ensureCsrfCookie, getErrorMessage } from "../../../features/crm/api";
-import { Brand, Product, ProductInput, WatchModel } from "../../../features/crm/types";
+import { Brand, PaginatedResponse, PaginationMeta, Product, ProductInput } from "../../../features/crm/types";
+import { useDebouncedValue } from "../../../features/crm/hooks/useDebouncedValue";
+import { EMPTY_PAGINATION } from "../../../features/crm/pagination";
+import PaginationBar from "../../../features/crm/ui/PaginationBar";
 import Products from "../../../features/crm/views/Products";
 import NewProductForm from "../../../features/crm/views/NewProductForm";
+import ModalBackdrop from "../../../features/crm/components/Modal/ModalBackdrop";
 import modalStyles from "../../../features/crm/components/Modal/Modal.module.css";
 import { Btn, Input } from "../../../features/crm/ui/Primitives";
 
@@ -14,7 +18,11 @@ export default function ProdutosPage() {
   const { pushToast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
-  const [models, setModels] = useState<WatchModel[]>([]);
+  const [pagination, setPagination] = useState<PaginationMeta>(EMPTY_PAGINATION);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
+  const [reloadKey, setReloadKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
@@ -36,18 +44,21 @@ export default function ProdutosPage() {
     async function load() {
       try {
         setLoading(true);
-        const requests: Promise<Response>[] = [apiFetch(`${apiBaseUrl}/products`)];
+        const params = new URLSearchParams({ page: String(page), perPage: "20" });
+        if (debouncedSearch) params.set("search", debouncedSearch);
+        const requests: Promise<Response>[] = [apiFetch(`${apiBaseUrl}/products?${params.toString()}`)];
         if (canCreate || canUpdate) {
-          requests.push(apiFetch(`${apiBaseUrl}/brands`), apiFetch(`${apiBaseUrl}/models`));
+          requests.push(apiFetch(`${apiBaseUrl}/brands`));
         }
         const responses = await Promise.all(requests);
         if (responses.some((r) => r.status === 401)) { handleUnauthorized(); return; }
         if (responses.some((r) => !r.ok)) throw new Error("Falha ao carregar produtos.");
-        const [productsData, brandsData, modelsData] = await Promise.all(responses.map((r) => r.json()));
+        const [productsResponse, brandsData] = await Promise.all(responses.map((r) => r.json()));
         if (!alive) return;
-        setProducts(productsData);
+        const paginated = productsResponse as PaginatedResponse<Product>;
+        setProducts(paginated.data);
+        setPagination(paginated.meta);
         if (brandsData) setBrands(brandsData);
-        if (modelsData) setModels(modelsData);
       } catch (err) {
         if (alive) pushToast(err instanceof Error ? err.message : "Erro.", "error");
       } finally {
@@ -57,13 +68,14 @@ export default function ProdutosPage() {
 
     load();
     return () => { alive = false; };
-  }, []);
+  }, [canCreate, canUpdate, debouncedSearch, handleUnauthorized, page, pushToast, reloadKey]);
 
   async function handleSave(data: ProductInput) {
     try {
-      const created = await apiCreate<Product>("/products", data, "Falha ao cadastrar produto.");
-      setProducts((ps) => [created, ...ps]);
+      await apiCreate<Product>("/products", data, "Falha ao cadastrar produto.");
       setShowNew(false);
+      setPage(1);
+      setReloadKey((value) => value + 1);
       pushToast("Produto cadastrado com sucesso.", "success");
     } catch (err) {
       pushToast(err instanceof Error ? err.message : "Erro.", "error");
@@ -76,6 +88,7 @@ export default function ProdutosPage() {
       const updated = await apiUpdate<Product>(`/products/${editing.id}`, data, "Falha ao atualizar produto.");
       setProducts((ps) => ps.map((p) => (p.id === updated.id ? updated : p)));
       setEditing(null);
+      setReloadKey((value) => value + 1);
       pushToast("Produto atualizado com sucesso.", "success");
     } catch (err) {
       pushToast(err instanceof Error ? err.message : "Erro.", "error");
@@ -86,7 +99,7 @@ export default function ProdutosPage() {
     if (!confirm(`Excluir entrada "${product.stock === "IN_STOCK" ? "Estoque" : "Fornecedor"}" de ${product.brand} ${product.model}?`)) return;
     try {
       await apiDelete(`/products/${product.id}`, "Falha ao excluir produto.");
-      setProducts((ps) => ps.filter((p) => p.id !== product.id));
+      setReloadKey((value) => value + 1);
       pushToast("Produto excluído com sucesso.", "success");
     } catch (err) {
       pushToast(err instanceof Error ? err.message : "Erro.", "error");
@@ -132,6 +145,8 @@ export default function ProdutosPage() {
     <>
       <Products
         products={products}
+        search={search}
+        onSearchChange={(value) => { setSearch(value); setPage(1); }}
         canCreate={canCreate}
         canUpdate={canUpdate}
         canDelete={canDelete}
@@ -141,10 +156,10 @@ export default function ProdutosPage() {
         onDelete={handleDelete}
         onAddQty={(p) => { setAddQtyTarget(p); setAddQtyValue("1"); }}
       />
+      <PaginationBar meta={pagination} onPageChange={setPage} disabled={loading} />
       {showNew && (
         <NewProductForm
           brands={brands}
-          models={models}
           existingProducts={products}
           onSave={handleSave}
           onClose={() => setShowNew(false)}
@@ -155,7 +170,6 @@ export default function ProdutosPage() {
         <NewProductForm
           product={editing}
           brands={brands}
-          models={models}
           existingProducts={products}
           onSave={handleUpdate}
           onClose={() => setEditing(null)}
@@ -163,7 +177,7 @@ export default function ProdutosPage() {
         />
       )}
       {addQtyTarget && (
-        <div className={modalStyles.overlay}>
+        <ModalBackdrop onClose={() => setAddQtyTarget(null)}>
           <div className={modalStyles.modal} style={{ width: 360 }}>
             <div className={modalStyles.header}>
               <h3 className={modalStyles.title}>Adicionar Unidades</h3>
@@ -187,7 +201,7 @@ export default function ProdutosPage() {
               </Btn>
             </div>
           </div>
-        </div>
+        </ModalBackdrop>
       )}
     </>
   );

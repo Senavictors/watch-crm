@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\OrderItem;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -36,6 +37,42 @@ use Illuminate\Support\Facades\DB;
  */
 class CommissionCalculator
 {
+    /**
+     * @return array{items: LengthAwarePaginator, summary: array{accrued: float, paid: float, pending: float}}
+     */
+    public static function paginatedReport(
+        User $user,
+        ?string $startDate,
+        ?string $endDate,
+        ?int $sellerUserId,
+        int $perPage
+    ): array {
+        $query = self::commissionItemsQuery($user, $startDate, $endDate, $sellerUserId);
+        $netCommissionSql = self::netCommissionSql();
+
+        $summaryRow = (clone $query)
+            ->reorder()
+            ->select([])
+            ->selectRaw("COALESCE(SUM({$netCommissionSql}), 0) as accrued")
+            ->selectRaw("COALESCE(SUM(CASE WHEN order_items.commission_paid_at IS NOT NULL THEN {$netCommissionSql} ELSE 0 END), 0) as paid")
+            ->first();
+
+        $accrued = (float) ($summaryRow?->accrued ?? 0);
+        $paid = (float) ($summaryRow?->paid ?? 0);
+
+        return [
+            'items' => $query
+                ->with(['order.sellerUser', 'commissionPaidByUser'])
+                ->orderByDesc('order_items.id')
+                ->paginate($perPage),
+            'summary' => [
+                'accrued' => $accrued,
+                'paid' => $paid,
+                'pending' => $accrued - $paid,
+            ],
+        ];
+    }
+
     /**
      * Total de comissão apurada no período (bruto de item vendido, líquido
      * de devolução com reembolso efetuado). Usado por `SalesProfitCalculator`
@@ -122,5 +159,45 @@ class CommissionCalculator
         }
 
         return $query->pluck('id');
+    }
+
+    private static function scopedPaidOrdersQuery(User $user, ?string $startDate, ?string $endDate, ?int $sellerUserId)
+    {
+        $query = OrderFinancialScope::ordersQuery($user, $startDate, $endDate, 'paid_at')
+            ->whereNotNull('paid_at')
+            ->where('status', '!=', 'Cancelado');
+
+        if ($user->canAccessAllRecords() && $sellerUserId !== null) {
+            $query->where('seller_user_id', $sellerUserId);
+        }
+
+        return $query;
+    }
+
+    private static function commissionItemsQuery(User $user, ?string $startDate, ?string $endDate, ?int $sellerUserId)
+    {
+        $orders = self::scopedPaidOrdersQuery($user, $startDate, $endDate, $sellerUserId)
+            ->select('orders.id');
+
+        $returned = DB::table('return_items')
+            ->join('returns', 'returns.id', '=', 'return_items.return_id')
+            ->where('returns.status', 'Reembolso Efetuado')
+            ->whereNotNull('return_items.order_item_id')
+            ->selectRaw('return_items.order_item_id, SUM(return_items.quantity) as returned_qty')
+            ->groupBy('return_items.order_item_id');
+
+        return OrderItem::query()
+            ->whereIn('order_items.order_id', $orders)
+            ->leftJoinSub($returned, 'returned', 'returned.order_item_id', '=', 'order_items.id')
+            ->select('order_items.*')
+            ->selectRaw('COALESCE(returned.returned_qty, 0) as returned_qty')
+            ->selectRaw(self::netCommissionSql().' as line_commission');
+    }
+
+    private static function netCommissionSql(): string
+    {
+        return 'order_items.unit_commission * CASE '
+            .'WHEN order_items.quantity - COALESCE(returned.returned_qty, 0) > 0 '
+            .'THEN order_items.quantity - COALESCE(returned.returned_qty, 0) ELSE 0 END';
     }
 }

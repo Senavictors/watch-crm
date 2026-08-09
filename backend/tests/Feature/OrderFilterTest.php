@@ -60,7 +60,7 @@ class OrderFilterTest extends TestCase
             ->getJson('/api/orders?category=Relógios')
             ->assertOk();
 
-        $ids = collect($response->json())->pluck('id')->all();
+        $ids = collect($response->json('data'))->pluck('id')->all();
 
         $this->assertContains($multiItemOrder['id'], $ids);
         $this->assertNotContains($boxOnlyOrder['id'], $ids);
@@ -87,7 +87,7 @@ class OrderFilterTest extends TestCase
             ->getJson('/api/orders?from=2026-03-01&to=2026-03-31')
             ->assertOk();
 
-        $ids = collect($response->json())->pluck('id')->all();
+        $ids = collect($response->json('data'))->pluck('id')->all();
 
         $this->assertContains($withinRange->id, $ids);
         $this->assertNotContains($outsideRange->id, $ids);
@@ -125,7 +125,7 @@ class OrderFilterTest extends TestCase
             ->getJson('/api/orders?category=Relógios&from=2026-03-01&to=2026-03-31')
             ->assertOk();
 
-        $ids = collect($response->json())->pluck('id')->all();
+        $ids = collect($response->json('data'))->pluck('id')->all();
 
         $this->assertContains($orderA->id, $ids);
         $this->assertNotContains($orderB->id, $ids);

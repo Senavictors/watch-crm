@@ -15,7 +15,7 @@ const ThemeToggle: React.FC<Props> = ({ theme, onChangeTheme }) => (
       className={styles.thumb}
       style={{
         transform:
-          theme === "light" ? "translateX(0px)" : theme === "system" ? "translateX(22px)" : "translateX(44px)",
+          theme === "light" ? "translateX(0)" : theme === "system" ? "translateX(100%)" : "translateX(200%)",
       }}
     />
     <button

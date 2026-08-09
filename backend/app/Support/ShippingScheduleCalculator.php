@@ -39,11 +39,20 @@ class ShippingScheduleCalculator
      */
     public static function nextPostingDate(?Carbon $from): ?Carbon
     {
+        return self::nextPostingDateForWeekdays($from, self::enabledWeekdays());
+    }
+
+    /**
+     * Variante para calculos em lote. O chamador carrega os dias habilitados
+     * uma unica vez e evita uma consulta por pedido.
+     *
+     * @param  list<int>  $enabled
+     */
+    public static function nextPostingDateForWeekdays(?Carbon $from, array $enabled): ?Carbon
+    {
         if ($from === null) {
             return null;
         }
-
-        $enabled = self::enabledWeekdays();
 
         if ($enabled === []) {
             return null;

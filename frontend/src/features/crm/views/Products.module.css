@@ -121,3 +121,12 @@
   font-size: 12px;
   font-weight: 600;
 }
+.search {
+  width: min(480px, 100%);
+  margin-bottom: 16px;
+  border: 1px solid var(--crm-border);
+  border-radius: 8px;
+  background: var(--crm-input-bg);
+  color: var(--crm-input-text);
+  padding: 10px 12px;
+}

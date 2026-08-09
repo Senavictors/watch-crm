@@ -40,8 +40,8 @@ class CustomerControllerTest extends TestCase
 
         $response = $this->actingAs($sellerA)->getJson('/api/customers');
 
-        $response->assertOk()->assertJsonCount(1);
-        $this->assertSame($ownCustomer->id, $response->json('0.id'));
+        $response->assertOk()->assertJsonCount(1, 'data');
+        $this->assertSame($ownCustomer->id, $response->json('data.0.id'));
     }
 
     public function test_guarantee_still_sees_all_customers_in_index(): void
@@ -54,7 +54,7 @@ class CustomerControllerTest extends TestCase
 
         $response = $this->actingAs($guarantee)->getJson('/api/customers');
 
-        $response->assertOk()->assertJsonCount(2);
+        $response->assertOk()->assertJsonCount(2, 'data');
     }
 
     public static function unrestrictedRoleProvider(): array
@@ -77,7 +77,7 @@ class CustomerControllerTest extends TestCase
 
         $response = $this->actingAs($user)->getJson('/api/customers');
 
-        $response->assertOk()->assertJsonCount(2);
+        $response->assertOk()->assertJsonCount(2, 'data');
     }
 
     // ------------------------------------------------------------------

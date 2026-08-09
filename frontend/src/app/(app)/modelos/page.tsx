@@ -3,9 +3,12 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../../features/crm/contexts/AuthContext";
 import { useToast } from "../../../features/crm/contexts/ToastContext";
 import { apiFetch, ensureCsrfCookie, getErrorMessage, getApiBaseUrl } from "../../../features/crm/api";
-import { Brand, Category, Quality, WatchModel } from "../../../features/crm/types";
+import { Brand, Category, PaginatedResponse, PaginationMeta, Quality, WatchModel } from "../../../features/crm/types";
 import Models from "../../../features/crm/views/Models";
 import NewModelForm from "../../../features/crm/views/NewModelForm";
+import PaginationBar from "../../../features/crm/ui/PaginationBar";
+import { EMPTY_PAGINATION, appendPagination } from "../../../features/crm/pagination";
+import { useDebouncedValue } from "../../../features/crm/hooks/useDebouncedValue";
 
 export default function ModelosPage() {
   const { hasPermission, handleUnauthorized } = useAuth();
@@ -16,6 +19,11 @@ export default function ModelosPage() {
   const [qualities, setQualities] = useState<Quality[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [meta, setMeta] = useState<PaginationMeta>(EMPTY_PAGINATION);
+  const [reloadKey, setReloadKey] = useState(0);
+  const debouncedSearch = useDebouncedValue(search);
 
   const canCreate = hasPermission("models.create");
 
@@ -26,7 +34,9 @@ export default function ModelosPage() {
     async function load() {
       try {
         setLoading(true);
-        const requests: Promise<Response>[] = [apiFetch(`${apiBaseUrl}/models`)];
+        const params = appendPagination(new URLSearchParams(), page);
+        if (debouncedSearch) params.set("search", debouncedSearch);
+        const requests: Promise<Response>[] = [apiFetch(`${apiBaseUrl}/models?${params}`)];
         if (canCreate) {
           requests.push(
             apiFetch(`${apiBaseUrl}/brands`),
@@ -39,7 +49,9 @@ export default function ModelosPage() {
         if (responses.some((r) => !r.ok)) throw new Error("Falha ao carregar modelos.");
         const [modelsData, brandsData, qualitiesData, categoriesData] = await Promise.all(responses.map((r) => r.json()));
         if (!alive) return;
-        setModels(modelsData);
+        const paginated = modelsData as PaginatedResponse<WatchModel>;
+        setModels(paginated.data);
+        setMeta(paginated.meta);
         if (brandsData) setBrands(brandsData);
         if (qualitiesData) setQualities(qualitiesData);
         if (categoriesData) setCategories(categoriesData);
@@ -52,7 +64,9 @@ export default function ModelosPage() {
 
     load();
     return () => { alive = false; };
-  }, []);
+  }, [canCreate, debouncedSearch, handleUnauthorized, page, pushToast, reloadKey]);
+
+  useEffect(() => { setPage(1); }, [debouncedSearch]);
 
   async function handleSave(data: Omit<WatchModel, "id" | "imageUrl"> & { imageFile?: File | null }) {
     try {
@@ -68,9 +82,10 @@ export default function ModelosPage() {
       const response = await apiFetch(`${apiBaseUrl}/models`, { method: "POST", body: formData }, { csrf: true });
       if (!response.ok) throw new Error(await getErrorMessage(response, "Falha ao cadastrar modelo."));
 
-      const created = (await response.json()) as WatchModel;
-      setModels((ms) => [created, ...ms]);
+      await response.json();
       setShowNew(false);
+      setPage(1);
+      setReloadKey((key) => key + 1);
       pushToast("Modelo cadastrado com sucesso.", "success");
     } catch (err) {
       pushToast(err instanceof Error ? err.message : "Erro.", "error");
@@ -81,7 +96,14 @@ export default function ModelosPage() {
 
   return (
     <>
-      <Models models={models} canCreate={canCreate} onNew={() => setShowNew(true)} />
+      <Models
+        models={models}
+        search={search}
+        onSearchChange={setSearch}
+        canCreate={canCreate}
+        onNew={() => setShowNew(true)}
+      />
+      <PaginationBar meta={meta} onPageChange={setPage} disabled={loading} />
       {showNew && (
         <NewModelForm
           brands={brands}

@@ -10,6 +10,7 @@ import EvolutionChart from "./dashboard/EvolutionChart";
 import GoalProgress from "./dashboard/GoalProgress";
 import KpiCard from "./dashboard/KpiCard";
 import NextShipmentsList from "./dashboard/NextShipmentsList";
+import OperationalAlerts from "./dashboard/OperationalAlerts";
 import PeriodSelector from "./dashboard/PeriodSelector";
 import { PeriodPresetId } from "./dashboard/periodPresets";
 import styles from "./Dashboard.module.css";
@@ -84,6 +85,8 @@ const Dashboard: React.FC<Props> = ({
             </span>
           </div>
 
+          <OperationalAlerts alerts={summary.operationalAlerts} />
+
           {onGenerateAi && (
             <AiSummaryCard
               summary={aiSummary ?? null}
@@ -143,12 +146,26 @@ const Dashboard: React.FC<Props> = ({
               percentageChange={summary.kpis.watchesSold.percentageChange}
             />
             <KpiCard
+              label="Conversão de Pagamento"
+              value={summary.kpis.conversionRate.value === null ? "—" : `${summary.kpis.conversionRate.value.toFixed(1)}%`}
+              sub={`${summary.conversion.current.paidOrders} de ${summary.conversion.current.ordersCreated} pedidos`}
+              percentageChange={summary.kpis.conversionRate.percentagePointChange}
+              changeSuffix="p.p."
+              accent={
+                summary.kpis.conversionRate.percentagePointChange !== null
+                  && summary.kpis.conversionRate.percentagePointChange < 0
+                  ? "var(--crm-danger)"
+                  : "var(--crm-primary)"
+              }
+            />
+            <KpiCard
               label="Pedidos Ativos"
               value={String(summary.kpis.activeOrders.value)}
             />
             <KpiCard
               label="Aguardando Pagamento"
               value={fmtBRL(summary.kpis.pendingAmount.value)}
+              sub={`${summary.pendingPayments.count} pedido(s) · média ${summary.pendingPayments.averageWaitHours.toFixed(1)}h`}
             />
             {summary.kpis.generalExpenses && (
               <KpiCard
@@ -175,7 +192,21 @@ const Dashboard: React.FC<Props> = ({
           </div>
 
           <div className={styles.gridTwo}>
-            <EvolutionChart buckets={summary.evolution} grouping={summary.period.grouping} />
+            <EvolutionChart
+              buckets={summary.evolution}
+              grouping={summary.period.grouping}
+              period={summary.period}
+              comparison={summary.comparison}
+              preset={preset}
+              refreshing={refreshing}
+              onPresetChange={onPresetChange}
+              totals={{
+                revenue: summary.kpis.revenue,
+                salesProfit: summary.kpis.salesProfit,
+                watchesSold: summary.kpis.watchesSold,
+                ordersCount: summary.kpis.ordersCount,
+              }}
+            />
             <GoalProgress company={summary.goal.company} individual={summary.goal.individual} />
           </div>
 

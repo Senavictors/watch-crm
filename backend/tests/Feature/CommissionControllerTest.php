@@ -113,7 +113,7 @@ class CommissionControllerTest extends TestCase
         $response = $this->actingAs($seller)->getJson('/api/commissions')->assertOk();
 
         $this->assertEqualsWithDelta(40.0, $response->json('summary.accrued'), 0.001);
-        $this->assertCount(1, $response->json('items'));
+        $this->assertCount(1, $response->json('data'));
         $this->assertArrayNotHasKey('sellers', $response->json());
     }
 

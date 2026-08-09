@@ -37,57 +37,202 @@
   box-sizing: border-box;
 }
 
-.grid {
+.list {
+  overflow: hidden;
+  border: 1px solid var(--crm-card-border);
+  border-radius: 14px;
+  background: var(--crm-card-bg);
+}
+
+.listHeader,
+.customerRow {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 14px;
+  grid-template-columns: minmax(210px, 1.35fr) minmax(130px, 0.75fr) minmax(210px, 1.25fr) minmax(135px, 0.75fr) 88px;
+  column-gap: 18px;
+  align-items: center;
 }
 
-.customerCard {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  cursor: pointer;
-}
-
-.customerCard:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
-}
-
-.customerCard:hover .cardAction {
-  opacity: 1;
-}
-
-.cardHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 6px;
-}
-
-.cardName {
-  color: var(--crm-text);
+.listHeader {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--crm-card-border);
+  color: var(--crm-text-soft);
+  font-size: 10px;
   font-weight: 700;
-  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.cardActions {
+.actionsLabel {
+  text-align: right;
+}
+
+.customerRow {
+  min-width: 0;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--crm-card-border);
+  transition: background-color 0.18s ease;
+}
+
+.customerRow:last-child {
+  border-bottom: 0;
+}
+
+.customerRow:hover {
+  background: color-mix(in srgb, var(--crm-accent) 5%, transparent);
+}
+
+.customerIdentity {
   display: flex;
-  gap: 4px;
-  flex-shrink: 0;
+  align-items: center;
+  min-width: 0;
+  gap: 11px;
 }
 
-.cardAction {
-  flex-shrink: 0;
-}
-
-.cardMuted {
-  color: var(--crm-text-muted);
-  font-size: 12px;
-  margin-bottom: 2px;
-}
-
-.cardAccent {
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--crm-accent) 14%, transparent);
   color: var(--crm-accent);
   font-size: 12px;
+  font-weight: 800;
+}
+
+.customerName {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--crm-text);
+  font-size: 14px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field {
+  min-width: 0;
+}
+
+.fieldValue,
+.instagram {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fieldValue {
+  color: var(--crm-text-muted);
+}
+
+.instagram {
+  color: var(--crm-accent);
+}
+
+.mobileLabel {
+  display: none;
+}
+
+.rowActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.rowAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 32px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.emptyState {
+  padding: 36px 20px;
+  color: var(--crm-text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 980px) {
+  .listHeader {
+    display: none;
+  }
+
+  .customerRow {
+    grid-template-columns: minmax(180px, 1.2fr) repeat(2, minmax(150px, 1fr)) 88px;
+  }
+
+  .customerRow .field:nth-of-type(4) {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .headerRow {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .customerRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 11px 16px;
+    padding: 14px;
+  }
+
+  .customerIdentity {
+    grid-column: 1;
+  }
+
+  .rowActions {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .field {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .customerRow .field:nth-of-type(4) {
+    display: grid;
+  }
+
+  .mobileLabel {
+    display: inline;
+    color: var(--crm-text-soft);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+}
+
+@media (max-width: 480px) {
+  .headerRow {
+    flex-direction: column;
+  }
+
+  .actionButton {
+    width: 100%;
+  }
 }

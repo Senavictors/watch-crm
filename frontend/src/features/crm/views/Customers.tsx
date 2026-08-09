@@ -1,12 +1,14 @@
 "use client";
-import React, { useState } from "react";
+import React from "react";
 import { Pencil, Eye } from "lucide-react";
 import { Customer } from "../types";
-import { Btn, Card } from "../ui/Primitives";
+import { Btn } from "../ui/Primitives";
 import styles from "./Customers.module.css";
 
 type Props = {
   customers: Customer[];
+  search: string;
+  onSearchChange: (value: string) => void;
   canCreate: boolean;
   canUpdate: boolean;
   onNew: () => void;
@@ -14,13 +16,7 @@ type Props = {
   onView: (customer: Customer) => void;
 };
 
-const Customers: React.FC<Props> = ({ customers, canCreate, canUpdate, onNew, onEdit, onView }) => {
-  const [search, setSearch] = useState("");
-  const filtered = customers.filter(
-    (c) =>
-      !search ||
-      `${c.name} ${c.phone} ${c.email ?? ""} ${c.instagram ?? ""}`.toLowerCase().includes(search.toLowerCase())
-  );
+const Customers: React.FC<Props> = ({ customers, search, onSearchChange, canCreate, canUpdate, onNew, onEdit, onView }) => {
   return (
     <div>
       <div className={styles.headerRow}>
@@ -33,33 +29,65 @@ const Customers: React.FC<Props> = ({ customers, canCreate, canUpdate, onNew, on
       </div>
       <input
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={(e) => onSearchChange(e.target.value)}
         placeholder="Buscar cliente..."
         className={styles.search}
       />
-      <div className={styles.grid}>
-        {filtered.map((c) => (
-          <Card key={c.id} className={styles.customerCard}>
-            <div className={styles.cardHeader}>
-              <div className={styles.cardName}>{c.name}</div>
-              <div className={styles.cardActions}>
-                <Btn onClick={() => onView(c)} variant="secondary" small className={styles.cardAction}>
-                  <Eye size={16} />
+      <div className={styles.list}>
+        <div className={styles.listHeader} aria-hidden="true">
+          <span>Cliente</span>
+          <span>Telefone</span>
+          <span>E-mail</span>
+          <span>Instagram</span>
+          <span className={styles.actionsLabel}>Ações</span>
+        </div>
+
+        <div role="list" aria-label="Lista de clientes">
+          {customers.map((c) => (
+            <article key={c.id} className={styles.customerRow} role="listitem">
+              <div className={styles.customerIdentity}>
+                <div className={styles.avatar} aria-hidden="true">
+                  {c.name.trim().charAt(0).toUpperCase()}
+                </div>
+                <div className={styles.customerName}>{c.name}</div>
+              </div>
+
+              <div className={styles.field}>
+                <span className={styles.mobileLabel}>Telefone</span>
+                <span className={styles.fieldValue}>{c.phone}</span>
+              </div>
+
+              <div className={styles.field}>
+                <span className={styles.mobileLabel}>E-mail</span>
+                <span className={styles.fieldValue}>{c.email || "Não informado"}</span>
+              </div>
+
+              <div className={styles.field}>
+                <span className={styles.mobileLabel}>Instagram</span>
+                <span className={c.instagram ? styles.instagram : styles.fieldValue}>
+                  {c.instagram || "Não informado"}
+                </span>
+              </div>
+
+              <div className={styles.rowActions}>
+                <Btn onClick={() => onView(c)} variant="secondary" small className={styles.rowAction}>
+                  <Eye size={16} aria-hidden="true" />
+                  <span className={styles.srOnly}>Visualizar {c.name}</span>
                 </Btn>
                 {canUpdate && (
-                  <Btn onClick={() => onEdit(c)} variant="secondary" small className={styles.cardAction}>
-                    <Pencil size={16} />
+                  <Btn onClick={() => onEdit(c)} variant="secondary" small className={styles.rowAction}>
+                    <Pencil size={16} aria-hidden="true" />
+                    <span className={styles.srOnly}>Editar {c.name}</span>
                   </Btn>
                 )}
               </div>
-            </div>
-            <div className={styles.cardMuted}>📱 {c.phone}</div>
-            {c.email && (
-              <div className={styles.cardMuted}>✉️ {c.email}</div>
-            )}
-            {c.instagram && <div className={styles.cardAccent}>{c.instagram}</div>}
-          </Card>
-        ))}
+            </article>
+          ))}
+        </div>
+
+        {customers.length === 0 && (
+          <div className={styles.emptyState}>Nenhum cliente encontrado.</div>
+        )}
       </div>
     </div>
   );

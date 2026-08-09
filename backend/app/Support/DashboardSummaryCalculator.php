@@ -27,14 +27,40 @@ class DashboardSummaryCalculator
 
     public static function build(User $user, DashboardPeriod $period): array
     {
+        $kpis = self::kpis($user, $period);
+        $goal = self::goal($user);
+        $conversion = OrderConversionCalculator::calculate($user, $period->from, $period->to);
+        $previousConversion = OrderConversionCalculator::calculate($user, $period->comparisonFrom, $period->comparisonTo);
+        $payments = PendingPaymentInsightsCalculator::calculate($user);
+
         return [
-            'kpis' => self::kpis($user, $period),
+            'kpis' => [
+                ...$kpis,
+                'conversionRate' => [
+                    'value' => $conversion['rate'],
+                    'previousValue' => $previousConversion['rate'],
+                    'percentagePointChange' => self::percentagePointChange($conversion['rate'], $previousConversion['rate']),
+                ],
+            ],
             'commission' => self::commission($user, $period),
             'stock' => InventoryValuationCalculator::calculate()->toArray(),
             'evolution' => self::evolution($user, $period),
             'categories' => self::categories($user, $period),
             'channels' => self::channels($user, $period),
-            'goal' => self::goal($user),
+            'goal' => $goal,
+            'conversion' => [
+                'current' => $conversion,
+                'previous' => $previousConversion,
+                'percentagePointChange' => self::percentagePointChange($conversion['rate'], $previousConversion['rate']),
+            ],
+            'pendingPayments' => $payments,
+            'operationalAlerts' => OperationalAlertCalculator::calculate(
+                $user,
+                $conversion,
+                $previousConversion,
+                $payments,
+                $goal['company']
+            ),
             'nextShipments' => self::nextShipments($user),
         ];
     }
@@ -259,6 +285,8 @@ class DashboardSummaryCalculator
         return [
             'id' => $goal->id,
             'name' => $goal->name,
+            'calculationType' => $goal->calculation_type,
+            'productTypeFilter' => $goal->product_type_filter,
             'totalTarget' => round($totalTarget, 2),
             'totalCurrent' => round($totalCurrent, 2),
             'totalPercentage' => $totalTarget > 0 ? round(($totalCurrent / $totalTarget) * 100, 1) : 0.0,
@@ -331,6 +359,15 @@ class DashboardSummaryCalculator
         }
 
         return round((($value - $previousValue) / abs($previousValue)) * 100, 1);
+    }
+
+    private static function percentagePointChange(float|int|null $value, float|int|null $previousValue): ?float
+    {
+        if ($value === null || $previousValue === null) {
+            return null;
+        }
+
+        return round((float) $value - (float) $previousValue, 1);
     }
 
     /**

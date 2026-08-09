@@ -170,7 +170,7 @@ class ShippingControllerTest extends TestCase
 
         $response = $this->actingAs($admin)->getJson('/api/shipping/queue')->assertOk();
 
-        $item = collect($response->json())->firstWhere('id', $order->id);
+        $item = collect($response->json('data'))->firstWhere('id', $order->id);
         $this->assertNotNull($item);
         $this->assertSame('2026-08-03', $item['nextPostingDate']);
         $this->assertFalse($item['isLate']);
@@ -192,7 +192,7 @@ class ShippingControllerTest extends TestCase
 
         $response = $this->actingAs($admin)->getJson('/api/shipping/queue')->assertOk();
 
-        $item = collect($response->json())->firstWhere('id', $order->id);
+        $item = collect($response->json('data'))->firstWhere('id', $order->id);
         $this->assertSame('2026-08-10', $item['nextPostingDate']);
     }
 
@@ -209,7 +209,7 @@ class ShippingControllerTest extends TestCase
 
         $response = $this->actingAs($admin)->getJson('/api/shipping/queue')->assertOk();
 
-        $item = collect($response->json())->firstWhere('id', $order->id);
+        $item = collect($response->json('data'))->firstWhere('id', $order->id);
         $this->assertTrue($item['isLate']);
     }
 
@@ -233,7 +233,7 @@ class ShippingControllerTest extends TestCase
 
         $response = $this->actingAs($admin)->getJson('/api/shipping/queue')->assertOk();
 
-        $this->assertNull(collect($response->json())->firstWhere('id', $order->id));
+        $this->assertNull(collect($response->json('data'))->firstWhere('id', $order->id));
     }
 
     public function test_order_already_shipped_never_appears_in_the_queue(): void
@@ -248,7 +248,7 @@ class ShippingControllerTest extends TestCase
 
         $response = $this->actingAs($admin)->getJson('/api/shipping/queue')->assertOk();
 
-        $this->assertNull(collect($response->json())->firstWhere('id', $order->id));
+        $this->assertNull(collect($response->json('data'))->firstWhere('id', $order->id));
     }
 
     public function test_unpaid_order_never_appears_in_the_queue(): void
@@ -262,7 +262,7 @@ class ShippingControllerTest extends TestCase
 
         $response = $this->actingAs($admin)->getJson('/api/shipping/queue')->assertOk();
 
-        $this->assertNull(collect($response->json())->firstWhere('id', $order->id));
+        $this->assertNull(collect($response->json('data'))->firstWhere('id', $order->id));
     }
 
     public function test_seller_only_sees_their_own_orders_in_the_queue(): void
@@ -283,7 +283,7 @@ class ShippingControllerTest extends TestCase
 
         $response = $this->actingAs($sellerA)->getJson('/api/shipping/queue')->assertOk();
 
-        $ids = collect($response->json())->pluck('id')->all();
+        $ids = collect($response->json('data'))->pluck('id')->all();
         $this->assertContains($ownOrder->id, $ids);
         $this->assertNotContains($otherOrder->id, $ids);
     }
@@ -301,7 +301,7 @@ class ShippingControllerTest extends TestCase
 
         $response = $this->actingAs($guarantee)->getJson('/api/shipping/queue')->assertOk();
 
-        $this->assertSame([], $response->json());
+        $this->assertSame([], $response->json('data'));
     }
 
     public function test_manager_sees_all_orders_in_the_queue_regardless_of_seller(): void
@@ -316,7 +316,7 @@ class ShippingControllerTest extends TestCase
 
         $response = $this->actingAs($manager)->getJson('/api/shipping/queue')->assertOk();
 
-        $this->assertCount(2, $response->json());
+        $this->assertCount(2, $response->json('data'));
     }
 
     /**

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\PostingDay;
+use App\Support\ApiPagination;
 use App\Support\ShippingScheduleCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -91,7 +92,9 @@ class ShippingController extends Controller
             $query->where('seller_user_id', $user->id);
         }
 
-        $orders = $query->get()->map(function (Order $order) use ($today) {
+        $orders = $query->orderBy('paid_at')->orderBy('id')->paginate(ApiPagination::perPage($request));
+
+        return ApiPagination::response($orders, function (Order $order) use ($today) {
             $nextPostingDate = ShippingScheduleCalculator::nextPostingDate($order->paid_at);
 
             return [
@@ -108,10 +111,6 @@ class ShippingController extends Controller
                 'isLate' => ShippingScheduleCalculator::isLate($nextPostingDate, $today),
             ];
         });
-
-        $sorted = $orders->sortBy('nextPostingDate')->values();
-
-        return response()->json($sorted);
     }
 
     private function toSchedulePayload(PostingDay $day): array

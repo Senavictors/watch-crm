@@ -1,6 +1,9 @@
 .card {
   margin-bottom: 24px;
-  border: 1px solid color-mix(in srgb, var(--crm-primary) 30%, var(--crm-card-border));
+  border: 1px solid color-mix(in srgb, var(--crm-primary) 24%, var(--crm-card-border));
+  border-radius: 18px;
+  background: linear-gradient(145deg, var(--crm-card-bg), color-mix(in srgb, var(--crm-primary) 3%, var(--crm-card-bg)));
+  box-shadow: 0 12px 34px color-mix(in srgb, var(--crm-primary) 7%, transparent);
 }
 
 .header {
@@ -10,10 +13,54 @@
   gap: 16px;
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.toggleButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 30px;
+  border: 1px solid color-mix(in srgb, var(--crm-primary) 20%, var(--crm-card-border));
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: var(--crm-card-bg);
+  color: var(--crm-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.toggleButton:hover {
+  border-color: color-mix(in srgb, var(--crm-primary) 45%, var(--crm-card-border));
+  background: color-mix(in srgb, var(--crm-primary) 6%, var(--crm-card-bg));
+  color: var(--crm-primary);
+}
+
+.toggleButton:focus-visible {
+  outline: 2px solid var(--crm-primary);
+  outline-offset: 2px;
+}
+
 .title {
   color: var(--crm-text);
   font-size: 17px;
   font-weight: 700;
+}
+
+.eyebrow {
+  color: var(--crm-primary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  margin-bottom: 3px;
 }
 
 .subtitle,
@@ -43,14 +90,43 @@
 
 .list {
   display: grid;
-  gap: 14px;
+  gap: 0;
   margin: 18px 0 0;
-  padding-left: 20px;
 }
 
 .item {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
   color: var(--crm-text);
-  padding-left: 4px;
+  border-top: 1px solid var(--crm-table-border);
+  padding: 15px 0;
+}
+
+.index {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--crm-primary) 11%, transparent);
+  color: var(--crm-primary);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.itemBody {
+  min-width: 0;
+}
+
+.type {
+  display: inline-block;
+  color: var(--crm-primary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+  text-transform: uppercase;
 }
 
 .statement {
@@ -66,8 +142,9 @@
 }
 
 .source {
-  border: 1px solid var(--crm-table-border);
+  border: 1px solid color-mix(in srgb, var(--crm-primary) 15%, var(--crm-table-border));
   border-radius: 999px;
+  background: var(--crm-card-bg);
   color: var(--crm-text-muted);
   font-size: 11px;
   padding: 4px 8px;
@@ -87,5 +164,19 @@
   .header {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+  }
+
+  .item {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 9px;
+  }
+
+  .index {
+    width: 26px;
+    height: 26px;
   }
 }

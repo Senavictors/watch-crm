@@ -1,11 +1,17 @@
 "use client";
-import React, { useState } from "react";
+import React from "react";
 import { CrmUser, UserRole } from "../types";
 import { Btn } from "../ui/Primitives";
 import styles from "./Users.module.css";
 
 type Props = {
   users: CrmUser[];
+  search: string;
+  role: string;
+  status: string;
+  onSearchChange: (value: string) => void;
+  onRoleChange: (value: string) => void;
+  onStatusChange: (value: string) => void;
   currentUserRole: UserRole;
   canCreate: boolean;
   onNew: () => void;
@@ -24,6 +30,12 @@ const ROLE_LABELS: Record<string, string> = {
 
 const Users: React.FC<Props> = ({
   users,
+  search,
+  role,
+  status,
+  onSearchChange,
+  onRoleChange,
+  onStatusChange,
   currentUserRole,
   canCreate,
   onNew,
@@ -31,18 +43,6 @@ const Users: React.FC<Props> = ({
   onToggleActive,
   onResetPassword,
 }) => {
-  const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-
-  const filtered = users.filter((u) => {
-    if (search && !`${u.name} ${u.email}`.toLowerCase().includes(search.toLowerCase())) return false;
-    if (roleFilter && u.role !== roleFilter) return false;
-    if (statusFilter === "active" && !u.isActive) return false;
-    if (statusFilter === "inactive" && u.isActive) return false;
-    return true;
-  });
-
   function canActOnUser(target: CrmUser): boolean {
     // TASK-013: gerente também não age sobre owner (mesma regra do backend,
     // UserPolicy::update) — mostrar o botão aqui só pra dar 403 depois seria
@@ -74,13 +74,13 @@ const Users: React.FC<Props> = ({
       <div className={styles.filterBar}>
         <input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Buscar por nome ou e-mail..."
           className={styles.search}
         />
         <select
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value)}
+          value={role}
+          onChange={(e) => onRoleChange(e.target.value)}
           className={styles.filterSelect}
         >
           <option value="">Todas as funções</option>
@@ -91,8 +91,8 @@ const Users: React.FC<Props> = ({
           <option value="garantia">Garantia</option>
         </select>
         <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          value={status}
+          onChange={(e) => onStatusChange(e.target.value)}
           className={styles.filterSelect}
         >
           <option value="">Todos os status</option>
@@ -114,14 +114,14 @@ const Users: React.FC<Props> = ({
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 && (
+            {users.length === 0 && (
               <tr>
                 <td colSpan={6} className={styles.empty}>
                   Nenhum usuário encontrado.
                 </td>
               </tr>
             )}
-            {filtered.map((u) => (
+            {users.map((u) => (
               <tr key={u.id} className={styles.row}>
                 <td className={styles.td}>{u.name}</td>
                 <td className={styles.td}>{u.email}</td>

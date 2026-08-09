@@ -8,6 +8,7 @@ import styles from "./Expenses.module.css";
 type Props = {
   expenses: Expense[];
   metadata: ExpenseMetadata;
+  summary: { totalAmount: number; totalCount: number };
   canCreate: boolean;
   canUpdate: boolean;
   canDelete: boolean;
@@ -29,6 +30,7 @@ type Props = {
 const Expenses: React.FC<Props> = ({
   expenses,
   metadata,
+  summary,
   canCreate,
   canUpdate,
   canDelete,
@@ -42,7 +44,6 @@ const Expenses: React.FC<Props> = ({
   onEdit,
   onDelete,
 }) => {
-  const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   const showActions = canUpdate || canDelete;
 
   return (
@@ -57,8 +58,8 @@ const Expenses: React.FC<Props> = ({
       </div>
 
       <div className={styles.statsRow}>
-        <StatCard label="Total no período" value={fmtBRL(total)} color="var(--crm-accent)" />
-        <StatCard label="Lançamentos" value={expenses.length} color="var(--crm-text)" />
+        <StatCard label="Total no período" value={fmtBRL(summary.totalAmount)} color="var(--crm-accent)" />
+        <StatCard label="Lançamentos" value={summary.totalCount} color="var(--crm-text)" />
       </div>
 
       <div className={styles.filterBar}>

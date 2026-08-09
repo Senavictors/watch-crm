@@ -39,6 +39,7 @@ return [
         'api_key' => env('OPENAI_API_KEY'),
         'project' => env('OPENAI_PROJECT'),
         'model' => env('OPENAI_MODEL', 'gpt-5.6-luna'),
+        'proxy' => env('OPENAI_PROXY'),
         'summary_enabled' => env('AI_SUMMARY_ENABLED', true),
         'summary_cache_ttl' => (int) env('AI_SUMMARY_CACHE_TTL', 900),
         'summary_timeout' => (int) env('AI_SUMMARY_TIMEOUT', 20),

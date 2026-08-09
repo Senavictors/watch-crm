@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Btn, Input, Select } from "../ui/Primitives";
 import { Expense, ExpenseInput, ExpenseMetadata } from "../types";
+import ModalBackdrop from "../components/Modal/ModalBackdrop";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./NewExpenseForm.module.css";
 
@@ -51,7 +52,7 @@ const NewExpenseForm: React.FC<Props> = ({ expense, metadata, onSave, onClose, o
   }
 
   return (
-    <div className={modalStyles.overlay}>
+    <ModalBackdrop onClose={onClose}>
       <div className={`${modalStyles.modal} ${styles.modal}`}>
         <div className={modalStyles.header}>
           <h3 className={modalStyles.title}>{isEditing ? "Editar Despesa" : "Nova Despesa"}</h3>
@@ -96,7 +97,7 @@ const NewExpenseForm: React.FC<Props> = ({ expense, metadata, onSave, onClose, o
           </Btn>
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 };
 

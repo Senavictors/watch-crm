@@ -3,7 +3,10 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../../features/crm/contexts/AuthContext";
 import { useToast } from "../../../features/crm/contexts/ToastContext";
 import { apiFetch, apiCreate, apiUpdate, apiGet, getApiBaseUrl } from "../../../features/crm/api";
-import { Customer, CustomerFrictionNote, CustomerInput, Order, ProductReturn } from "../../../features/crm/types";
+import { Customer, CustomerFrictionNote, CustomerInput, Order, PaginatedResponse, PaginationMeta, ProductReturn } from "../../../features/crm/types";
+import { useDebouncedValue } from "../../../features/crm/hooks/useDebouncedValue";
+import { EMPTY_PAGINATION } from "../../../features/crm/pagination";
+import PaginationBar from "../../../features/crm/ui/PaginationBar";
 import Customers from "../../../features/crm/views/Customers";
 import NewCustomerForm from "../../../features/crm/views/NewCustomerForm";
 import CustomerDetailModal from "../../../features/crm/views/CustomerDetailModal";
@@ -12,12 +15,19 @@ export default function ClientesPage() {
   const { hasPermission, handleUnauthorized } = useAuth();
   const { pushToast } = useToast();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [pagination, setPagination] = useState<PaginationMeta>(EMPTY_PAGINATION);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
+  const [reloadKey, setReloadKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
   const [viewing, setViewing] = useState<Customer | null>(null);
   const [viewOrders, setViewOrders] = useState<Order[] | null>(null);
   const [viewReturns, setViewReturns] = useState<ProductReturn[] | null>(null);
+  const [viewOrdersMeta, setViewOrdersMeta] = useState<PaginationMeta>(EMPTY_PAGINATION);
+  const [viewReturnsMeta, setViewReturnsMeta] = useState<PaginationMeta>(EMPTY_PAGINATION);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [loadingReturns, setLoadingReturns] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -29,11 +39,16 @@ export default function ClientesPage() {
     async function load() {
       try {
         setLoading(true);
-        const res = await apiFetch(`${apiBaseUrl}/customers`);
+        const params = new URLSearchParams({ page: String(page), perPage: "20" });
+        if (debouncedSearch) params.set("search", debouncedSearch);
+        const res = await apiFetch(`${apiBaseUrl}/customers?${params.toString()}`);
         if (res.status === 401) { handleUnauthorized(); return; }
         if (!res.ok) throw new Error("Falha ao carregar clientes.");
-        const data = await res.json();
-        if (alive) setCustomers(data);
+        const response = (await res.json()) as PaginatedResponse<Customer>;
+        if (alive) {
+          setCustomers(response.data);
+          setPagination(response.meta);
+        }
       } catch (err) {
         if (alive) pushToast(err instanceof Error ? err.message : "Erro.", "error");
       } finally {
@@ -43,13 +58,14 @@ export default function ClientesPage() {
 
     load();
     return () => { alive = false; };
-  }, []);
+  }, [debouncedSearch, handleUnauthorized, page, pushToast, reloadKey]);
 
   async function handleSave(data: CustomerInput) {
     try {
-      const created = await apiCreate<Customer>("/customers", data, "Falha ao cadastrar cliente.");
-      setCustomers((cs) => [created, ...cs]);
+      await apiCreate<Customer>("/customers", data, "Falha ao cadastrar cliente.");
       setShowNew(false);
+      setPage(1);
+      setReloadKey((value) => value + 1);
       pushToast("Cliente cadastrado com sucesso.", "success");
     } catch (err) {
       pushToast(err instanceof Error ? err.message : "Erro.", "error");
@@ -64,16 +80,16 @@ export default function ClientesPage() {
     setLoadingReturns(true);
     setLoadingDetail(true);
 
-    apiGet<Order[]>(`/orders?customer_id=${customer.id}`, "Falha ao carregar pedidos.")
-      .then(setViewOrders)
+    apiGet<PaginatedResponse<Order>>(`/orders?customer_id=${customer.id}&page=1&perPage=20`, "Falha ao carregar pedidos.")
+      .then((response) => { setViewOrders(response.data); setViewOrdersMeta(response.meta); })
       .catch((err) => {
         pushToast(err instanceof Error ? err.message : "Erro ao carregar pedidos.", "error");
         setViewOrders([]);
       })
       .finally(() => setLoadingOrders(false));
 
-    apiGet<ProductReturn[]>(`/returns?customer_id=${customer.id}`, "Falha ao carregar garantias.")
-      .then(setViewReturns)
+    apiGet<PaginatedResponse<ProductReturn>>(`/returns?customer_id=${customer.id}&page=1&perPage=20`, "Falha ao carregar garantias.")
+      .then((response) => { setViewReturns(response.data); setViewReturnsMeta(response.meta); })
       .catch((err) => {
         pushToast(err instanceof Error ? err.message : "Erro ao carregar garantias.", "error");
         setViewReturns([]);
@@ -91,6 +107,28 @@ export default function ClientesPage() {
         pushToast(err instanceof Error ? err.message : "Erro ao carregar detalhes do cliente.", "error");
       })
       .finally(() => setLoadingDetail(false));
+  }
+
+  function loadCustomerOrders(customerId: number, targetPage: number) {
+    setLoadingOrders(true);
+    apiGet<PaginatedResponse<Order>>(`/orders?customer_id=${customerId}&page=${targetPage}&perPage=20`, "Falha ao carregar pedidos.")
+      .then((response) => { setViewOrders(response.data); setViewOrdersMeta(response.meta); })
+      .catch((error) => {
+        pushToast(error instanceof Error ? error.message : "Erro ao carregar pedidos.", "error");
+        setViewOrders([]);
+      })
+      .finally(() => setLoadingOrders(false));
+  }
+
+  function loadCustomerReturns(customerId: number, targetPage: number) {
+    setLoadingReturns(true);
+    apiGet<PaginatedResponse<ProductReturn>>(`/returns?customer_id=${customerId}&page=${targetPage}&perPage=20`, "Falha ao carregar garantias.")
+      .then((response) => { setViewReturns(response.data); setViewReturnsMeta(response.meta); })
+      .catch((error) => {
+        pushToast(error instanceof Error ? error.message : "Erro ao carregar garantias.", "error");
+        setViewReturns([]);
+      })
+      .finally(() => setLoadingReturns(false));
   }
 
   async function handleAddFrictionNote(note: string) {
@@ -114,6 +152,7 @@ export default function ClientesPage() {
       const updated = await apiUpdate<Customer>(`/customers/${editing.id}`, data, "Falha ao atualizar cliente.");
       setCustomers((cs) => cs.map((c) => (c.id === updated.id ? updated : c)));
       setEditing(null);
+      setReloadKey((value) => value + 1);
       pushToast("Cliente atualizado com sucesso.", "success");
     } catch (err) {
       pushToast(err instanceof Error ? err.message : "Erro.", "error");
@@ -126,12 +165,15 @@ export default function ClientesPage() {
     <>
       <Customers
         customers={customers}
+        search={search}
+        onSearchChange={(value) => { setSearch(value); setPage(1); }}
         canCreate={hasPermission("customers.create")}
         canUpdate={hasPermission("customers.update")}
         onNew={() => setShowNew(true)}
         onEdit={setEditing}
         onView={handleView}
       />
+      <PaginationBar meta={pagination} onPageChange={setPage} disabled={loading} />
       {showNew && (
         <NewCustomerForm customer={null} onSave={handleSave} onClose={() => setShowNew(false)} onToast={pushToast} />
       )}
@@ -143,11 +185,15 @@ export default function ClientesPage() {
           customer={viewing}
           orders={viewOrders}
           returns={viewReturns}
+          ordersMeta={viewOrdersMeta}
+          returnsMeta={viewReturnsMeta}
           loadingOrders={loadingOrders}
           loadingReturns={loadingReturns}
           loadingDetail={loadingDetail}
           canRegisterFrictionNote={hasPermission("customers.update")}
           onAddFrictionNote={handleAddFrictionNote}
+          onOrdersPageChange={(targetPage) => loadCustomerOrders(viewing.id, targetPage)}
+          onReturnsPageChange={(targetPage) => loadCustomerReturns(viewing.id, targetPage)}
           onClose={() => setViewing(null)}
         />
       )}

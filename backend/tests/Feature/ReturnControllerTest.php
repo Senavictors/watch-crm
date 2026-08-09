@@ -244,7 +244,7 @@ class ReturnControllerTest extends TestCase
             ->getJson('/api/returns?orderId='.$orderA->id)
             ->assertOk();
 
-        $ids = collect($response->json())->pluck('id')->all();
+        $ids = collect($response->json('data'))->pluck('id')->all();
 
         $this->assertSame([$returnA->id], $ids);
     }
@@ -417,7 +417,7 @@ class ReturnControllerTest extends TestCase
             ->getJson('/api/returns?orderId='.$order->id)
             ->assertOk();
 
-        $payload = collect($response->json())->firstWhere('id', $productReturn->id);
+        $payload = collect($response->json('data'))->firstWhere('id', $productReturn->id);
 
         $this->assertTrue($payload['withinWarrantyWindow']);
     }
@@ -440,7 +440,7 @@ class ReturnControllerTest extends TestCase
             ->getJson('/api/returns?orderId='.$order->id)
             ->assertOk();
 
-        $payload = collect($response->json())->firstWhere('id', $productReturn->id);
+        $payload = collect($response->json('data'))->firstWhere('id', $productReturn->id);
 
         $this->assertFalse($payload['withinWarrantyWindow']);
     }
@@ -461,7 +461,7 @@ class ReturnControllerTest extends TestCase
             ->getJson('/api/returns?customer_id='.$customer->id)
             ->assertOk();
 
-        $payload = collect($response->json())->firstWhere('id', $productReturn->id);
+        $payload = collect($response->json('data'))->firstWhere('id', $productReturn->id);
 
         $this->assertNull($payload['withinWarrantyWindow']);
     }
@@ -498,7 +498,7 @@ class ReturnControllerTest extends TestCase
             ->getJson('/api/returns?assignedUserId='.$guarantee->id.'&status=Recebido')
             ->assertOk();
 
-        $ids = collect($response->json())->pluck('id')->all();
+        $ids = collect($response->json('data'))->pluck('id')->all();
 
         $this->assertSame([$matching->id], $ids);
     }

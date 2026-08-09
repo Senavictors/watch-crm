@@ -1,20 +1,30 @@
 "use client";
-import React, { useMemo, useState } from "react";
+
+import React from "react";
 import { calcProfit, fmtBRL, fmtDate } from "../helpers";
-import { Customer, Order, OrderStatus } from "../types";
+import { Order, OrderStatus, UserOption } from "../types";
 import { Badge, Btn, Card } from "../ui/Primitives";
 import styles from "./OrderList.module.css";
 
 type Props = {
   orders: Order[];
-  customers: Customer[];
   channels: string[];
-  sellers: string[];
+  sellers: UserOption[];
   statuses: string[];
   categories: string[];
+  search: string;
+  status: OrderStatus | "";
+  paymentStatus: string;
+  channel: string;
+  sellerUserId: string;
   category: string;
   from: string;
   to: string;
+  onSearchChange: (value: string) => void;
+  onStatusChange: (value: OrderStatus | "") => void;
+  onPaymentStatusChange: (value: string) => void;
+  onChannelChange: (value: string) => void;
+  onSellerChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
   onFromChange: (value: string) => void;
   onToChange: (value: string) => void;
@@ -28,14 +38,23 @@ type Props = {
 
 const OrderList: React.FC<Props> = ({
   orders,
-  customers,
   channels,
   sellers,
   statuses,
   categories,
+  search,
+  status,
+  paymentStatus,
+  channel,
+  sellerUserId,
   category,
   from,
   to,
+  onSearchChange,
+  onStatusChange,
+  onPaymentStatusChange,
+  onChannelChange,
+  onSellerChange,
   onCategoryChange,
   onFromChange,
   onToChange,
@@ -46,117 +65,40 @@ const OrderList: React.FC<Props> = ({
   onNew,
   onUpdateStatus,
 }) => {
-  const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState<OrderStatus | "">("");
-  const [filterChannel, setFilterChannel] = useState("");
-  const [filterSeller, setFilterSeller] = useState("");
-
   const activeChips = [
-    category
-      ? { key: "category", label: `Categoria: ${category}`, onRemove: () => onCategoryChange("") }
-      : null,
-    from
-      ? { key: "from", label: `De: ${fmtDate(from)}`, onRemove: () => onFromChange("") }
-      : null,
-    to
-      ? { key: "to", label: `Até: ${fmtDate(to)}`, onRemove: () => onToChange("") }
-      : null,
+    category ? { key: "category", label: `Categoria: ${category}`, onRemove: () => onCategoryChange("") } : null,
+    paymentStatus === "pending" ? { key: "paymentStatus", label: "Pagamento pendente", onRemove: () => onPaymentStatusChange("") } : null,
+    from ? { key: "from", label: `De: ${fmtDate(from)}`, onRemove: () => onFromChange("") } : null,
+    to ? { key: "to", label: `Até: ${fmtDate(to)}`, onRemove: () => onToChange("") } : null,
   ].filter((chip): chip is { key: string; label: string; onRemove: () => void } => chip !== null);
-
-  const filtered = useMemo(
-    () =>
-      orders.filter((o) => {
-        if (filterStatus && o.status !== filterStatus) return false;
-        if (filterChannel && o.channel !== filterChannel) return false;
-        if (filterSeller && o.seller !== filterSeller) return false;
-        if (
-          search &&
-          !`${o.id} ${o.productName}`.toLowerCase().includes(search.toLowerCase())
-        )
-          return false;
-        return true;
-      }),
-    [orders, filterStatus, filterChannel, filterSeller, search]
-  );
 
   return (
     <div>
       <div className={styles.headerRow}>
         <h2 className={styles.title}>Pedidos</h2>
-        {canCreate && (
-          <Btn onClick={onNew} variant="primary" className={styles.actionButton}>
-            + Novo Pedido
-          </Btn>
-        )}
+        {canCreate && <Btn onClick={onNew} variant="primary" className={styles.actionButton}>+ Novo Pedido</Btn>}
       </div>
 
       <div className={styles.filters}>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar pedido..."
-          className={styles.search}
-        />
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value as OrderStatus | "")}
-          className={styles.select}
-          style={{ color: filterStatus ? "var(--crm-input-text)" : "var(--crm-text-soft)" }}
-        >
+        <input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="Buscar pedido..." className={styles.search} />
+        <select value={status} onChange={(event) => onStatusChange(event.target.value as OrderStatus | "")} className={styles.select}>
           <option value="">Todos status</option>
-          {statuses.map((s) => (
-            <option key={s}>{s}</option>
-          ))}
+          {statuses.map((item) => <option key={item}>{item}</option>)}
         </select>
-        <select
-          value={filterChannel}
-          onChange={(e) => setFilterChannel(e.target.value)}
-          className={styles.select}
-          style={{ color: filterChannel ? "var(--crm-input-text)" : "var(--crm-text-soft)" }}
-        >
+        <select value={channel} onChange={(event) => onChannelChange(event.target.value)} className={styles.select}>
           <option value="">Todos canais</option>
-          {channels.map((c) => (
-            <option key={c}>{c}</option>
-          ))}
+          {channels.map((item) => <option key={item}>{item}</option>)}
         </select>
-        <select
-          value={filterSeller}
-          onChange={(e) => setFilterSeller(e.target.value)}
-          className={styles.select}
-          style={{ color: filterSeller ? "var(--crm-input-text)" : "var(--crm-text-soft)" }}
-        >
+        <select value={sellerUserId} onChange={(event) => onSellerChange(event.target.value)} className={styles.select}>
           <option value="">Todos vendedores</option>
-          {sellers.map((s) => (
-            <option key={s}>{s}</option>
-          ))}
+          {sellers.map((seller) => <option key={seller.id} value={seller.id}>{seller.name}</option>)}
         </select>
-        <select
-          value={category}
-          onChange={(e) => onCategoryChange(e.target.value)}
-          className={styles.select}
-          style={{ color: category ? "var(--crm-input-text)" : "var(--crm-text-soft)" }}
-        >
+        <select value={category} onChange={(event) => onCategoryChange(event.target.value)} className={styles.select}>
           <option value="">Todas categorias</option>
-          {categories.map((c) => (
-            <option key={c}>{c}</option>
-          ))}
+          {categories.map((item) => <option key={item}>{item}</option>)}
         </select>
-        <input
-          type="date"
-          value={from}
-          onChange={(e) => onFromChange(e.target.value)}
-          className={styles.select}
-          aria-label="Pago a partir de"
-          title="Pago a partir de"
-        />
-        <input
-          type="date"
-          value={to}
-          onChange={(e) => onToChange(e.target.value)}
-          className={styles.select}
-          aria-label="Pago até"
-          title="Pago até"
-        />
+        <input type="date" value={from} onChange={(event) => onFromChange(event.target.value)} className={styles.select} aria-label="Pago a partir de" />
+        <input type="date" value={to} onChange={(event) => onToChange(event.target.value)} className={styles.select} aria-label="Pago até" />
       </div>
 
       {activeChips.length > 0 && (
@@ -164,14 +106,7 @@ const OrderList: React.FC<Props> = ({
           {activeChips.map((chip) => (
             <span key={chip.key} className={styles.chip}>
               {chip.label}
-              <button
-                type="button"
-                onClick={chip.onRemove}
-                className={styles.chipRemove}
-                aria-label={`Remover filtro: ${chip.label}`}
-              >
-                ×
-              </button>
+              <button type="button" onClick={chip.onRemove} className={styles.chipRemove} aria-label={`Remover filtro: ${chip.label}`}>×</button>
             </span>
           ))}
         </div>
@@ -181,62 +116,34 @@ const OrderList: React.FC<Props> = ({
         <table className={styles.table}>
           <thead>
             <tr className={styles.theadRow}>
-              {["#", "Data", "Cliente", "Produto", "Canal", "Vendedor", "Total",
-                ...(canViewProfit ? ["Lucro"] : []),
-                "Status",
-                ...(canUpdateStatus ? ["Ações"] : []),
-              ].map((h) => (
-                <th key={h} className={styles.theadCell}>
-                  {h}
+              {["#", "Data", "Cliente", "Produto", "Canal", "Vendedor", "Total", ...(canViewProfit ? ["Lucro"] : []), "Status", ...(canUpdateStatus ? ["Ações"] : [])].map((heading) => (
+                <th
+                  key={heading}
+                  className={`${styles.theadCell} ${heading === "Ações" ? styles.actionHeader : ""}`}
+                >
+                  {heading}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {filtered.map((o) => {
-              const profit = calcProfit(o);
-
+            {orders.map((order) => {
+              const profit = calcProfit(order);
               return (
-                <tr
-                  key={o.id}
-                  className={styles.tbodyRow}
-                  onClick={() => onView(o)}
-                >
-                  <td className={styles.cellId}>#{o.id}</td>
-                  <td className={styles.cellMuted}>{fmtDate(o.saleDate)}</td>
-                  <td className={styles.cellText}>
-                    {customers.find((c) => c.id === o.customerId)?.name || "—"}
-                  </td>
-                  <td className={styles.cellText}>
-                    {o.productName}
-                    {o.itemsCount > 1 ? ` (${o.itemsCount} itens)` : ""}
-                  </td>
-                  <td className={styles.cellMuted}>{o.channel}</td>
-                  <td className={styles.cellMuted}>{o.seller}</td>
-                  <td className={styles.cellAccent}>
-                    {fmtBRL(o.salePrice - o.discount)}
-                  </td>
-                  {canViewProfit && profit !== null && (
-                    <td
-                      className={styles.cellProfit}
-                      style={{ color: profit > 0 ? "var(--crm-success)" : "var(--crm-danger)" }}
-                    >
-                      {fmtBRL(profit)}
-                    </td>
-                  )}
-                  <td className={styles.cell}>
-                    <Badge status={o.status} />
-                  </td>
+                <tr key={order.id} className={styles.tbodyRow} onClick={() => onView(order)}>
+                  <td className={styles.cellId}>#{order.id}</td>
+                  <td className={styles.cellMuted}>{fmtDate(order.saleDate)}</td>
+                  <td className={styles.cellText}>{order.customerName || "—"}</td>
+                  <td className={styles.cellText}>{order.productName}{order.itemsCount > 1 ? ` (${order.itemsCount} itens)` : ""}</td>
+                  <td className={styles.cellMuted}>{order.channel}</td>
+                  <td className={styles.cellMuted}>{order.seller}</td>
+                  <td className={styles.cellAccent}>{fmtBRL(order.salePrice - order.discount)}</td>
+                  {canViewProfit && profit !== null && <td className={styles.cellProfit} style={{ color: profit > 0 ? "var(--crm-success)" : "var(--crm-danger)" }}>{fmtBRL(profit)}</td>}
+                  <td className={styles.cell}><Badge status={order.status} /></td>
                   {canUpdateStatus && (
-                    <td className={styles.cell} onClick={(e) => e.stopPropagation()}>
-                      <select
-                        value={o.status}
-                        onChange={(e) => onUpdateStatus(o.id, e.target.value as OrderStatus)}
-                        className={styles.statusSelect}
-                      >
-                        {statuses.map((s) => (
-                          <option key={s}>{s}</option>
-                        ))}
+                    <td className={`${styles.cell} ${styles.actionCell}`} onClick={(event) => event.stopPropagation()}>
+                      <select value={order.status} onChange={(event) => onUpdateStatus(order.id, event.target.value as OrderStatus)} className={styles.statusSelect}>
+                        {statuses.map((item) => <option key={item}>{item}</option>)}
                       </select>
                     </td>
                   )}
@@ -245,9 +152,7 @@ const OrderList: React.FC<Props> = ({
             })}
           </tbody>
         </table>
-        {filtered.length === 0 && (
-          <div className={styles.empty}>Nenhum pedido encontrado</div>
-        )}
+        {orders.length === 0 && <div className={styles.empty}>Nenhum pedido encontrado</div>}
       </Card>
     </div>
   );

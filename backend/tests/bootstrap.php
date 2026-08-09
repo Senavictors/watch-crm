@@ -21,7 +21,6 @@
  * bootstrap do Laravel já veja o valor de teste, independente de qual
  * adapter do phpdotenv seja consultado primeiro.
  */
-
 $testingEnv = [
     'APP_ENV' => 'testing',
     'DB_CONNECTION' => 'sqlite',

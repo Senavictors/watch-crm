@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { fmtDate } from "../helpers";
 import { WaitlistEntry, WaitlistMetadata, WaitlistStatus } from "../types";
 import { Btn, Card } from "../ui/Primitives";
@@ -9,6 +9,12 @@ import styles from "./WaitlistList.module.css";
 type Props = {
   entries: WaitlistEntry[];
   metadata: WaitlistMetadata;
+  search: string;
+  status: WaitlistStatus | "";
+  sellerUserId: string;
+  onSearchChange: (value: string) => void;
+  onStatusFilterChange: (value: WaitlistStatus | "") => void;
+  onSellerChange: (value: string) => void;
   canCreate: boolean;
   canUpdate: boolean;
   canDelete: boolean;
@@ -21,6 +27,12 @@ type Props = {
 const WaitlistList: React.FC<Props> = ({
   entries,
   metadata,
+  search,
+  status,
+  sellerUserId,
+  onSearchChange,
+  onStatusFilterChange,
+  onSellerChange,
   canCreate,
   canUpdate,
   canDelete,
@@ -29,9 +41,6 @@ const WaitlistList: React.FC<Props> = ({
   onDelete,
   onUpdateStatus,
 }) => {
-  const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState<WaitlistStatus | "">("");
-  const [filterSellerUserId, setFilterSellerUserId] = useState("");
   // TASK-018 — status "otimista" por linha enquanto a chamada de update está
   // em voo; some (volta a refletir `entry.status`) quando a chamada termina,
   // com sucesso (prop já atualizada pelo handler) ou falha (reverte visual).
@@ -43,21 +52,6 @@ const WaitlistList: React.FC<Props> = ({
   // `metadata.assignableUsers` (todos os vendedores elegíveis), não só dos
   // que já têm entrada.
   const sellerOptions = metadata.assignableUsers;
-
-  const filtered = useMemo(
-    () =>
-      entries.filter((entry) => {
-        if (filterStatus && entry.status !== filterStatus) return false;
-        if (filterSellerUserId && String(entry.sellerUserId ?? "") !== filterSellerUserId) return false;
-        if (
-          search &&
-          !`${entry.customerName} ${entry.productName}`.toLowerCase().includes(search.toLowerCase())
-        )
-          return false;
-        return true;
-      }),
-    [entries, filterStatus, filterSellerUserId, search]
-  );
 
   async function handleStatusChange(id: number, nextStatus: WaitlistStatus) {
     setPendingStatus((current) => ({ ...current, [id]: nextStatus }));
@@ -91,15 +85,15 @@ const WaitlistList: React.FC<Props> = ({
       <div className={styles.filters}>
         <input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Buscar por cliente ou produto..."
           className={styles.search}
         />
         <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value as WaitlistStatus | "")}
+          value={status}
+          onChange={(e) => onStatusFilterChange(e.target.value as WaitlistStatus | "")}
           className={styles.select}
-          style={{ color: filterStatus ? "var(--crm-input-text)" : "var(--crm-text-soft)" }}
+          style={{ color: status ? "var(--crm-input-text)" : "var(--crm-text-soft)" }}
         >
           <option value="">Todos status</option>
           {metadata.statuses.map((s) => (
@@ -107,10 +101,10 @@ const WaitlistList: React.FC<Props> = ({
           ))}
         </select>
         <select
-          value={filterSellerUserId}
-          onChange={(e) => setFilterSellerUserId(e.target.value)}
+          value={sellerUserId}
+          onChange={(e) => onSellerChange(e.target.value)}
           className={styles.select}
-          style={{ color: filterSellerUserId ? "var(--crm-input-text)" : "var(--crm-text-soft)" }}
+          style={{ color: sellerUserId ? "var(--crm-input-text)" : "var(--crm-text-soft)" }}
         >
           <option value="">Todos vendedores</option>
           {sellerOptions.map((u) => (
@@ -133,7 +127,7 @@ const WaitlistList: React.FC<Props> = ({
             </tr>
           </thead>
           <tbody>
-            {filtered.map((entry) => {
+            {entries.map((entry) => {
               const statusColor = WAITLIST_STATUS_COLORS[entry.status] ?? "var(--crm-text-soft)";
               const variationLabel = [entry.brandName, entry.modelName, entry.qualityName]
                 .filter(Boolean)
@@ -197,7 +191,7 @@ const WaitlistList: React.FC<Props> = ({
             })}
           </tbody>
         </table>
-        {filtered.length === 0 && (
+        {entries.length === 0 && (
           <div className={styles.empty}>Nenhum registro encontrado</div>
         )}
       </Card>

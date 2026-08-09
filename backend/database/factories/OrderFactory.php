@@ -64,6 +64,7 @@ class OrderFactory extends Factory
             'freight' => 10,
             'channel_fee' => 0,
             'payment_method' => 'PIX',
+            'payment_expires_at' => null,
             'shipping_method' => 'Sedex',
             'tracking_code' => '',
             'sale_date' => now()->toDateString(),

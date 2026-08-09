@@ -5,21 +5,49 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\WatchModel;
+use App\Support\ApiPagination;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class ModelController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $models = WatchModel::query()
-            ->with(['brand', 'category', 'quality', 'products'])
-            ->orderBy('id')
-            ->get()
-            ->map(fn (WatchModel $model) => $this->toPayload($model));
+        $query = $this->listQuery();
+        $this->applySearch($query, $request->string('search')->toString());
+        $models = $query->orderByDesc('id')->paginate(ApiPagination::perPage($request));
 
-        return response()->json($models);
+        return ApiPagination::response($models, fn (WatchModel $model) => $this->toPayload($model));
+    }
+
+    public function lookup(Request $request)
+    {
+        $query = $this->listQuery();
+        $this->applySearch($query, $request->string('search')->toString());
+        $models = $query->orderBy('name')->limit(20)->get();
+
+        return response()->json(['data' => $models->map(fn (WatchModel $model) => $this->toPayload($model))->values()]);
+    }
+
+    private function listQuery()
+    {
+        return WatchModel::query()->with(['brand', 'category', 'quality', 'products']);
+    }
+
+    private function applySearch($query, string $search): void
+    {
+        $search = trim($search);
+        if ($search === '') {
+            return;
+        }
+
+        $query->where(function ($builder) use ($search) {
+            $builder->where('name', 'like', "%{$search}%")
+                ->orWhereHas('brand', fn ($brand) => $brand->where('name', 'like', "%{$search}%"))
+                ->orWhereHas('category', fn ($category) => $category->where('name', 'like', "%{$search}%"))
+                ->orWhereHas('quality', fn ($quality) => $quality->where('name', 'like', "%{$search}%"));
+        });
     }
 
     public function store(Request $request)

@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Btn, Input } from "../ui/Primitives";
 import { Brand } from "../types";
+import ModalBackdrop from "../components/Modal/ModalBackdrop";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./NewBrandForm.module.css";
 
@@ -22,7 +23,7 @@ const NewBrandForm: React.FC<Props> = ({ onSave, onClose, onToast }) => {
   }
 
   return (
-    <div className={modalStyles.overlay}>
+    <ModalBackdrop onClose={onClose}>
       <div className={`${modalStyles.modal} ${styles.modal}`}>
         <div className={modalStyles.header}>
           <h3 className={modalStyles.title}>Nova Marca</h3>
@@ -44,7 +45,7 @@ const NewBrandForm: React.FC<Props> = ({ onSave, onClose, onToast }) => {
           </Btn>
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 };
 

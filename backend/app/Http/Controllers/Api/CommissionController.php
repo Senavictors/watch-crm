@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\OrderItem;
 use App\Models\User;
+use App\Support\ApiPagination;
 use App\Support\CommissionCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,15 +28,18 @@ class CommissionController extends Controller
         $startDate = $request->input('startDate');
         $endDate = $request->input('endDate');
 
-        $report = CommissionCalculator::report($user, $startDate, $endDate, $sellerUserId);
+        $report = CommissionCalculator::paginatedReport(
+            $user,
+            $startDate,
+            $endDate,
+            $sellerUserId,
+            ApiPagination::perPage($request)
+        );
 
-        $payload = [
-            'summary' => $report['summary'],
-            'items' => $report['items']->map(fn (array $row) => $this->toItemPayload($row))->values(),
-        ];
+        $extra = ['summary' => $report['summary']];
 
         if ($user->canAccessAllRecords()) {
-            $payload['sellers'] = User::query()
+            $extra['sellers'] = User::query()
                 ->whereIn('role', UserRole::sellableRoles())
                 ->where('is_active', true)
                 ->orderBy('name')
@@ -44,7 +48,16 @@ class CommissionController extends Controller
                 ->values();
         }
 
-        return response()->json($payload);
+        return ApiPagination::response(
+            $report['items'],
+            fn (OrderItem $item) => $this->toItemPayload([
+                'item' => $item,
+                'returnedQty' => (int) $item->getAttribute('returned_qty'),
+                'netQty' => max($item->quantity - (int) $item->getAttribute('returned_qty'), 0),
+                'lineCommission' => (float) $item->getAttribute('line_commission'),
+            ]),
+            $extra
+        );
     }
 
     /**

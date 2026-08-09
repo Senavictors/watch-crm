@@ -1,5 +1,6 @@
 "use client";
 import React, { useMemo, useState } from "react";
+import AsyncLookupSelect from "../components/AsyncLookupSelect";
 import { Btn, Input, Select } from "../ui/Primitives";
 import {
   Channel,
@@ -12,12 +13,11 @@ import {
   ShippingMethod,
 } from "../types";
 import { fmtBRL, productLabel, suggestedUnitPrice } from "../helpers";
+import ModalBackdrop from "../components/Modal/ModalBackdrop";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./NewOrderForm.module.css";
 
 type Props = {
-  products: Product[];
-  customers: Customer[];
   metadata: OrderMetadata;
   // TASK-013: quem não tem dashboard.financial.view não recebe `cost` na API
   // (gerente inclusive) — sem essa flag o custo/lucro estimado ficaria
@@ -47,7 +47,8 @@ const emptyItem = (): ItemForm => ({
   priceTouched: false,
 });
 
-const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, canViewFinancials, onSave, onClose, onToast }) => {
+const NewOrderForm: React.FC<Props> = ({ metadata, canViewFinancials, onSave, onClose, onToast }) => {
+  const [selectedProducts, setSelectedProducts] = useState<Record<number, Product>>({});
   const [form, setForm] = useState<{
     customerId: string;
     sellerUserId: string;
@@ -56,6 +57,7 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, canViewF
     freight: number;
     channelFee: number;
     paymentMethod: PaymentMethod;
+    paymentExpiresAt: string;
     shippingMethod: ShippingMethod;
     notes: string;
   }>({
@@ -66,6 +68,7 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, canViewF
     freight: 0,
     channelFee: 0,
     paymentMethod: metadata.paymentMethods[0] ?? "",
+    paymentExpiresAt: "",
     shippingMethod: metadata.shippingMethods[0] ?? "",
     notes: "",
   });
@@ -97,8 +100,9 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, canViewF
     );
   }
 
-  function handleProductChange(index: number, productId: string) {
-    const product = products.find((entry) => entry.id === Number(productId));
+  function handleProductChange(index: number, product: Product | null) {
+    const productId = product ? String(product.id) : "";
+    if (product) setSelectedProducts((current) => ({ ...current, [product.id]: product }));
 
     updateItem(index, {
       productId,
@@ -117,9 +121,10 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, canViewF
     setForm((current) => ({
       ...current,
       paymentMethod,
+      paymentExpiresAt: paymentMethod === "PIX" || paymentMethod === "Boleto" ? current.paymentExpiresAt : "",
       items: current.items.map((item) => {
         if (item.priceTouched || !item.productId) return item;
-        const product = products.find((entry) => entry.id === Number(item.productId));
+        const product = selectedProducts[Number(item.productId)];
         if (!product) return item;
         return { ...item, unitPrice: String(suggestedUnitPrice(product, paymentMethod)) };
       }),
@@ -130,9 +135,9 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, canViewF
     () =>
       form.items.map((item) => ({
         item,
-        product: products.find((product) => product.id === Number(item.productId)) ?? null,
+        product: selectedProducts[Number(item.productId)] ?? null,
       })),
-    [form.items, products]
+    [form.items, selectedProducts]
   );
 
   const grossSale = selectedLines.reduce(
@@ -179,6 +184,7 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, canViewF
       freight: Number(form.freight),
       channelFee: Number(form.channelFee),
       paymentMethod: form.paymentMethod,
+      paymentExpiresAt: form.paymentExpiresAt ? new Date(form.paymentExpiresAt).toISOString() : null,
       shippingMethod: form.shippingMethod,
       trackingCode: "",
       saleDate: new Date().toISOString().slice(0, 10),
@@ -189,7 +195,7 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, canViewF
   }
 
   return (
-    <div className={modalStyles.overlay}>
+    <ModalBackdrop onClose={onClose}>
       <div className={`${modalStyles.modal} ${styles.modal}`}>
         <div className={modalStyles.header}>
           <h3 className={modalStyles.title}>Novo Pedido</h3>
@@ -200,14 +206,14 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, canViewF
 
         <div className={modalStyles.formGridTwo}>
           <div className={styles.fullSpan}>
-            <Select label="Cliente" value={form.customerId} onChange={(e) => set("customerId", e.target.value)}>
-              <option value="">Selecionar cliente...</option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name}
-                </option>
-              ))}
-            </Select>
+            <AsyncLookupSelect<Customer>
+              label="Cliente"
+              endpoint="/customers/lookup"
+              value={form.customerId}
+              getValue={(customer) => String(customer.id)}
+              getLabel={(customer) => `${customer.name} — ${customer.phone}`}
+              onSelect={(customer) => set("customerId", customer ? String(customer.id) : "")}
+            />
           </div>
           <Select label="Canal" value={form.channel} onChange={(e) => set("channel", e.target.value as Channel)}>
             {metadata.channels.map((channel) => (
@@ -239,24 +245,21 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, canViewF
 
             <div className={styles.itemsList}>
               {form.items.map((item, index) => {
-                const selectedProduct = products.find((product) => product.id === Number(item.productId));
+                const selectedProduct = selectedProducts[Number(item.productId)];
 
                 return (
                   <div key={`${index}-${item.productId || "new"}`} className={styles.itemCard}>
                     <div className={styles.itemRow}>
                       <div className={styles.itemFieldWide}>
-                        <Select
+                        <AsyncLookupSelect<Product>
                           label={`Item ${index + 1}`}
+                          endpoint="/products/lookup"
                           value={item.productId}
-                          onChange={(e) => handleProductChange(index, e.target.value)}
-                        >
-                          <option value="">Selecionar produto...</option>
-                          {products.map((product) => (
-                            <option key={product.id} value={product.id}>
-                              {productLabel(product)} — {fmtBRL(suggestedUnitPrice(product, form.paymentMethod))}
-                            </option>
-                          ))}
-                        </Select>
+                          getValue={(product) => String(product.id)}
+                          getLabel={(product) => `${productLabel(product)} — ${fmtBRL(suggestedUnitPrice(product, form.paymentMethod))}`}
+                          onSelect={(product) => handleProductChange(index, product)}
+                          initialOption={selectedProduct}
+                        />
                       </div>
                       <div className={styles.itemField}>
                         <Input
@@ -333,6 +336,14 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, canViewF
               <option key={shippingMethod}>{shippingMethod}</option>
             ))}
           </Select>
+          {(form.paymentMethod === "PIX" || form.paymentMethod === "Boleto") && (
+            <Input
+              label="Vencimento do pagamento (opcional)"
+              type="datetime-local"
+              value={form.paymentExpiresAt}
+              onChange={(e) => set("paymentExpiresAt", e.target.value)}
+            />
+          )}
           <div className={styles.fullSpan}>
             <label className={styles.label}>Observações</label>
             <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} className={modalStyles.notes} />
@@ -385,7 +396,7 @@ const NewOrderForm: React.FC<Props> = ({ products, customers, metadata, canViewF
           </Btn>
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 };
 

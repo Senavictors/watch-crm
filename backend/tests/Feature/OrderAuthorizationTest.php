@@ -168,8 +168,8 @@ class OrderAuthorizationTest extends TestCase
         $this->actingAs($seller)
             ->getJson('/api/orders')
             ->assertOk()
-            ->assertJsonCount(1)
-            ->assertJsonPath('0.sellerUserId', $seller->id);
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.sellerUserId', $seller->id);
     }
 
     public function test_order_metadata_returns_assignable_sellers_and_catalogs(): void

@@ -30,6 +30,16 @@
   transform: translateY(-2px);
 }
 
+.search {
+  width: min(100%, 420px);
+  margin-bottom: 20px;
+  padding: 10px 12px;
+  border: 1px solid var(--crm-input-border);
+  border-radius: 8px;
+  background: var(--crm-input-bg);
+  color: var(--crm-input-text);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

@@ -16,7 +16,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useLayoutEffect(() => {
     const stored = localStorage.getItem("crm-theme");
     if (stored === "light" || stored === "dark" || stored === "system") {
-      setTheme(stored);
+      const timeout = window.setTimeout(() => setTheme(stored), 0);
+      return () => window.clearTimeout(timeout);
     }
   }, []);
 

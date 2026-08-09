@@ -8,10 +8,11 @@ type Props = {
   value: string;
   sub?: string;
   percentageChange?: number | null;
+  changeSuffix?: "%" | "p.p.";
   accent?: string;
 };
 
-const KpiCard: React.FC<Props> = ({ label, value, sub, percentageChange, accent = "var(--crm-accent)" }) => {
+const KpiCard: React.FC<Props> = ({ label, value, sub, percentageChange, changeSuffix = "%", accent = "var(--crm-accent)" }) => {
   const hasChange = percentageChange !== undefined && percentageChange !== null;
   const isPositive = hasChange && (percentageChange as number) >= 0;
 
@@ -22,7 +23,7 @@ const KpiCard: React.FC<Props> = ({ label, value, sub, percentageChange, accent 
       <div className={styles.footer}>
         {hasChange && (
           <span className={isPositive ? styles.changePositive : styles.changeNegative}>
-            {isPositive ? "▲" : "▼"} {Math.abs(percentageChange as number).toFixed(1)}%
+            {isPositive ? "▲" : "▼"} {Math.abs(percentageChange as number).toFixed(1)}{changeSuffix === "%" ? "%" : " p.p."}
           </span>
         )}
         {sub && <span className={styles.sub}>{sub}</span>}

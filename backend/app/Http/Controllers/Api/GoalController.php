@@ -8,6 +8,7 @@ use App\Models\Brand;
 use App\Models\Goal;
 use App\Models\User;
 use App\Models\WatchModel;
+use App\Support\ApiPagination;
 use App\Support\GoalProgressCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -81,9 +82,22 @@ class GoalController extends Controller
             });
         }
 
-        $goals = $query->orderByDesc('created_at')->get()->map(fn (Goal $g) => $this->toPayload($g));
+        if ($request->filled('status')) {
+            $query->where('status', $request->string('status'));
+        }
 
-        return response()->json($goals);
+        if ($request->filled('scope')) {
+            $query->where('scope', $request->string('scope'));
+        }
+
+        if ($request->filled('search')) {
+            $search = trim($request->string('search')->toString());
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        $goals = $query->orderByDesc('created_at')->orderByDesc('id')->paginate(ApiPagination::perPage($request));
+
+        return ApiPagination::response($goals, fn (Goal $g) => $this->toPayload($g));
     }
 
     public function store(Request $request)

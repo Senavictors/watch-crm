@@ -63,7 +63,7 @@ class ProductCommissionTest extends TestCase
         $product = Product::factory()->create(['commission_amount' => 150]);
 
         $response = $this->actingAs($seller)->getJson('/api/products')->assertOk();
-        $payload = collect($response->json())->firstWhere('id', $product->id);
+        $payload = collect($response->json('data'))->firstWhere('id', $product->id);
 
         $this->assertEqualsWithDelta(150.0, $payload['commissionAmount'], 0.001);
         $this->assertArrayNotHasKey('cost', $payload);

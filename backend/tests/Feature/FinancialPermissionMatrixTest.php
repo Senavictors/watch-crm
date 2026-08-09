@@ -73,11 +73,12 @@ class FinancialPermissionMatrixTest extends TestCase
         $response = $this->actingAs($user)->getJson('/api/orders');
 
         $response->assertOk();
-        $payload = $response->json();
+        $payload = $response->json('data');
         $orderPayload = collect($payload)->firstWhere('id', $order->id);
 
         $this->assertSame($expected, array_key_exists('cost', $orderPayload), "role={$role}");
-        $this->assertSame($expected, array_key_exists('unitCost', $orderPayload['items'][0] ?? []), "role={$role} item");
+        $detail = $this->actingAs($user)->getJson('/api/orders/'.$order->id)->assertOk()->json();
+        $this->assertSame($expected, array_key_exists('unitCost', $detail['items'][0] ?? []), "role={$role} item");
     }
 
     #[DataProvider('financialViewRoleProvider')]
@@ -92,7 +93,7 @@ class FinancialPermissionMatrixTest extends TestCase
         $product = Product::factory()->create();
 
         $response = $this->actingAs($user)->getJson('/api/products')->assertOk();
-        $payload = collect($response->json())->firstWhere('id', $product->id);
+        $payload = collect($response->json('data'))->firstWhere('id', $product->id);
 
         $expectCost = $canViewFinancials || in_array($role, [UserRole::Manager->value], true);
         $this->assertSame($expectCost, array_key_exists('cost', $payload), "role={$role}");
@@ -137,7 +138,7 @@ class FinancialPermissionMatrixTest extends TestCase
         $this->actingAs($owner)
             ->getJson('/api/orders')
             ->assertOk()
-            ->assertJsonCount(2);
+            ->assertJsonCount(2, 'data');
     }
 
     public function test_manager_cannot_create_or_promote_owner_user(): void

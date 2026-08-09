@@ -1,5 +1,6 @@
 "use client";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
+import AsyncLookupSelect from "../components/AsyncLookupSelect";
 import { Btn, Input, Select } from "../ui/Primitives";
 import {
   Customer,
@@ -12,6 +13,7 @@ import {
   ReturnType,
 } from "../types";
 import { fmtBRL } from "../helpers";
+import ModalBackdrop from "../components/Modal/ModalBackdrop";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./NewReturnForm.module.css";
 
@@ -23,11 +25,9 @@ const REENVIO_STATUSES = ["Pronto para Reenvio", "Reenviado", "Concluído"];
 const INITIAL_RETURN_STATUS = "Aguardando Recebimento";
 
 type Props = {
-  customers: Customer[];
-  orders: Order[];
   metadata: ReturnMetadata;
   returnToEdit?: ProductReturn;
-  prefilledOrderId?: number;
+  prefilledOrder?: Order;
   onSave: (data: ReturnInput) => void;
   onClose: () => void;
   onToast: (message: string, variant?: "success" | "error") => void;
@@ -45,9 +45,9 @@ const itemFromOrderItem = (oi: OrderItem): ReturnItemInput => ({
   unitPrice: oi.unitPrice,
 });
 
-const emptyForm = (metadata: ReturnMetadata, prefilledOrderId?: number) => ({
-  customerId: "",
-  orderId: prefilledOrderId ? String(prefilledOrderId) : "",
+const emptyForm = (metadata: ReturnMetadata, prefilledOrder?: Order) => ({
+  customerId: prefilledOrder ? String(prefilledOrder.customerId) : "",
+  orderId: prefilledOrder ? String(prefilledOrder.id) : "",
   selectedOrderItemIds: [] as number[],
   assignedUserId: "",
   type: "garantia" as ReturnType,
@@ -67,15 +67,20 @@ const emptyForm = (metadata: ReturnMetadata, prefilledOrderId?: number) => ({
 });
 
 const NewReturnForm: React.FC<Props> = ({
-  customers,
-  orders,
   metadata,
   returnToEdit,
-  prefilledOrderId,
+  prefilledOrder,
   onSave,
   onClose,
   onToast,
 }) => {
+  const initialCustomer: Customer | null = returnToEdit
+    ? { id: returnToEdit.customerId, name: returnToEdit.customerName, phone: returnToEdit.customerPhone }
+    : prefilledOrder
+      ? { id: prefilledOrder.customerId, name: prefilledOrder.customerName ?? `Cliente #${prefilledOrder.customerId}`, phone: "" }
+      : null;
+  const initialOrder = prefilledOrder ?? null;
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(initialOrder);
   const [form, setForm] = useState(() => {
     if (returnToEdit) {
       return {
@@ -101,25 +106,12 @@ const NewReturnForm: React.FC<Props> = ({
         shippedBackDate: returnToEdit.shippedBackDate,
       };
     }
-    return emptyForm(metadata, prefilledOrderId);
+    return emptyForm(metadata, prefilledOrder);
   });
 
   function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
-
-  const customerOrders = useMemo(
-    () =>
-      form.customerId
-        ? orders.filter((o) => o.customerId === Number(form.customerId))
-        : [],
-    [orders, form.customerId]
-  );
-
-  const selectedOrder = useMemo(
-    () => (form.orderId ? orders.find((o) => o.id === Number(form.orderId)) : null),
-    [orders, form.orderId]
-  );
 
   // TASK-017 — ao editar, só oferece o status atual (registro já é válido
   // permanecer nele) + os destinos válidos a partir dele
@@ -131,20 +123,6 @@ const NewReturnForm: React.FC<Props> = ({
     const nextStatuses = metadata.transitions?.[currentStatus] ?? [];
     return [currentStatus, ...nextStatuses.filter((s) => s !== currentStatus)];
   }, [returnToEdit, metadata.transitions]);
-
-  // Auto-select customer when order is prefilled
-  useEffect(() => {
-    if (prefilledOrderId && !returnToEdit) {
-      const order = orders.find((o) => o.id === prefilledOrderId);
-      if (order) {
-        setForm((current) => ({
-          ...current,
-          customerId: String(order.customerId),
-          orderId: String(order.id),
-        }));
-      }
-    }
-  }, [prefilledOrderId, orders, returnToEdit]);
 
   function handleOrderItemToggle(orderItemId: number) {
     setForm((current) => {
@@ -171,6 +149,19 @@ const NewReturnForm: React.FC<Props> = ({
       return selectedOrder.items
         .filter((oi) => oi.id !== undefined && form.selectedOrderItemIds.includes(oi.id as number))
         .map(itemFromOrderItem);
+    }
+    if (returnToEdit) {
+      return returnToEdit.items.map((item) => ({
+        orderItemId: item.orderItemId,
+        productId: item.productId,
+        productName: item.productName,
+        productType: item.productType,
+        brandName: item.brandName,
+        modelName: item.modelName,
+        qualityName: item.qualityName,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+      }));
     }
     // No order linked — at least one item required, but form allows saving without items
     return [];
@@ -216,7 +207,7 @@ const NewReturnForm: React.FC<Props> = ({
   }
 
   return (
-    <div className={modalStyles.overlay}>
+    <ModalBackdrop onClose={onClose}>
       <div className={`${modalStyles.modal} ${styles.modal}`}>
         <div className={modalStyles.header}>
           <h3 className={modalStyles.title}>
@@ -228,40 +219,39 @@ const NewReturnForm: React.FC<Props> = ({
         <div className={modalStyles.formGridTwo}>
           {/* Cliente */}
           <div className={styles.fullSpan}>
-            <Select
+            <AsyncLookupSelect<Customer>
               label="Cliente"
+              endpoint="/customers/lookup"
               value={form.customerId}
-              onChange={(e) => {
-                set("customerId", e.target.value);
+              getValue={(customer) => String(customer.id)}
+              getLabel={(customer) => `${customer.name} — ${customer.phone}`}
+              initialOption={initialCustomer}
+              onSelect={(customer) => {
+                set("customerId", customer ? String(customer.id) : "");
                 set("orderId", "");
                 set("selectedOrderItemIds", []);
+                setSelectedOrder(null);
               }}
               disabled={!!returnToEdit}
-            >
-              <option value="">Selecionar cliente...</option>
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>{c.name} — {c.phone}</option>
-              ))}
-            </Select>
+            />
           </div>
 
           {/* Pedido de origem */}
           <div className={styles.fullSpan}>
-            <Select
+            <AsyncLookupSelect<Order>
               label="Pedido de Origem (opcional)"
+              endpoint={`/orders/lookup${form.customerId ? `?customerId=${form.customerId}` : ""}`}
               value={form.orderId}
-              onChange={(e) => {
-                set("orderId", e.target.value);
+              getValue={(order) => String(order.id)}
+              getLabel={(order) => `#${order.id} — ${order.productName} (${order.status})`}
+              initialOption={initialOrder}
+              disabled={!form.customerId}
+              onSelect={(order) => {
+                set("orderId", order ? String(order.id) : "");
                 set("selectedOrderItemIds", []);
+                setSelectedOrder(order);
               }}
-            >
-              <option value="">Sem pedido vinculado</option>
-              {customerOrders.map((o) => (
-                <option key={o.id} value={o.id}>
-                  #{o.id} — {o.productName} ({o.status})
-                </option>
-              ))}
-            </Select>
+            />
           </div>
 
           {/* Seleção de itens do pedido */}
@@ -461,7 +451,7 @@ const NewReturnForm: React.FC<Props> = ({
           </Btn>
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 };
 

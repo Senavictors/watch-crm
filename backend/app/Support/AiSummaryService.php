@@ -76,11 +76,16 @@ class AiSummaryService
 
             return $payload;
         } catch (Throwable $e) {
+            $rootCause = $this->rootCause($e);
+
             Log::warning('ai_summary.failed', [
                 'user_id' => $user->id,
                 'model' => $configuration['model'],
                 'duration_ms' => $this->durationMs($startedAt),
                 'error_type' => $e::class,
+                'root_error_type' => $rootCause::class,
+                'error_code' => $this->safeErrorCode($rootCause),
+                'proxy_enabled' => filled(config('services.openai.proxy')),
             ]);
 
             throw new RuntimeException('Resumo indisponível.', previous: $e);
@@ -101,5 +106,27 @@ class AiSummaryService
     private function durationMs(int $startedAt): int
     {
         return (int) round((hrtime(true) - $startedAt) / 1_000_000);
+    }
+
+    private function rootCause(Throwable $exception): Throwable
+    {
+        while ($exception->getPrevious() instanceof Throwable) {
+            $exception = $exception->getPrevious();
+        }
+
+        return $exception;
+    }
+
+    private function safeErrorCode(Throwable $exception): string
+    {
+        if (preg_match('/cURL error (\d+):/', $exception->getMessage(), $matches) === 1) {
+            return 'curl_'.$matches[1];
+        }
+
+        if (preg_match('/HTTP (\d{3})\./', $exception->getMessage(), $matches) === 1) {
+            return 'http_'.$matches[1];
+        }
+
+        return 'unknown';
     }
 }

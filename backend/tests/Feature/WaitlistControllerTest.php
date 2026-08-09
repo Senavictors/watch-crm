@@ -166,7 +166,7 @@ class WaitlistControllerTest extends TestCase
             ->getJson('/api/waitlist?sellerUserId='.$sellerB->id);
 
         $response->assertOk();
-        $ids = collect($response->json())->pluck('id')->all();
+        $ids = collect($response->json('data'))->pluck('id')->all();
         $this->assertEquals([$entryA->id], $ids);
     }
 
@@ -196,7 +196,7 @@ class WaitlistControllerTest extends TestCase
             ->getJson('/api/waitlist?sellerUserId='.$sellerB->id);
 
         $response->assertOk();
-        $ids = collect($response->json())->pluck('id')->all();
+        $ids = collect($response->json('data'))->pluck('id')->all();
         $this->assertEquals([$entryB->id], $ids);
     }
 
@@ -404,7 +404,7 @@ class WaitlistControllerTest extends TestCase
         $response = $this->actingAs($admin)->getJson('/api/waitlist');
 
         $response->assertOk();
-        $byName = collect($response->json())->keyBy('productName');
+        $byName = collect($response->json('data'))->keyBy('productName');
 
         $this->assertSame(3, $byName['Em estoque']['productCurrentQty']);
         $this->assertTrue($byName['Em estoque']['isAvailable']);
@@ -437,7 +437,7 @@ class WaitlistControllerTest extends TestCase
             ->getJson('/api/waitlist?status=Pendente&customerId='.$customerA->id);
 
         $response->assertOk();
-        $ids = collect($response->json())->pluck('id')->all();
+        $ids = collect($response->json('data'))->pluck('id')->all();
         $this->assertEquals([$pendente->id], $ids);
     }
 

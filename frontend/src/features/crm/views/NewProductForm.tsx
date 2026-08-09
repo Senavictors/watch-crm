@@ -1,23 +1,38 @@
 "use client";
 import React, { useState } from "react";
+import AsyncLookupSelect from "../components/AsyncLookupSelect";
 import { Btn, Input, Select } from "../ui/Primitives";
 import { Brand, Product, ProductInput, StockOrigin, WatchModel } from "../types";
 import { modelLabel } from "../helpers";
+import ModalBackdrop from "../components/Modal/ModalBackdrop";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./NewProductForm.module.css";
 
 type Props = {
   product?: Product | null;
   brands: Brand[];
-  models: WatchModel[];
   existingProducts?: Product[];
   onSave: (product: ProductInput) => void;
   onClose: () => void;
   onToast: (message: string, variant?: "success" | "error") => void;
 };
 
-const NewProductForm: React.FC<Props> = ({ product, brands, models, existingProducts = [], onSave, onClose, onToast }) => {
+const NewProductForm: React.FC<Props> = ({ product, brands, existingProducts = [], onSave, onClose, onToast }) => {
   const isEditing = Boolean(product);
+  const initialModel: WatchModel | null = product
+    ? {
+        id: product.modelId,
+        brandId: product.brandId,
+        brandName: product.brand,
+        name: product.model ?? `Modelo #${product.modelId}`,
+        categoryId: 0,
+        categoryName: product.categoryName,
+        categoryHasQuality: product.categoryHasQuality,
+        qualityId: null,
+        qualityName: product.modelQualityName,
+      }
+    : null;
+  const [selectedModel, setSelectedModel] = useState<WatchModel | null>(initialModel);
 
   const [form, setForm] = useState<{
     brandId: string;
@@ -45,7 +60,6 @@ const NewProductForm: React.FC<Props> = ({ product, brands, models, existingProd
     setForm((f) => ({ ...f, [k]: v }));
   }
 
-  const selectedModel = models.find((m) => m.id === Number(form.modelId));
   const modelBrand = selectedModel ? brands.find((b) => b.id === selectedModel.brandId) : null;
 
   // origins already taken for the selected model (excluding the current product being edited)
@@ -55,8 +69,9 @@ const NewProductForm: React.FC<Props> = ({ product, brands, models, existingProd
       .map((p) => p.stock)
   );
 
-  function handleModelChange(value: string) {
-    const model = models.find((m) => m.id === Number(value));
+  function handleModelChange(model: WatchModel | null) {
+    const value = model ? String(model.id) : "";
+    setSelectedModel(model);
     const newTaken = new Set(
       existingProducts
         .filter((p) => p.modelId === Number(value) && p.id !== product?.id)
@@ -99,7 +114,7 @@ const NewProductForm: React.FC<Props> = ({ product, brands, models, existingProd
   const allOriginsTaken = !isEditing && takenOrigins.has("IN_STOCK") && takenOrigins.has("SUPPLIER");
 
   return (
-    <div className={modalStyles.overlay}>
+    <ModalBackdrop onClose={onClose}>
       <div className={`${modalStyles.modal} ${styles.modal}`}>
         <div className={modalStyles.header}>
           <h3 className={modalStyles.title}>{isEditing ? "Editar Produto" : "Novo Produto"}</h3>
@@ -115,14 +130,15 @@ const NewProductForm: React.FC<Props> = ({ product, brands, models, existingProd
         )}
 
         <div className={modalStyles.formGridTwo}>
-          <Select label="Modelo" value={form.modelId} onChange={(e) => handleModelChange(e.target.value)}>
-            <option value="">Selecionar modelo...</option>
-            {models.map((m) => (
-              <option key={m.id} value={m.id}>
-                {modelLabel(m)}
-              </option>
-            ))}
-          </Select>
+          <AsyncLookupSelect<WatchModel>
+            label="Modelo"
+            endpoint="/models/lookup"
+            value={form.modelId}
+            getValue={(model) => String(model.id)}
+            getLabel={modelLabel}
+            initialOption={initialModel}
+            onSelect={handleModelChange}
+          />
           <Select
             label="Marca"
             value={form.brandId}
@@ -196,7 +212,7 @@ const NewProductForm: React.FC<Props> = ({ product, brands, models, existingProd
           </Btn>
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 };
 

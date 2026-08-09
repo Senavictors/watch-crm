@@ -45,5 +45,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('password-recovery', fn (Request $request) => [
             Limit::perMinute(3)->by($request->ip()),
         ]);
+
+        RateLimiter::for('ai-summary', fn (Request $request) => [
+            Limit::perMinute(10)->by('ai-summary:'.($request->user()?->id ?? $request->ip())),
+        ]);
     }
 }

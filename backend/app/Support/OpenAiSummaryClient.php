@@ -33,39 +33,50 @@ class OpenAiSummaryClient
 
         $externalFacts = collect($facts)->map(fn (array $fact) => [
             'id' => $fact['id'],
+            'context' => $fact['context'],
+            'type' => $fact['type'],
+            'values' => $fact['values'],
             'statement' => $fact['text'],
             'sources' => $fact['sources'],
         ])->values()->all();
 
+        $payload = [
+            'model' => $configuration['model'],
+            'store' => false,
+            'reasoning' => ['effort' => 'none'],
+            'max_output_tokens' => 250,
+            'input' => [
+                [
+                    'role' => 'system',
+                    'content' => 'Selecione de 3 a 5 fatos mais relevantes para um resumo operacional diário. Retorne somente IDs fornecidos. Não crie fatos, números, recomendações ou previsões.',
+                ],
+                [
+                    'role' => 'user',
+                    'content' => json_encode(['facts' => $externalFacts], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+                ],
+            ],
+            'text' => [
+                'format' => [
+                    'type' => 'json_schema',
+                    'name' => 'operation_summary_selection',
+                    'strict' => true,
+                    'schema' => $schema,
+                ],
+            ],
+        ];
+
+        $request = Http::withToken($configuration['apiKey'])
+            ->withHeaders($headers)
+            ->acceptJson()
+            ->timeout((int) config('services.openai.summary_timeout', 20));
+
+        $proxy = config('services.openai.proxy');
+        if (filled($proxy)) {
+            $request->withOptions(['proxy' => $proxy]);
+        }
+
         try {
-            $response = Http::withToken($configuration['apiKey'])
-                ->withHeaders($headers)
-                ->acceptJson()
-                ->timeout((int) config('services.openai.summary_timeout', 20))
-                ->post('https://api.openai.com/v1/responses', [
-                    'model' => $configuration['model'],
-                    'store' => false,
-                    'reasoning' => ['effort' => 'none'],
-                    'max_output_tokens' => 250,
-                    'input' => [
-                        [
-                            'role' => 'system',
-                            'content' => 'Selecione de 3 a 5 fatos mais relevantes para um resumo operacional diário. Retorne somente IDs fornecidos. Não crie fatos, números, recomendações ou previsões.',
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => json_encode(['facts' => $externalFacts], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
-                        ],
-                    ],
-                    'text' => [
-                        'format' => [
-                            'type' => 'json_schema',
-                            'name' => 'operation_summary_selection',
-                            'strict' => true,
-                            'schema' => $schema,
-                        ],
-                    ],
-                ]);
+            $response = $request->post('https://api.openai.com/v1/responses', $payload);
         } catch (ConnectionException $e) {
             throw new RuntimeException('Falha de conexão com o provedor de IA.', previous: $e);
         }

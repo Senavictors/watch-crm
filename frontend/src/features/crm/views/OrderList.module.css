@@ -90,13 +90,16 @@
 
 .table {
   width: 100%;
+  min-width: 1040px;
   border-collapse: collapse;
   font-size: 13px;
 }
 
 .tableCard {
   padding: 0;
-  overflow: hidden;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
 }
 
 .theadRow {
@@ -151,6 +154,10 @@
 }
 
 .statusSelect {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   background: var(--crm-input-bg);
   border: 1px solid var(--crm-input-border);
   border-radius: 10px;
@@ -159,6 +166,25 @@
   font-size: 11px;
   outline: none;
   cursor: pointer;
+}
+
+.actionHeader,
+.actionCell {
+  position: sticky;
+  right: 0;
+  min-width: 150px;
+  box-sizing: border-box;
+  box-shadow: -8px 0 12px -12px rgba(0, 0, 0, 0.65);
+}
+
+.actionHeader {
+  z-index: 2;
+  background: var(--crm-table-header-bg);
+}
+
+.actionCell {
+  z-index: 1;
+  background: var(--crm-card-bg);
 }
 
 .empty {

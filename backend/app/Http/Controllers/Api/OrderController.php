@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
+use App\Support\ApiPagination;
 use App\Support\OrderMetadata;
 use App\Support\OrderPaymentTransition;
 use App\Support\ShippingScheduleCalculator;
@@ -37,6 +39,7 @@ class OrderController extends Controller
             'paymentMethods' => OrderMetadata::PAYMENT_METHODS,
             'shippingMethods' => OrderMetadata::SHIPPING_METHODS,
             'assignableSellers' => $assignableSellers,
+            'categories' => Category::query()->orderBy('name')->pluck('name')->values(),
         ]);
     }
 
@@ -48,6 +51,12 @@ class OrderController extends Controller
             'category' => ['sometimes', 'string'],
             'from' => ['sometimes', 'date'],
             'to' => ['sometimes', 'date'],
+            'search' => ['sometimes', 'string', 'max:255'],
+            'status' => ['sometimes', 'string'],
+            'channel' => ['sometimes', 'string'],
+            'sellerUserId' => ['sometimes', 'integer'],
+            'customer_id' => ['sometimes', 'integer'],
+            'paymentStatus' => ['sometimes', 'string', Rule::in(['pending'])],
         ]);
 
         if (isset($filters['from']) && isset($filters['to']) && $filters['to'] < $filters['from']) {
@@ -62,8 +71,33 @@ class OrderController extends Controller
             $query->where('seller_user_id', $user->id);
         }
 
-        if ($request->filled('customer_id')) {
-            $query->where('customer_id', (int) $request->input('customer_id'));
+        if (isset($filters['customer_id'])) {
+            $query->where('customer_id', $filters['customer_id']);
+        }
+
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (($filters['paymentStatus'] ?? null) === 'pending') {
+            $query->whereIn('status', OrderMetadata::PENDING_PAYMENT_STATUSES);
+        }
+
+        if (isset($filters['channel'])) {
+            $query->where('channel', $filters['channel']);
+        }
+
+        if (isset($filters['sellerUserId']) && $user->canAccessAllRecords()) {
+            $query->where('seller_user_id', $filters['sellerUserId']);
+        }
+
+        if (! empty($filters['search'])) {
+            $search = trim($filters['search']);
+            $query->where(function ($builder) use ($search) {
+                $builder->where('id', ctype_digit($search) ? (int) $search : -1)
+                    ->orWhere('product_name', 'like', "%{$search}%")
+                    ->orWhereHas('customer', fn ($customer) => $customer->where('name', 'like', "%{$search}%"));
+            });
         }
 
         if (isset($filters['category'])) {
@@ -82,12 +116,52 @@ class OrderController extends Controller
         $canViewFinancials = $user->canViewFinancialReports();
 
         $orders = $query
-            ->with(['sellerUser', 'paidByUser', 'items'])
+            ->with(['customer', 'sellerUser', 'paidByUser', 'items'])
             ->orderByDesc('sale_date')
-            ->get()
-            ->map(fn (Order $order) => $this->toPayload($order, $canViewFinancials));
+            ->orderByDesc('id')
+            ->paginate(ApiPagination::perPage($request));
 
-        return response()->json($orders);
+        return ApiPagination::response($orders, fn (Order $order) => $this->toPayload($order, $canViewFinancials, false));
+    }
+
+    public function lookup(Request $request)
+    {
+        $user = $request->user();
+        $query = Order::query()->with(['customer', 'sellerUser', 'paidByUser', 'items']);
+
+        if (! $user->canAccessAllRecords()) {
+            $query->where('seller_user_id', $user->id);
+        }
+
+        if ($request->filled('customerId')) {
+            $query->where('customer_id', $request->integer('customerId'));
+        }
+
+        if ($request->filled('search')) {
+            $search = trim($request->string('search')->toString());
+            $query->where(function ($builder) use ($search) {
+                $builder->where('id', ctype_digit($search) ? (int) $search : -1)
+                    ->orWhere('product_name', 'like', "%{$search}%");
+            });
+        }
+
+        $orders = $query->orderByDesc('sale_date')->orderByDesc('id')->limit(20)->get();
+
+        return response()->json([
+            'data' => $orders->map(fn (Order $order) => $this->toPayload($order, $user->canViewFinancialReports()))->values(),
+        ]);
+    }
+
+    public function show(Request $request, int $id)
+    {
+        $order = Order::query()->with(['customer', 'sellerUser', 'paidByUser', 'items'])->find($id);
+        if (! $order) {
+            return response()->json(['message' => 'Pedido não encontrado.'], 404);
+        }
+
+        $this->authorize('view', $order);
+
+        return response()->json($this->toPayload($order, $request->user()->canViewFinancialReports()));
     }
 
     public function store(Request $request)
@@ -115,6 +189,9 @@ class OrderController extends Controller
                 'freight' => $data['freight'] ?? 0,
                 'channel_fee' => $data['channelFee'] ?? 0,
                 'payment_method' => $data['paymentMethod'] ?? null,
+                'payment_expires_at' => filled($data['paymentExpiresAt'] ?? null)
+                    ? Carbon::parse($data['paymentExpiresAt'])->utc()
+                    : null,
                 'shipping_method' => $data['shippingMethod'],
                 'tracking_code' => $data['trackingCode'] ?? null,
                 'sale_date' => $data['saleDate'],
@@ -131,7 +208,7 @@ class OrderController extends Controller
 
             return $order;
         });
-        $order->load(['sellerUser', 'paidByUser', 'items']);
+        $order->load(['customer', 'sellerUser', 'paidByUser', 'items']);
 
         $this->audit('orders.created', 'Pedido criado.', $order, [
             'seller_user_id' => $order->seller_user_id,
@@ -150,7 +227,7 @@ class OrderController extends Controller
 
     public function update(Request $request, int $id)
     {
-        $order = Order::query()->with(['sellerUser', 'paidByUser', 'items'])->find($id);
+        $order = Order::query()->with(['customer', 'sellerUser', 'paidByUser', 'items'])->find($id);
 
         if (! $order) {
             return response()->json(['message' => 'Pedido não encontrado.'], 404);
@@ -204,6 +281,12 @@ class OrderController extends Controller
             }
         }
 
+        if (array_key_exists('paymentExpiresAt', $data)) {
+            $order->payment_expires_at = filled($data['paymentExpiresAt'])
+                ? Carbon::parse($data['paymentExpiresAt'])->utc()
+                : null;
+        }
+
         $paymentEvent = OrderPaymentTransition::apply($order, $previousStatus, $request->user());
 
         DB::transaction(function () use (&$order, $data, &$products) {
@@ -223,7 +306,7 @@ class OrderController extends Controller
                 $this->syncItems($order, $data['items'], $products);
             }
         });
-        $order->load(['sellerUser', 'paidByUser', 'items']);
+        $order->load(['customer', 'sellerUser', 'paidByUser', 'items']);
 
         $metadata = [
             'seller_user_id' => $order->seller_user_id,
@@ -290,6 +373,7 @@ class OrderController extends Controller
             'freight' => [$partial ? 'sometimes' : 'nullable', 'numeric', 'min:0'],
             'channelFee' => [$partial ? 'sometimes' : 'nullable', 'numeric', 'min:0'],
             'paymentMethod' => [$partial ? 'sometimes' : 'nullable', 'string', Rule::in(OrderMetadata::PAYMENT_METHODS)],
+            'paymentExpiresAt' => [$partial ? 'sometimes' : 'nullable', 'date'],
             'shippingMethod' => [$required, 'string', Rule::in(OrderMetadata::SHIPPING_METHODS)],
             'trackingCode' => [$partial ? 'sometimes' : 'nullable', 'string', 'max:255'],
             'saleDate' => [$required, 'date'],
@@ -322,7 +406,7 @@ class OrderController extends Controller
      * (`ShippingScheduleCalculator::isEligibleForQueue`) — o frontend
      * (`OrderDetail.tsx`) usa este campo real em vez do helper hardcoded.
      */
-    private function toPayload(Order $o, bool $canViewFinancials): array
+    private function toPayload(Order $o, bool $canViewFinancials, bool $includeItems = true): array
     {
         $items = $o->relationLoaded('items') ? $o->items : $o->items()->get();
 
@@ -332,6 +416,7 @@ class OrderController extends Controller
         $payload = [
             'id' => $o->id,
             'customerId' => $o->customer_id,
+            'customerName' => $o->customer?->name,
             'createdByUserId' => $o->created_by_user_id,
             'sellerUserId' => $o->seller_user_id,
             'sellerUserName' => $o->sellerUser?->name ?? $o->seller,
@@ -344,12 +429,15 @@ class OrderController extends Controller
             'productId' => $o->product_id,
             'productName' => $o->product_name,
             'itemsCount' => $items->sum('quantity'),
-            'items' => $items->map(fn (OrderItem $item) => $this->toItemPayload($item, $canViewFinancials))->values(),
+            'items' => $includeItems
+                ? $items->map(fn (OrderItem $item) => $this->toItemPayload($item, $canViewFinancials))->values()
+                : [],
             'salePrice' => (float) $o->sale_price,
             'discount' => (float) $o->discount,
             'freight' => (float) $o->freight,
             'channelFee' => (float) $o->channel_fee,
             'paymentMethod' => $o->payment_method,
+            'paymentExpiresAt' => $o->payment_expires_at?->toIso8601String(),
             'shippingMethod' => $o->shipping_method,
             'trackingCode' => $o->tracking_code ?? '',
             'saleDate' => $o->sale_date,

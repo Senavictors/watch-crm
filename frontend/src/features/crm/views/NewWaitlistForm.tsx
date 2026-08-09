@@ -1,5 +1,6 @@
 "use client";
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
+import AsyncLookupSelect from "../components/AsyncLookupSelect";
 import { Btn, Select } from "../ui/Primitives";
 import {
   Customer,
@@ -11,17 +12,15 @@ import {
   WaitlistStatus,
 } from "../types";
 import { productLabel } from "../helpers";
+import ModalBackdrop from "../components/Modal/ModalBackdrop";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./NewWaitlistForm.module.css";
 
 type Props = {
-  customers: Customer[];
-  products: Product[];
   // TASK-018 — decisão de UI: o contrato aceita `orderId` como número simples,
   // mas como a página já carrega `/orders` (mesmo padrão de `NewReturnForm`),
   // oferecemos um select com os pedidos do cliente em vez de um campo
   // numérico cru — só aparece editando uma entrada com status "Convertido".
-  orders: Order[];
   metadata: WaitlistMetadata;
   entryToEdit?: WaitlistEntry;
   onSave: (data: WaitlistInput) => void;
@@ -60,15 +59,54 @@ function emptyForm(): FormState {
 }
 
 const NewWaitlistForm: React.FC<Props> = ({
-  customers,
-  products,
-  orders,
   metadata,
   entryToEdit,
   onSave,
   onClose,
   onToast,
 }) => {
+  const initialCustomer: Customer | null = entryToEdit
+    ? { id: entryToEdit.customerId, name: entryToEdit.customerName, phone: entryToEdit.customerPhone }
+    : null;
+  const initialProduct: Product | null = entryToEdit?.productId
+    ? {
+        id: entryToEdit.productId,
+        brandId: 0,
+        modelId: 0,
+        brand: entryToEdit.brandName ?? undefined,
+        model: entryToEdit.modelName ?? entryToEdit.productName,
+        modelQualityName: entryToEdit.qualityName,
+        categoryHasQuality: Boolean(entryToEdit.qualityName),
+        price: 0,
+        stock: "IN_STOCK",
+        qty: entryToEdit.productCurrentQty ?? 0,
+      }
+    : null;
+  const initialOrder: Order | null = entryToEdit?.orderId
+    ? {
+        id: entryToEdit.orderId,
+        customerId: entryToEdit.customerId,
+        customerName: entryToEdit.customerName,
+        channel: "",
+        seller: "",
+        status: "",
+        productName: entryToEdit.productName,
+        itemsCount: 0,
+        items: [],
+        salePrice: 0,
+        discount: 0,
+        freight: 0,
+        channelFee: 0,
+        paymentMethod: "",
+        shippingMethod: "",
+        trackingCode: "",
+        saleDate: "",
+        shippedDate: "",
+        notes: "",
+        nextPostingDate: null,
+        isLate: false,
+      }
+    : null;
   const [form, setForm] = useState<FormState>(() => {
     if (entryToEdit) {
       return {
@@ -92,22 +130,16 @@ const NewWaitlistForm: React.FC<Props> = ({
     setForm((current) => ({ ...current, [key]: value }));
   }
 
-  function handleProductChange(value: string) {
-    const product = products.find((p) => p.id === Number(value));
+  function handleProductChange(product: Product | null) {
     setForm((current) => ({
       ...current,
-      productId: value,
+      productId: product ? String(product.id) : "",
       productName: product ? productLabel(product) : "",
       brandName: product?.brand ?? null,
       modelName: product?.model ?? null,
       qualityName: product?.modelQualityName ?? null,
     }));
   }
-
-  const customerOrders = useMemo(
-    () => (form.customerId ? orders.filter((o) => o.customerId === Number(form.customerId)) : []),
-    [orders, form.customerId]
-  );
 
   const showOrderField = !!entryToEdit && form.status === "Convertido";
 
@@ -144,7 +176,7 @@ const NewWaitlistForm: React.FC<Props> = ({
   }
 
   return (
-    <div className={modalStyles.overlay}>
+    <ModalBackdrop onClose={onClose}>
       <div className={`${modalStyles.modal} ${styles.modal}`}>
         <div className={modalStyles.header}>
           <h3 className={modalStyles.title}>
@@ -155,29 +187,27 @@ const NewWaitlistForm: React.FC<Props> = ({
 
         <div className={modalStyles.formGridTwo}>
           <div className={styles.fullSpan}>
-            <Select
+            <AsyncLookupSelect<Customer>
               label="Cliente"
+              endpoint="/customers/lookup"
               value={form.customerId}
-              onChange={(e) => set("customerId", e.target.value)}
-            >
-              <option value="">Selecionar cliente...</option>
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>{c.name} — {c.phone}</option>
-              ))}
-            </Select>
+              getValue={(customer) => String(customer.id)}
+              getLabel={(customer) => `${customer.name} — ${customer.phone}`}
+              initialOption={initialCustomer}
+              onSelect={(customer) => set("customerId", customer ? String(customer.id) : "")}
+            />
           </div>
 
           <div className={styles.fullSpan}>
-            <Select
+            <AsyncLookupSelect<Product>
               label="Produto"
+              endpoint="/products/lookup"
               value={form.productId}
-              onChange={(e) => handleProductChange(e.target.value)}
-            >
-              <option value="">Selecionar produto...</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>{productLabel(p)}</option>
-              ))}
-            </Select>
+              getValue={(product) => String(product.id)}
+              getLabel={productLabel}
+              initialOption={initialProduct}
+              onSelect={handleProductChange}
+            />
           </div>
 
           <div className={styles.fullSpan}>
@@ -208,18 +238,15 @@ const NewWaitlistForm: React.FC<Props> = ({
 
           {showOrderField && (
             <div className={styles.fullSpan}>
-              <Select
+              <AsyncLookupSelect<Order>
                 label="Pedido Vinculado"
+                endpoint={`/orders/lookup?customerId=${form.customerId}`}
                 value={form.orderId}
-                onChange={(e) => set("orderId", e.target.value)}
-              >
-                <option value="">Selecionar pedido...</option>
-                {customerOrders.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    #{o.id} — {o.productName} ({o.status})
-                  </option>
-                ))}
-              </Select>
+                getValue={(order) => String(order.id)}
+                getLabel={(order) => `#${order.id} — ${order.productName} (${order.status})`}
+                initialOption={initialOrder}
+                onSelect={(order) => set("orderId", order ? String(order.id) : "")}
+              />
             </div>
           )}
 
@@ -241,7 +268,7 @@ const NewWaitlistForm: React.FC<Props> = ({
           </Btn>
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 };
 

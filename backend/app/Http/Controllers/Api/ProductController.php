@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Support\ApiPagination;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -13,13 +14,45 @@ class ProductController extends Controller
     {
         $canViewCost = $request->user()->canViewCatalogCost();
 
-        $products = Product::query()
-            ->with(['brand', 'watchModel.quality', 'watchModel.category'])
-            ->orderBy('id')
-            ->get()
-            ->map(fn (Product $product) => $this->toPayload($product, $canViewCost));
+        $query = $this->listQuery();
 
-        return response()->json($products);
+        $this->applySearch($query, $request->string('search')->toString());
+
+        $products = $query->orderByDesc('id')->paginate(ApiPagination::perPage($request));
+
+        return ApiPagination::response($products, fn (Product $product) => $this->toPayload($product, $canViewCost));
+    }
+
+    public function lookup(Request $request)
+    {
+        $query = $this->listQuery();
+        $this->applySearch($query, $request->string('search')->toString());
+
+        $products = $query->orderBy('brand_id')->orderBy('model_id')->limit(20)->get();
+
+        return response()->json([
+            'data' => $products->map(fn (Product $product) => $this->toPayload($product, $request->user()->canViewCatalogCost()))->values(),
+        ]);
+    }
+
+    private function listQuery()
+    {
+        return Product::query()->with(['brand', 'watchModel.quality', 'watchModel.category']);
+    }
+
+    private function applySearch($query, string $search): void
+    {
+        $search = trim($search);
+        if ($search === '') {
+            return;
+        }
+
+        $query->where(function ($builder) use ($search) {
+            $builder->whereHas('brand', fn ($brand) => $brand->where('name', 'like', "%{$search}%"))
+                ->orWhereHas('watchModel', fn ($model) => $model->where('name', 'like', "%{$search}%"))
+                ->orWhereHas('watchModel.quality', fn ($quality) => $quality->where('name', 'like', "%{$search}%"))
+                ->orWhereHas('watchModel.category', fn ($category) => $category->where('name', 'like', "%{$search}%"));
+        });
     }
 
     public function store(Request $request)

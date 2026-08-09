@@ -1,11 +1,17 @@
 "use client";
-import React, { useState } from "react";
+import React from "react";
 import { Goal } from "../types";
 import { Btn } from "../ui/Primitives";
 import styles from "./GoalList.module.css";
 
 type Props = {
   goals: Goal[];
+  search: string;
+  scope: string;
+  status: string;
+  onSearchChange: (value: string) => void;
+  onScopeChange: (value: string) => void;
+  onStatusChange: (value: string) => void;
   canCreate: boolean;
   canUpdate: boolean;
   canDelete: boolean;
@@ -48,6 +54,12 @@ function fmtValue(value: number, type: string): string {
 
 const GoalList: React.FC<Props> = ({
   goals,
+  search,
+  scope,
+  status,
+  onSearchChange,
+  onScopeChange,
+  onStatusChange,
   canCreate,
   canUpdate,
   canDelete,
@@ -56,17 +68,6 @@ const GoalList: React.FC<Props> = ({
   onDelete,
   onSelect,
 }) => {
-  const [search, setSearch] = useState("");
-  const [scopeFilter, setScopeFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-
-  const filtered = goals.filter((g) => {
-    if (search && !`${g.name} ${g.targetUserName ?? ""}`.toLowerCase().includes(search.toLowerCase())) return false;
-    if (scopeFilter && g.scope !== scopeFilter) return false;
-    if (statusFilter && g.status !== statusFilter) return false;
-    return true;
-  });
-
   return (
     <div>
       <div className={styles.headerRow}>
@@ -81,13 +82,13 @@ const GoalList: React.FC<Props> = ({
       <div className={styles.filterBar}>
         <input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Buscar por nome ou vendedor..."
           className={styles.search}
         />
         <select
-          value={scopeFilter}
-          onChange={(e) => setScopeFilter(e.target.value)}
+          value={scope}
+          onChange={(e) => onScopeChange(e.target.value)}
           className={styles.filterSelect}
         >
           <option value="">Todos os escopos</option>
@@ -95,8 +96,8 @@ const GoalList: React.FC<Props> = ({
           <option value="user">Vendedor</option>
         </select>
         <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          value={status}
+          onChange={(e) => onStatusChange(e.target.value)}
           className={styles.filterSelect}
         >
           <option value="">Todos os status</option>
@@ -119,14 +120,14 @@ const GoalList: React.FC<Props> = ({
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 && (
+            {goals.length === 0 && (
               <tr>
                 <td colSpan={canUpdate || canDelete ? 7 : 6} className={styles.empty}>
                   Nenhuma meta encontrada.
                 </td>
               </tr>
             )}
-            {filtered.map((g) => (
+            {goals.map((g) => (
               <tr key={g.id} className={styles.row} onClick={() => onSelect(g)}>
                 <td className={styles.td}>
                   <div>{g.name}</div>
@@ -170,16 +171,18 @@ const GoalList: React.FC<Props> = ({
                 </td>
                 {(canUpdate || canDelete) && (
                   <td className={`${styles.td} ${styles.actionsCell}`} onClick={(e) => e.stopPropagation()}>
-                    {canUpdate && (
-                      <Btn onClick={() => onEdit(g)} variant="secondary" small>
-                        Editar
-                      </Btn>
-                    )}
-                    {canDelete && (
-                      <Btn onClick={() => onDelete(g)} variant="danger" small>
-                        Excluir
-                      </Btn>
-                    )}
+                    <div className={styles.actions}>
+                      {canUpdate && (
+                        <Btn onClick={() => onEdit(g)} variant="secondary" small>
+                          Editar
+                        </Btn>
+                      )}
+                      {canDelete && (
+                        <Btn onClick={() => onDelete(g)} variant="danger" small>
+                          Excluir
+                        </Btn>
+                      )}
+                    </div>
                   </td>
                 )}
               </tr>

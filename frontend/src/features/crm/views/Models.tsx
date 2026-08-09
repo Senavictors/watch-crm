@@ -7,11 +7,13 @@ import styles from "./Models.module.css";
 
 type Props = {
   models: WatchModel[];
+  search: string;
+  onSearchChange: (value: string) => void;
   canCreate: boolean;
   onNew: () => void;
 };
 
-const Models: React.FC<Props> = ({ models, canCreate, onNew }) => {
+const Models: React.FC<Props> = ({ models, search, onSearchChange, canCreate, onNew }) => {
   return (
     <div>
       <div className={styles.headerRow}>
@@ -25,6 +27,12 @@ const Models: React.FC<Props> = ({ models, canCreate, onNew }) => {
           </Btn>
         )}
       </div>
+      <input
+        value={search}
+        onChange={(event) => onSearchChange(event.target.value)}
+        placeholder="Buscar modelo, marca, categoria ou qualidade..."
+        className={styles.search}
+      />
       <div className={styles.grid}>
         {models.map((m) => {
           const imageSrc = m.imageUrl;

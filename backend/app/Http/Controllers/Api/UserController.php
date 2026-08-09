@@ -5,19 +5,35 @@ namespace App\Http\Controllers\Api;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\ApiPagination;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::query()
-            ->orderBy('name')
-            ->get()
-            ->map(fn (User $user) => $this->toPayload($user));
+        $query = User::query();
 
-        return response()->json($users);
+        if ($request->filled('search')) {
+            $search = trim($request->string('search')->toString());
+            $query->where(function ($builder) use ($search) {
+                $builder->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('role')) {
+            $query->where('role', $request->string('role'));
+        }
+
+        if ($request->has('active')) {
+            $query->where('is_active', $request->boolean('active'));
+        }
+
+        $users = $query->orderBy('name')->paginate(ApiPagination::perPage($request));
+
+        return ApiPagination::response($users, fn (User $user) => $this->toPayload($user));
     }
 
     public function store(Request $request)

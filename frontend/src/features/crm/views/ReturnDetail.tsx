@@ -3,6 +3,7 @@ import { Btn } from "../ui/Primitives";
 import { ProductReturn, ReturnType } from "../types";
 import { fmtBRL, fmtDate, fmtDateTime } from "../helpers";
 import { RETURN_STATUS_COLORS, RETURN_TYPE_COLORS } from "../data/mock";
+import ModalBackdrop from "../components/Modal/ModalBackdrop";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./ReturnDetail.module.css";
 
@@ -24,7 +25,7 @@ const ReturnDetail: React.FC<Props> = ({ productReturn: r, canUpdate, onClose, o
   const statusColor = RETURN_STATUS_COLORS[r.status] ?? "var(--crm-text-soft)";
 
   return (
-    <div className={modalStyles.overlay}>
+    <ModalBackdrop onClose={onClose}>
       <div className={`${modalStyles.modal} ${styles.modal}`}>
         <div className={modalStyles.header}>
           <h3 className={modalStyles.title}>Garantia/Troca #{r.id}</h3>
@@ -189,7 +190,7 @@ const ReturnDetail: React.FC<Props> = ({ productReturn: r, canUpdate, onClose, o
           )}
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 };
 

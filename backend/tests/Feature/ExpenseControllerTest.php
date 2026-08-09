@@ -129,7 +129,7 @@ class ExpenseControllerTest extends TestCase
             ->getJson('/api/expenses?category=Salários&startDate=2026-08-01&endDate=2026-08-31')
             ->assertOk();
 
-        $this->assertCount(1, $response->json());
+        $this->assertCount(1, $response->json('data'));
     }
 
     public function test_metadata_returns_the_fixed_category_list(): void

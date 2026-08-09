@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\CustomerFrictionNote;
 use App\Models\User;
+use App\Support\ApiPagination;
 use App\Support\CustomerInsightsCalculator;
 use Illuminate\Http\Request;
 
@@ -16,7 +17,43 @@ class CustomerController extends Controller
     {
         $user = $request->user();
 
-        $query = Customer::query()->orderBy('id');
+        $query = $this->visibleQuery($user);
+
+        if ($request->filled('search')) {
+            $search = trim($request->string('search')->toString());
+            $query->where(function ($builder) use ($search) {
+                $builder->where('name', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('instagram', 'like', "%{$search}%");
+            });
+        }
+
+        $customers = $query->orderBy('name')->paginate(ApiPagination::perPage($request));
+
+        return ApiPagination::response($customers, fn (Customer $customer) => $this->toPayload($customer));
+    }
+
+    public function lookup(Request $request)
+    {
+        $query = $this->visibleQuery($request->user());
+
+        if ($request->filled('search')) {
+            $search = trim($request->string('search')->toString());
+            $query->where(function ($builder) use ($search) {
+                $builder->where('name', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        $customers = $query->orderBy('name')->limit(20)->get();
+
+        return response()->json(['data' => $customers->map(fn (Customer $customer) => $this->toPayload($customer))->values()]);
+    }
+
+    private function visibleQuery(User $user)
+    {
+        $query = Customer::query();
 
         // TASK-019: bug de ownership corrigido — `index()` nunca filtrava
         // por dono, então qualquer usuário com `customers.view` (inclusive
@@ -33,11 +70,7 @@ class CustomerController extends Controller
             $query->where('owner_user_id', $user->id);
         }
 
-        $customers = $query
-            ->get()
-            ->map(fn (Customer $customer) => $this->toPayload($customer));
-
-        return response()->json($customers);
+        return $query;
     }
 
     public function show(Request $request, int $id)

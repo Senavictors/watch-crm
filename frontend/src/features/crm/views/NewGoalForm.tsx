@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Btn, Input, Select } from "../ui/Primitives";
 import {
   Goal,
@@ -10,6 +10,7 @@ import {
   GoalScope,
   GoalCalculationType,
 } from "../types";
+import ModalBackdrop from "../components/Modal/ModalBackdrop";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./NewGoalForm.module.css";
 
@@ -103,14 +104,14 @@ const NewGoalForm: React.FC<Props> = ({ goal, metadata, onSave, onClose, onToast
     setForm((f) => ({ ...f, [k]: v }));
   }
 
-  // Re-generate intervals when dates or cycle change
-  useEffect(() => {
-    if (form.startDate && form.endDate && form.periodCycle) {
-      const newIntervals = generateIntervals(form.startDate, form.endDate, form.periodCycle);
-      setIntervals(newIntervals);
+  function updatePeriod(values: Partial<Pick<typeof form, "startDate" | "endDate" | "periodCycle">>) {
+    const next = { ...form, ...values };
+    setForm(next);
+    if (next.startDate && next.endDate && next.periodCycle) {
+      setIntervals(generateIntervals(next.startDate, next.endDate, next.periodCycle));
       setDistributeTotal("");
     }
-  }, [form.startDate, form.endDate, form.periodCycle]);
+  }
 
   // Filter models by selected brand
   const filteredModels = useMemo(() => {
@@ -170,7 +171,7 @@ const NewGoalForm: React.FC<Props> = ({ goal, metadata, onSave, onClose, onToast
   }
 
   return (
-    <div className={modalStyles.overlay}>
+    <ModalBackdrop onClose={onClose}>
       <div className={`${modalStyles.modal} ${styles.modal}`}>
         <div className={modalStyles.header}>
           <h3 className={modalStyles.title}>{isEditing ? "Editar Meta" : "Nova Meta"}</h3>
@@ -240,13 +241,13 @@ const NewGoalForm: React.FC<Props> = ({ goal, metadata, onSave, onClose, onToast
             ))}
           </Select>
 
-          <Input label="Data Início" type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} />
-          <Input label="Data Fim" type="date" value={form.endDate} onChange={(e) => set("endDate", e.target.value)} />
+          <Input label="Data Início" type="date" value={form.startDate} onChange={(e) => updatePeriod({ startDate: e.target.value })} />
+          <Input label="Data Fim" type="date" value={form.endDate} onChange={(e) => updatePeriod({ endDate: e.target.value })} />
 
           <Select
             label="Ciclo do Período"
             value={form.periodCycle}
-            onChange={(e) => set("periodCycle", e.target.value as GoalPeriodCycle)}
+            onChange={(e) => updatePeriod({ periodCycle: e.target.value as GoalPeriodCycle })}
           >
             {metadata.periodCycles.map((c) => (
               <option key={c.value} value={c.value}>{c.label}</option>
@@ -321,7 +322,7 @@ const NewGoalForm: React.FC<Props> = ({ goal, metadata, onSave, onClose, onToast
           </Btn>
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 };
 

@@ -91,6 +91,24 @@ export type UserOption = {
   name: string;
 };
 
+export type PaginationMeta = {
+  currentPage: number;
+  lastPage: number;
+  perPage: number;
+  total: number;
+  from: number | null;
+  to: number | null;
+};
+
+export type PaginatedResponse<T> = {
+  data: T[];
+  meta: PaginationMeta;
+};
+
+export type LookupResponse<T> = {
+  data: T[];
+};
+
 export type CrmUser = {
   id: number;
   name: string;
@@ -226,6 +244,7 @@ export type ProductInput = {
 export type Order = {
   id: number;
   customerId: number;
+  customerName?: string | null;
   createdByUserId?: number | null;
   sellerUserId?: number | null;
   sellerUserName?: string | null;
@@ -247,6 +266,7 @@ export type Order = {
   freight: number;
   channelFee: number;
   paymentMethod: PaymentMethod | "";
+  paymentExpiresAt?: string | null;
   shippingMethod: ShippingMethod;
   trackingCode: string;
   saleDate: string;
@@ -282,6 +302,7 @@ export type OrderMetadata = {
   paymentMethods: PaymentMethod[];
   shippingMethods: ShippingMethod[];
   assignableSellers: UserOption[];
+  categories: string[];
 };
 
 export type OrderInput = {
@@ -292,6 +313,7 @@ export type OrderInput = {
   freight: number;
   channelFee: number;
   paymentMethod: PaymentMethod | "";
+  paymentExpiresAt?: string | null;
   shippingMethod: ShippingMethod;
   trackingCode: string;
   saleDate: string;
@@ -537,7 +559,8 @@ export type CommissionSummary = {
 
 export type CommissionReport = {
   summary: CommissionSummary;
-  items: CommissionLine[];
+  data: CommissionLine[];
+  meta: PaginationMeta;
   // Presente só pra quem tem visão de todos os vendedores (owner/admin).
   sellers?: UserOption[];
 };
@@ -568,6 +591,13 @@ export type ExpenseInput = {
 
 export type ExpenseMetadata = {
   categories: ExpenseCategory[];
+};
+
+export type ExpenseListResponse = PaginatedResponse<Expense> & {
+  summary: {
+    totalAmount: number;
+    totalCount: number;
+  };
 };
 
 /**
@@ -612,6 +642,8 @@ export type DashboardChannelBreakdown = {
 export type DashboardGoalSummary = {
   id: number;
   name: string;
+  calculationType: "total_value" | "quantity";
+  productTypeFilter: "WATCH" | "BOX" | null;
   totalTarget: number;
   totalCurrent: number;
   totalPercentage: number;
@@ -634,12 +666,55 @@ export type DashboardStock = {
   totalUnits: number;
 };
 
+export type DashboardConversionRate = {
+  value: number | null;
+  previousValue: number | null;
+  percentagePointChange: number | null;
+};
+
+export type DashboardConversionBreakdown = {
+  ordersCreated: number;
+  paidOrders: number;
+  rate: number | null;
+};
+
+export type DashboardConversion = {
+  current: DashboardConversionBreakdown & {
+    channels: Array<DashboardConversionBreakdown & { channel: string }>;
+  };
+  previous: DashboardConversionBreakdown & {
+    channels: Array<DashboardConversionBreakdown & { channel: string }>;
+  };
+  percentagePointChange: number | null;
+};
+
+export type DashboardPendingPayments = {
+  count: number;
+  amount: number;
+  averageWaitHours: number;
+  oldestWaitHours: number;
+  expiredCount: number;
+  expiringSoonCount: number;
+  expirationWindowHours: number;
+};
+
+export type OperationalAlert = {
+  type: string;
+  severity: "critical" | "warning" | "success";
+  title: string;
+  message: string;
+  value?: number;
+  unit?: string;
+  action?: { label: string; href: string };
+};
+
 export type DashboardSummaryResponse = {
   period: { from: string; to: string; grouping: "day" | "week" | "month" };
   comparison: { from: string; to: string };
   kpis: {
     watchesSold: DashboardKpi;
     ordersCount: DashboardKpi;
+    conversionRate: DashboardConversionRate;
     activeOrders: DashboardCurrentKpi;
     pendingAmount: DashboardCurrentKpi;
     revenue?: DashboardKpi;
@@ -652,6 +727,9 @@ export type DashboardSummaryResponse = {
     company: DashboardGoalSummary | null;
     individual: DashboardGoalSummary | null;
   };
+  conversion: DashboardConversion;
+  pendingPayments: DashboardPendingPayments;
+  operationalAlerts: OperationalAlert[];
   nextShipments: DashboardNextShipment[];
   categories?: DashboardCategoryBreakdown[];
   channels?: DashboardChannelBreakdown[];
@@ -666,6 +744,9 @@ export type AiSummarySource = {
 
 export type AiSummaryItem = {
   id: string;
+  context: string;
+  type: "currency" | "quantity" | "percentage" | "count";
+  values: Record<string, unknown>;
   text: string;
   sources: AiSummarySource[];
 };

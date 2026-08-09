@@ -2,20 +2,28 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
 }
 
 /* ── Header ────────────────────────────────────────────── */
 .header {
   display: flex;
-  flex-direction: column;
-  margin-bottom: 32px;
-  padding-left: 8px;
-  gap: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 22px;
+  padding: 0 4px 0 8px;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .wrapperCollapsed .header {
-  padding-left: 0;
+  padding: 0;
   align-items: center;
+  justify-content: center;
+}
+
+.brand {
+  min-width: 0;
 }
 
 .headerOverline {
@@ -37,25 +45,36 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  background: rgba(148, 163, 184, 0.06);
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
   color: var(--crm-text-muted);
   cursor: pointer;
   flex-shrink: 0;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
-  align-self: flex-start;
+  opacity: 0.75;
 }
 
 .toggleButton:hover {
-  background: rgba(148, 163, 184, 0.14);
+  background: rgba(148, 163, 184, 0.1);
   color: var(--crm-text);
-  border-color: rgba(148, 163, 184, 0.3);
+  opacity: 1;
 }
 
 /* ── Nav buttons ────────────────────────────────────────── */
+.navigation {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 0 -6px;
+  padding: 0 6px 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--crm-panel-border) transparent;
+}
+
 .navButton {
   display: flex;
   align-items: center;
@@ -137,8 +156,11 @@
 
 /* ── Footer ─────────────────────────────────────────────── */
 .footer {
-  margin-top: auto;
+  margin-top: 10px;
+  padding-top: 12px;
   padding-left: 8px;
+  border-top: 1px solid var(--crm-panel-border);
+  flex-shrink: 0;
 }
 
 .footerCollapsed {
@@ -149,25 +171,64 @@
 }
 
 .userCard {
-  margin-bottom: 18px;
-  padding: 12px;
-  border-radius: 14px;
-  background: rgba(15, 23, 42, 0.26);
-  border: 1px solid rgba(148, 163, 184, 0.12);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  padding: 7px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid var(--crm-panel-border);
+}
+
+.userAvatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--crm-primary-soft);
+  color: var(--crm-primary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+.userDetails {
+  min-width: 0;
+  flex: 1;
 }
 
 .userName {
   color: var(--crm-text);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
-.userMeta {
+.roleBadge {
+  display: inline-flex;
+  margin-top: 5px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--crm-primary-soft);
+  color: var(--crm-primary);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.userEmail {
   margin-top: 4px;
   color: var(--crm-text-soft);
-  font-size: 12px;
-  line-height: 1.5;
-  word-break: break-word;
+  font-size: 11px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .footerLabel {
@@ -175,14 +236,15 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .logoutButton {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 16px 0 10px;
+  justify-content: center;
+  margin: 10px 0 0;
   width: 100%;
   padding: 8px 12px;
   border-radius: 10px;
@@ -202,6 +264,13 @@
 }
 
 .footerVersion {
+  margin-top: 7px;
   color: var(--crm-text-soft);
   font-size: 11px;
+}
+
+.collapsedActions {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }

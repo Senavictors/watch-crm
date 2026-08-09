@@ -1,10 +1,12 @@
 "use client";
 import React, { useState } from "react";
-import { Customer, Order, ProductReturn } from "../types";
+import { Customer, Order, PaginationMeta, ProductReturn } from "../types";
 import { Badge, Btn } from "../ui/Primitives";
 import { fmtBRL, fmtDate, fmtDateTime } from "../helpers";
+import ModalBackdrop from "../components/Modal/ModalBackdrop";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./CustomerDetailModal.module.css";
+import PaginationBar from "../ui/PaginationBar";
 
 type Tab = "orders" | "returns";
 
@@ -12,11 +14,15 @@ type Props = {
   customer: Customer;
   orders: Order[] | null;
   returns: ProductReturn[] | null;
+  ordersMeta: PaginationMeta;
+  returnsMeta: PaginationMeta;
   loadingOrders: boolean;
   loadingReturns: boolean;
   loadingDetail?: boolean;
   canRegisterFrictionNote?: boolean;
   onAddFrictionNote?: (note: string) => void | Promise<void>;
+  onOrdersPageChange: (page: number) => void;
+  onReturnsPageChange: (page: number) => void;
   onClose: () => void;
 };
 
@@ -67,11 +73,15 @@ const CustomerDetailModal: React.FC<Props> = ({
   customer,
   orders,
   returns,
+  ordersMeta,
+  returnsMeta,
   loadingOrders,
   loadingReturns,
   loadingDetail,
   canRegisterFrictionNote,
   onAddFrictionNote,
+  onOrdersPageChange,
+  onReturnsPageChange,
   onClose,
 }) => {
   const [tab, setTab] = useState<Tab>("orders");
@@ -95,11 +105,8 @@ const CustomerDetailModal: React.FC<Props> = ({
   }
 
   return (
-    <div className={modalStyles.overlay} onClick={onClose}>
-      <div
-        className={`${modalStyles.modal} ${styles.modal}`}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <ModalBackdrop onClose={onClose}>
+      <div className={`${modalStyles.modal} ${styles.modal}`}>
         <div className={modalStyles.header}>
           <h3 className={modalStyles.title}>{customer.name}</h3>
           <button onClick={onClose} className={modalStyles.close}>
@@ -185,13 +192,13 @@ const CustomerDetailModal: React.FC<Props> = ({
             className={`${styles.tab} ${tab === "orders" ? styles.tabActive : ""}`}
             onClick={() => setTab("orders")}
           >
-            Pedidos {orders && `(${orders.length})`}
+            Pedidos {orders && `(${ordersMeta.total})`}
           </button>
           <button
             className={`${styles.tab} ${tab === "returns" ? styles.tabActive : ""}`}
             onClick={() => setTab("returns")}
           >
-            Garantias {returns && `(${returns.length})`}
+            Garantias {returns && `(${returnsMeta.total})`}
           </button>
         </div>
 
@@ -231,6 +238,7 @@ const CustomerDetailModal: React.FC<Props> = ({
                 </tbody>
               </table>
             )}
+            <PaginationBar meta={ordersMeta} onPageChange={onOrdersPageChange} disabled={loadingOrders} />
           </div>
         )}
 
@@ -270,6 +278,7 @@ const CustomerDetailModal: React.FC<Props> = ({
                 </tbody>
               </table>
             )}
+            <PaginationBar meta={returnsMeta} onPageChange={onReturnsPageChange} disabled={loadingReturns} />
           </div>
         )}
 
@@ -314,7 +323,7 @@ const CustomerDetailModal: React.FC<Props> = ({
           )}
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 };
 

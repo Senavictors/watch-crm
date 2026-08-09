@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { fmtBRL, fmtDate } from "../helpers";
 import { ProductReturn, ReturnMetadata, ReturnStatus, ReturnType } from "../types";
 import { Btn, Card } from "../ui/Primitives";
@@ -15,6 +15,14 @@ const TYPE_LABELS: Record<ReturnType, string> = {
 type Props = {
   returns: ProductReturn[];
   metadata: ReturnMetadata;
+  search: string;
+  type: ReturnType | "";
+  status: ReturnStatus | "";
+  assignedUserId: string;
+  onSearchChange: (value: string) => void;
+  onTypeChange: (value: ReturnType | "") => void;
+  onStatusFilterChange: (value: ReturnStatus | "") => void;
+  onAssignedUserChange: (value: string) => void;
   canCreate: boolean;
   canUpdateStatus: boolean;
   onView: (r: ProductReturn) => void;
@@ -25,38 +33,26 @@ type Props = {
 const ReturnList: React.FC<Props> = ({
   returns,
   metadata,
+  search,
+  type,
+  status,
+  assignedUserId,
+  onSearchChange,
+  onTypeChange,
+  onStatusFilterChange,
+  onAssignedUserChange,
   canCreate,
   canUpdateStatus,
   onView,
   onNew,
   onUpdateStatus,
 }) => {
-  const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState<ReturnType | "">("");
-  const [filterStatus, setFilterStatus] = useState<ReturnStatus | "">("");
-  const [filterAssignedUserId, setFilterAssignedUserId] = useState("");
   // TASK-017 — status "otimista" por linha enquanto a chamada de update está
   // em voo; some (volta a refletir `r.status`) quando a chamada termina,
   // com sucesso (prop já atualizada pelo handler) ou falha (reverte visual).
   const [pendingStatus, setPendingStatus] = useState<Record<number, ReturnStatus>>({});
 
   const statuses = metadata.statuses;
-
-  const filtered = useMemo(
-    () =>
-      returns.filter((r) => {
-        if (filterType && r.type !== filterType) return false;
-        if (filterStatus && r.status !== filterStatus) return false;
-        if (filterAssignedUserId && String(r.assignedUserId ?? "") !== filterAssignedUserId) return false;
-        if (
-          search &&
-          !`${r.id} ${r.customerName}`.toLowerCase().includes(search.toLowerCase())
-        )
-          return false;
-        return true;
-      }),
-    [returns, filterType, filterStatus, filterAssignedUserId, search]
-  );
 
   function statusOptionsFor(currentStatus: ReturnStatus) {
     const nextStatuses = metadata.transitions?.[currentStatus] ?? [];
@@ -93,15 +89,15 @@ const ReturnList: React.FC<Props> = ({
       <div className={styles.filters}>
         <input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Buscar por # ou cliente..."
           className={styles.search}
         />
         <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value as ReturnType | "")}
+          value={type}
+          onChange={(e) => onTypeChange(e.target.value as ReturnType | "")}
           className={styles.select}
-          style={{ color: filterType ? "var(--crm-input-text)" : "var(--crm-text-soft)" }}
+          style={{ color: type ? "var(--crm-input-text)" : "var(--crm-text-soft)" }}
         >
           <option value="">Todos tipos</option>
           <option value="garantia">Garantia</option>
@@ -109,10 +105,10 @@ const ReturnList: React.FC<Props> = ({
           <option value="devolucao">Devolução</option>
         </select>
         <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
+          value={status}
+          onChange={(e) => onStatusFilterChange(e.target.value)}
           className={styles.select}
-          style={{ color: filterStatus ? "var(--crm-input-text)" : "var(--crm-text-soft)" }}
+          style={{ color: status ? "var(--crm-input-text)" : "var(--crm-text-soft)" }}
         >
           <option value="">Todos status</option>
           {statuses.map((s) => (
@@ -120,10 +116,10 @@ const ReturnList: React.FC<Props> = ({
           ))}
         </select>
         <select
-          value={filterAssignedUserId}
-          onChange={(e) => setFilterAssignedUserId(e.target.value)}
+          value={assignedUserId}
+          onChange={(e) => onAssignedUserChange(e.target.value)}
           className={styles.select}
-          style={{ color: filterAssignedUserId ? "var(--crm-input-text)" : "var(--crm-text-soft)" }}
+          style={{ color: assignedUserId ? "var(--crm-input-text)" : "var(--crm-text-soft)" }}
         >
           <option value="">Todos responsáveis</option>
           {metadata.assignableUsers.map((u) => (
@@ -146,7 +142,7 @@ const ReturnList: React.FC<Props> = ({
             </tr>
           </thead>
           <tbody>
-            {filtered.map((r) => {
+            {returns.map((r) => {
               const firstItem = r.items[0];
               const itemLabel = firstItem
                 ? `${firstItem.productName}${r.items.length > 1 ? ` +${r.items.length - 1}` : ""}`
@@ -196,7 +192,7 @@ const ReturnList: React.FC<Props> = ({
             })}
           </tbody>
         </table>
-        {filtered.length === 0 && (
+        {returns.length === 0 && (
           <div className={styles.empty}>Nenhum registro encontrado</div>
         )}
       </Card>

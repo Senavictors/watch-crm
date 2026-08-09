@@ -7,6 +7,7 @@ use App\Models\ProductReturn;
 use App\Models\ReturnItem;
 use App\Models\ReturnStatusHistory;
 use App\Models\User;
+use App\Support\ApiPagination;
 use App\Support\ReturnMetadata;
 use App\Support\ReturnStatusTransition;
 use App\Support\ReturnWarrantyWindow;
@@ -21,6 +22,8 @@ class ReturnController extends Controller
      * @var list<string>
      */
     private const EAGER_LOADS = ['customer', 'assignedUser', 'items', 'order', 'statusHistories.actor'];
+
+    private const LIST_EAGER_LOADS = ['customer', 'assignedUser', 'items', 'order'];
 
     public function metadata()
     {
@@ -52,7 +55,7 @@ class ReturnController extends Controller
 
     public function index(Request $request)
     {
-        $query = ProductReturn::query()->with(self::EAGER_LOADS);
+        $query = ProductReturn::query()->with(self::LIST_EAGER_LOADS);
 
         if ($request->filled('orderId')) {
             $query->where('order_id', $request->integer('orderId'));
@@ -74,12 +77,34 @@ class ReturnController extends Controller
             $query->where('status', $request->string('status'));
         }
 
+        if ($request->filled('type')) {
+            $query->where('type', $request->string('type'));
+        }
+
+        if ($request->filled('search')) {
+            $search = trim($request->string('search')->toString());
+            $query->where(function ($builder) use ($search) {
+                $builder->where('id', ctype_digit($search) ? (int) $search : -1)
+                    ->orWhereHas('customer', fn ($customer) => $customer->where('name', 'like', "%{$search}%"));
+            });
+        }
+
         $returns = $query
             ->orderByDesc('created_at')
-            ->get()
-            ->map(fn (ProductReturn $r) => $this->toPayload($r));
+            ->orderByDesc('id')
+            ->paginate(ApiPagination::perPage($request));
 
-        return response()->json($returns);
+        return ApiPagination::response($returns, fn (ProductReturn $r) => $this->toPayload($r, false));
+    }
+
+    public function show(int $id)
+    {
+        $productReturn = ProductReturn::query()->with(self::EAGER_LOADS)->find($id);
+        if (! $productReturn) {
+            return response()->json(['message' => 'Garantia/Troca não encontrada.'], 404);
+        }
+
+        return response()->json($this->toPayload($productReturn));
     }
 
     public function store(Request $request)
@@ -286,7 +311,7 @@ class ReturnController extends Controller
         $productReturn->items()->insert($payload);
     }
 
-    private function toPayload(ProductReturn $r): array
+    private function toPayload(ProductReturn $r, bool $includeHistory = true): array
     {
         $items = $r->relationLoaded('items') ? $r->items : $r->items()->get();
 
@@ -316,7 +341,7 @@ class ReturnController extends Controller
             'returnTrackingCode' => $r->return_tracking_code ?? '',
             'shippedBackDate' => $r->shipped_back_date ?? '',
             'items' => $items->map(fn (ReturnItem $item) => $this->toItemPayload($item))->values(),
-            'statusHistory' => $this->toStatusHistoryPayload($r),
+            'statusHistory' => $includeHistory ? $this->toStatusHistoryPayload($r) : [],
             'withinWarrantyWindow' => $this->withinWarrantyWindow($r),
             'createdAt' => $r->created_at?->toDateString() ?? '',
             'updatedAt' => $r->updated_at?->toDateString() ?? '',

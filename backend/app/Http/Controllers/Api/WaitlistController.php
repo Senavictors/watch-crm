@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\WaitlistEntry;
+use App\Support\ApiPagination;
 use App\Support\WaitlistMetadata;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -70,12 +71,21 @@ class WaitlistController extends Controller
             $query->where('product_id', $request->integer('productId'));
         }
 
+        if ($request->filled('search')) {
+            $search = trim($request->string('search')->toString());
+            $query->where(function ($builder) use ($search) {
+                $builder->where('id', ctype_digit($search) ? (int) $search : -1)
+                    ->orWhere('product_name', 'like', "%{$search}%")
+                    ->orWhereHas('customer', fn ($customer) => $customer->where('name', 'like', "%{$search}%"));
+            });
+        }
+
         $entries = $query
             ->orderByDesc('created_at')
-            ->get()
-            ->map(fn (WaitlistEntry $entry) => $this->toPayload($entry));
+            ->orderByDesc('id')
+            ->paginate(ApiPagination::perPage($request));
 
-        return response()->json($entries);
+        return ApiPagination::response($entries, fn (WaitlistEntry $entry) => $this->toPayload($entry));
     }
 
     public function store(Request $request)

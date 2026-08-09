@@ -1,0 +1,27 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  color: var(--crm-text-soft);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.search,
+.select {
+  width: 100%;
+  border: 1px solid var(--crm-border);
+  border-radius: 8px;
+  background: var(--crm-input-bg);
+  color: var(--crm-input-text);
+  padding: 10px 12px;
+}
+
+.search:focus,
+.select:focus {
+  border-color: var(--crm-accent);
+  outline: none;
+}

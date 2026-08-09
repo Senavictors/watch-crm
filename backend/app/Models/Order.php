@@ -28,6 +28,7 @@ class Order extends Model
         'freight',
         'channel_fee',
         'payment_method',
+        'payment_expires_at',
         'shipping_method',
         'tracking_code',
         'sale_date',
@@ -39,6 +40,7 @@ class Order extends Model
     {
         return [
             'paid_at' => 'datetime',
+            'payment_expires_at' => 'datetime',
         ];
     }
 

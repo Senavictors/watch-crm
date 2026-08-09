@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { apiFetch, ensureCsrfCookie, getApiBaseUrl } from "../api";
 import { AuthUser, Permission } from "../types";
 import { useToast } from "./ToastContext";
@@ -59,9 +59,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     loadSession();
     return () => { alive = false; };
-  }, [apiBaseUrl]);
+  }, [apiBaseUrl, pushToast]);
 
-  async function login(email: string, password: string) {
+  const login = useCallback(async (email: string, password: string) => {
     setAuthLoading(true);
     try {
       await ensureCsrfCookie(apiBaseUrl);
@@ -88,9 +88,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setAuthLoading(false);
     }
-  }
+  }, [apiBaseUrl, pushToast]);
 
-  async function logout() {
+  const logout = useCallback(async () => {
     try {
       await ensureCsrfCookie(apiBaseUrl);
       const response = await apiFetch(
@@ -108,19 +108,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       pushToast(err instanceof Error ? err.message : "Erro ao sair.", "error");
     }
-  }
+  }, [apiBaseUrl, pushToast]);
 
-  function hasPermission(permission: Permission) {
+  const hasPermission = useCallback((permission: Permission) => {
     return currentUser?.permissions.includes(permission) ?? false;
-  }
+  }, [currentUser]);
 
-  function handleUnauthorized() {
+  const handleUnauthorized = useCallback(() => {
     setCurrentUser(null);
     setSessionStatus("unauthenticated");
-  }
+  }, []);
+
+  const value = useMemo(() => ({
+    sessionStatus,
+    currentUser,
+    authLoading,
+    login,
+    logout,
+    hasPermission,
+    handleUnauthorized,
+  }), [authLoading, currentUser, handleUnauthorized, hasPermission, login, logout, sessionStatus]);
 
   return (
-    <AuthContext.Provider value={{ sessionStatus, currentUser, authLoading, login, logout, hasPermission, handleUnauthorized }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

@@ -2,6 +2,7 @@
 import React from "react";
 import { Goal } from "../types";
 import { Btn } from "../ui/Primitives";
+import ModalBackdrop from "../components/Modal/ModalBackdrop";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./GoalDetail.module.css";
 
@@ -40,7 +41,7 @@ function fmtDate(d: string): string {
 
 const GoalDetail: React.FC<Props> = ({ goal, onClose }) => {
   return (
-    <div className={modalStyles.overlay}>
+    <ModalBackdrop onClose={onClose}>
       <div className={`${modalStyles.modal} ${styles.modal}`}>
         <div className={modalStyles.header}>
           <h3 className={modalStyles.title}>{goal.name}</h3>
@@ -148,7 +149,7 @@ const GoalDetail: React.FC<Props> = ({ goal, onClose }) => {
           </Btn>
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 };
 
