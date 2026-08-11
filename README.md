@@ -235,6 +235,13 @@ watch-crm/
 - Devolução, troca e garantia **não** repõem estoque automaticamente — a reentrada é manual pelo catálogo, e fica registrada no histórico de movimentos.
 - Toda movimentação (reserva, liberação, baixa, estorno, entrada e ajuste manual) gera uma linha auditável em `stock_movements`, com origem, ator, quantidade e chave de idempotência.
 
+### Preservação de histórico
+
+- Cliente com pedido, devolução ou nota de atrito não é excluído — é **arquivado**, o que só o tira das listagens do dia a dia e não muda nenhum número do passado.
+- Pedido com pagamento confirmado ou comissão paga não é excluído; a forma de desfazer a venda é o status `Cancelado`.
+- Devolução com impacto financeiro e despesa lançada não são excluídas — são **estornadas**, com motivo e autor registrados. O estorno tira o registro de faturamento, comissões, metas, dashboard e total de despesas, mantendo o fato no histórico.
+- Marca, categoria, qualidade, modelo e produto em uso não são excluídos: a API responde 409 dizendo o que impede, em vez de apagar os dependentes em cascata.
+
 ### Pós-venda
 
 - Garantias, trocas e devoluções possuem transições de status validadas no backend.
@@ -248,7 +255,7 @@ watch-crm/
 | Entidade | Responsabilidade |
 |---|---|
 | `users` | Identidade, papel, status e dados de autenticação. |
-| `customers` | Cadastro, endereço e vendedor responsável. |
+| `customers` | Cadastro, endereço, vendedor responsável e arquivamento. |
 | `customer_friction_notes` | Histórico imutável de atritos do cliente. |
 | `brands`, `categories`, `qualities`, `models` | Estrutura cadastrável do catálogo. |
 | `products` | Entrada de estoque, preços, custo, comissão por unidade e saldo reservado. |
@@ -396,12 +403,14 @@ Não há Jest, Vitest ou Playwright configurado; mudanças de interface também 
 - [x] Paginação, filtros e lookups server-side
 - [x] Alertas operacionais e resumo inteligente opcional
 - [x] Reserva e baixa transacional de estoque, com histórico auditável de movimentos
+- [x] Preservação de histórico financeiro: arquivamento de cliente, estorno de despesa/devolução e fim das exclusões em cascata
 
 ### Pendente ou bloqueado
 
 - [ ] Integração automática de rastreamento dos Correios — bloqueada até definição do contrato/cartão de postagem
 - [ ] Expiração automática de pedidos pendentes para liberar a reserva (hoje o cancelamento é manual)
 - [ ] Reposição automática de estoque na devolução — decisão de negócio: a reentrada é deliberadamente manual
+- [ ] Anonimização de dados pessoais de cliente sob demanda (LGPD) — hoje existe bloqueio e arquivamento
 - [ ] Relatórios exportáveis em PDF/CSV
 - [ ] Notificações em tempo real
 - [ ] Aplicativo mobile

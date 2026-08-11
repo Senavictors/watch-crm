@@ -168,6 +168,15 @@ class ReturnController extends Controller
             return response()->json(['message' => 'Garantia/Troca não encontrada.'], 404);
         }
 
+        // TASK-025: registro estornado é histórico fechado — não volta a
+        // andar na máquina de estados nem tem valores reeditados.
+        if ($productReturn->isVoided()) {
+            return response()->json([
+                'message' => 'Esta garantia/troca está estornada e não pode mais ser alterada.',
+                'code' => 'return_voided',
+            ], 422);
+        }
+
         $data = $this->validateData($request, true);
         $previousStatus = $productReturn->status;
         $newStatus = $data['status'] ?? $previousStatus;
@@ -237,6 +246,11 @@ class ReturnController extends Controller
         return response()->json($this->toPayload($productReturn));
     }
 
+    /**
+     * TASK-025 (RN-04 / ADR-007): devolução com efeito financeiro ou com
+     * histórico de status não é apagada — é estornada (`void`). Só um
+     * registro recém-criado e sem impacto pode ser excluído de fato.
+     */
     public function destroy(int $id)
     {
         $productReturn = ProductReturn::find($id);
@@ -245,10 +259,62 @@ class ReturnController extends Controller
             return response()->json(['message' => 'Garantia/Troca não encontrada.'], 404);
         }
 
-        $productReturn->delete();
-        $this->audit('returns.deleted', 'Garantia/Troca removida.', null, ['return_id' => $id]);
+        $footprint = $productReturn->financialFootprint();
+
+        if ($footprint !== []) {
+            return response()->json([
+                'message' => 'Esta garantia/troca não pode ser excluída porque já tem '.
+                    collect($footprint)->keys()->join(', ', ' e ').
+                    '. Use o estorno para anular o efeito preservando o histórico.',
+                'code' => 'return_has_financial_history',
+                'footprint' => $footprint,
+            ], 409);
+        }
+
+        DB::transaction(function () use ($productReturn, $id) {
+            $productReturn->delete();
+            $this->audit('returns.deleted', 'Garantia/Troca removida.', null, ['return_id' => $id]);
+        });
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Estorno: mantém o fato, o autor e o motivo, e tira o registro de
+     * faturamento, comissões, metas e dashboard (ADR-007).
+     */
+    public function void(Request $request, int $id)
+    {
+        $productReturn = ProductReturn::query()->with(self::EAGER_LOADS)->find($id);
+
+        if (! $productReturn) {
+            return response()->json(['message' => 'Garantia/Troca não encontrada.'], 404);
+        }
+
+        if ($productReturn->isVoided()) {
+            return response()->json(['message' => 'Esta garantia/troca já está estornada.'], 422);
+        }
+
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'min:3', 'max:500'],
+        ]);
+
+        DB::transaction(function () use ($productReturn, $request, $data) {
+            $productReturn->voided_at = now();
+            $productReturn->voided_by_user_id = $request->user()->id;
+            $productReturn->void_reason = $data['reason'];
+            $productReturn->save();
+
+            $this->audit('returns.voided', 'Garantia/Troca estornada.', $productReturn, [
+                'reason' => $data['reason'],
+                'status' => $productReturn->status,
+                'refund_amount' => $productReturn->refund_amount !== null ? (float) $productReturn->refund_amount : null,
+            ]);
+        });
+
+        $productReturn->load(self::EAGER_LOADS);
+
+        return response()->json($this->toPayload($productReturn));
     }
 
     private function validateData(Request $request, bool $partial = false): array
@@ -343,6 +409,11 @@ class ReturnController extends Controller
             'items' => $items->map(fn (ReturnItem $item) => $this->toItemPayload($item))->values(),
             'statusHistory' => $includeHistory ? $this->toStatusHistoryPayload($r) : [],
             'withinWarrantyWindow' => $this->withinWarrantyWindow($r),
+            // TASK-025: registro estornado continua visível e auditável, mas
+            // fora de todo agregado financeiro.
+            'voidedAt' => $r->voided_at?->toIso8601String(),
+            'voidedByUserId' => $r->voided_by_user_id,
+            'voidReason' => $r->void_reason,
             'createdAt' => $r->created_at?->toDateString() ?? '',
             'updatedAt' => $r->updated_at?->toDateString() ?? '',
         ];

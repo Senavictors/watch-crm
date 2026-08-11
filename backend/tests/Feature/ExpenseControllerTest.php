@@ -102,7 +102,11 @@ class ExpenseControllerTest extends TestCase
         ]);
     }
 
-    public function test_expense_can_be_deleted_and_it_is_audited(): void
+    /**
+     * TASK-025 (RN-03 / ADR-007): despesa lançada já entrou no resultado
+     * financeiro, então deixou de ser excluível — o caminho é o estorno.
+     */
+    public function test_expense_cannot_be_deleted_and_points_to_void(): void
     {
         $admin = User::factory()->create(['role' => UserRole::Admin->value]);
         $expense = Expense::factory()->create();
@@ -110,12 +114,35 @@ class ExpenseControllerTest extends TestCase
         $this->actingAs($admin)
             ->withSession(['_token' => 'csrf-token'])
             ->deleteJson('/api/expenses/'.$expense->id, [], self::CSRF_HEADERS)
-            ->assertOk();
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'expense_requires_void');
 
-        $this->assertDatabaseMissing('expenses', ['id' => $expense->id]);
+        $this->assertDatabaseHas('expenses', ['id' => $expense->id]);
+    }
+
+    public function test_expense_can_be_voided_and_it_is_audited(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::Admin->value]);
+        $expense = Expense::factory()->create(['amount' => 250]);
+
+        $this->actingAs($admin)
+            ->withSession(['_token' => 'csrf-token'])
+            ->patchJson('/api/expenses/'.$expense->id.'/void', ['reason' => 'Lançamento duplicado.'], self::CSRF_HEADERS)
+            ->assertOk()
+            ->assertJsonPath('voidReason', 'Lançamento duplicado.')
+            ->assertJsonPath('voidedByUserId', $admin->id);
+
+        $this->assertDatabaseHas('expenses', ['id' => $expense->id]);
+        $this->assertNotNull($expense->fresh()->voided_at);
         $this->assertDatabaseHas('audit_logs', [
-            'action' => 'expenses.deleted',
+            'action' => 'expenses.voided',
         ]);
+
+        // Estornada continua listada, mas fora do resumo.
+        $response = $this->actingAs($admin)->getJson('/api/expenses')->assertOk();
+        $this->assertCount(1, $response->json('data'));
+        $this->assertEqualsWithDelta(0.0, $response->json('summary.totalAmount'), 0.001);
+        $this->assertSame(1, $response->json('summary.voidedCount'));
     }
 
     public function test_expenses_can_be_filtered_by_category_and_period(): void

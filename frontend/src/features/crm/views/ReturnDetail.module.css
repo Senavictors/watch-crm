@@ -28,6 +28,19 @@
   white-space: nowrap;
 }
 
+/* TASK-025: devolução estornada — o registro fica, o efeito sai. */
+.voidedPill {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--crm-danger, #b91c1c);
+  color: var(--crm-danger, #b91c1c);
+  background: var(--crm-danger-soft, rgba(220, 38, 38, 0.08));
+  white-space: nowrap;
+}
+
 .pill {
   background: var(--crm-button-secondary-bg);
   color: var(--crm-text);

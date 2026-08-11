@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Quality;
+use App\Models\WatchModel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class QualityController extends Controller
@@ -58,8 +60,19 @@ class QualityController extends Controller
             return response()->json(['message' => 'Qualidade não encontrada.'], 404);
         }
 
-        $quality->delete();
-        $this->audit('qualities.deleted', 'Qualidade removida.', null, ['quality_id' => $id]);
+        // TASK-025: FK era CASCADE em `models` (que cascateava em produtos).
+        $conflict = $this->conflictIfInUse([
+            'modelos' => WatchModel::query()->where('quality_id', $quality->id)->count(),
+        ], 'Esta qualidade', 'quality_in_use');
+
+        if ($conflict) {
+            return $conflict;
+        }
+
+        DB::transaction(function () use ($quality, $id) {
+            $quality->delete();
+            $this->audit('qualities.deleted', 'Qualidade removida.', null, ['quality_id' => $id]);
+        });
 
         return response()->json(['ok' => true]);
     }

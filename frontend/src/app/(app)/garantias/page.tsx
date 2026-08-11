@@ -119,6 +119,20 @@ export default function GarantiasPage() {
     } catch (error) { pushToast(error instanceof Error ? error.message : "Erro.", "error"); }
   }
 
+  // TASK-025 (ADR-007): devolução com impacto financeiro não é apagada — é
+  // estornada, com motivo obrigatório, saindo de faturamento, comissões,
+  // metas e dashboard sem sumir do histórico.
+  async function handleVoidReturn(item: ProductReturn) {
+    const reason = prompt(`Motivo do estorno da garantia/troca #${item.id}:`)?.trim();
+    if (!reason) return;
+    if (reason.length < 3) { pushToast("Descreva o motivo do estorno.", "error"); return; }
+    try {
+      await apiUpdate<ProductReturn>(`/returns/${item.id}/void`, { reason }, "Falha ao estornar.");
+      setViewReturn(null); reload();
+      pushToast("Garantia/Troca estornada com sucesso.", "success");
+    } catch (error) { pushToast(error instanceof Error ? error.message : "Erro.", "error"); }
+  }
+
   return (
     <>
       <ReturnList
@@ -139,7 +153,7 @@ export default function GarantiasPage() {
         onUpdateStatus={handleUpdateStatus}
       />
       <PaginationBar meta={meta} onPageChange={setPage} disabled={loading} />
-      {viewReturn && !editReturn && <ReturnDetail productReturn={viewReturn} canUpdate={hasPermission("returns.update")} onClose={() => setViewReturn(null)} onEdit={(item) => { setEditReturn(item); setViewReturn(null); }} />}
+      {viewReturn && !editReturn && <ReturnDetail productReturn={viewReturn} canUpdate={hasPermission("returns.update")} canVoid={hasPermission("returns.delete")} onClose={() => setViewReturn(null)} onEdit={(item) => { setEditReturn(item); setViewReturn(null); }} onVoid={handleVoidReturn} />}
       {showNew && <NewReturnForm metadata={metadata} onSave={handleSaveReturn} onClose={() => setShowNew(false)} onToast={pushToast} />}
       {editReturn && <NewReturnForm metadata={metadata} returnToEdit={editReturn} onSave={handleUpdateReturn} onClose={() => setEditReturn(null)} onToast={pushToast} />}
     </>

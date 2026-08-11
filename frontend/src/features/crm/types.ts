@@ -186,6 +186,9 @@ export type Customer = {
   city?: string | null;
   state?: string | null;
   ownerUserId?: number | null;
+  // TASK-025: cliente arquivado sai das listagens do dia a dia, mas todo o
+  // histórico financeiro dele continua valendo.
+  archivedAt?: string | null;
   // Presentes só na resposta do `show` (`GET /customers/{id}`), ausentes no
   // `index` (`GET /customers`).
   insights?: CustomerInsights;
@@ -468,6 +471,11 @@ export type ProductReturn = {
   // TASK-017 — `null` quando não calculável (sem pedido vinculado, ou pedido
   // sem data de venda); não é um terceiro estado a exibir, é "não há dado".
   withinWarrantyWindow: boolean | null;
+  // TASK-025: estornada — o registro permanece no histórico, mas sai de
+  // faturamento, comissões, metas e dashboard, e não aceita mais edição.
+  voidedAt?: string | null;
+  voidedByUserId?: number | null;
+  voidReason?: string | null;
 };
 
 export type ReturnStatusHistoryEntry = {
@@ -586,6 +594,12 @@ export type Expense = {
   createdByUserId: number | null;
   createdByUserName: string | null;
   createdAt: string;
+  // TASK-025: despesa estornada continua listada e auditável, mas não pesa
+  // mais no resultado financeiro.
+  voidedAt?: string | null;
+  voidedByUserId?: number | null;
+  voidedByUserName?: string | null;
+  voidReason?: string | null;
 };
 
 export type ExpenseInput = {
@@ -603,6 +617,8 @@ export type ExpenseListResponse = PaginatedResponse<Expense> & {
   summary: {
     totalAmount: number;
     totalCount: number;
+    // TASK-025: quantas do filtro atual estão estornadas (fora do total).
+    voidedCount?: number;
   };
 };
 

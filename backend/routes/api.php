@@ -49,6 +49,10 @@ Route::middleware('web')->group(function () {
         Route::put('/customers/{id}', [CustomerController::class, 'update'])->middleware('permission:customers.update');
         Route::patch('/customers/{id}', [CustomerController::class, 'update'])->middleware('permission:customers.update');
         Route::delete('/customers/{id}', [CustomerController::class, 'destroy'])->middleware('permission:customers.delete');
+        // TASK-025: arquivar é a alternativa à exclusão de um cliente com
+        // histórico — mesma permissão, nenhuma permissão nova (ADR-007).
+        Route::patch('/customers/{id}/archive', [CustomerController::class, 'archive'])->middleware('permission:customers.delete');
+        Route::patch('/customers/{id}/unarchive', [CustomerController::class, 'unarchive'])->middleware('permission:customers.delete');
         Route::post('/customers/{id}/friction-notes', [CustomerController::class, 'addFrictionNote'])->middleware('permission:customers.update');
 
         Route::get('/products', [ProductController::class, 'index'])->middleware('permission:products.view');
@@ -100,6 +104,8 @@ Route::middleware('web')->group(function () {
         Route::put('/returns/{id}', [ReturnController::class, 'update'])->middleware('permission:returns.update');
         Route::patch('/returns/{id}', [ReturnController::class, 'update'])->middleware('permission:returns.update');
         Route::delete('/returns/{id}', [ReturnController::class, 'destroy'])->middleware('permission:returns.delete');
+        // TASK-025: devolução com impacto financeiro é estornada (ADR-007).
+        Route::patch('/returns/{id}/void', [ReturnController::class, 'void'])->middleware('permission:returns.delete');
 
         Route::get('/commissions', [CommissionController::class, 'index'])->middleware('permission:commissions.view');
         Route::post('/commissions/pay', [CommissionController::class, 'pay'])->middleware('permission:commissions.pay');
@@ -110,6 +116,8 @@ Route::middleware('web')->group(function () {
         Route::put('/expenses/{id}', [ExpenseController::class, 'update'])->middleware('permission:expenses.update');
         Route::patch('/expenses/{id}', [ExpenseController::class, 'update'])->middleware('permission:expenses.update');
         Route::delete('/expenses/{id}', [ExpenseController::class, 'destroy'])->middleware('permission:expenses.delete');
+        // TASK-025: despesa lançada é estornada, não excluída (ADR-007).
+        Route::patch('/expenses/{id}/void', [ExpenseController::class, 'void'])->middleware('permission:expenses.delete');
 
         Route::get('/goals/metadata', [GoalController::class, 'metadata'])->middleware('permission:goals.view');
         Route::get('/goals', [GoalController::class, 'index'])->middleware('permission:goals.view');

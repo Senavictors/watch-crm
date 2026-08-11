@@ -128,20 +128,30 @@ const Expenses: React.FC<Props> = ({
                     {expense.createdByUserName && (
                       <div className={styles.sub}>lançada por {expense.createdByUserName}</div>
                     )}
+                    {/* TASK-025: estornada continua na lista, marcada e com
+                        o motivo à vista — o fato não some, o efeito sim. */}
+                    {expense.voidedAt && (
+                      <div className={styles.voided}>
+                        Estornada{expense.voidedByUserName ? ` por ${expense.voidedByUserName}` : ""}
+                        {expense.voidReason ? ` — ${expense.voidReason}` : ""}
+                      </div>
+                    )}
                   </td>
                   <td className={styles.td}>{fmtDate(expense.expenseDate)}</td>
-                  <td className={`${styles.td} ${styles.amount}`}>{fmtBRL(expense.amount)}</td>
+                  <td className={`${styles.td} ${styles.amount} ${expense.voidedAt ? styles.amountVoided : ""}`}>
+                    {fmtBRL(expense.amount)}
+                  </td>
                   {showActions && (
                     <td className={styles.td}>
                       <div className={styles.actionsCell}>
-                        {canUpdate && (
+                        {canUpdate && !expense.voidedAt && (
                           <Btn onClick={() => onEdit(expense)} variant="secondary" small>
                             Editar
                           </Btn>
                         )}
-                        {canDelete && (
+                        {canDelete && !expense.voidedAt && (
                           <Btn onClick={() => onDelete(expense)} variant="danger" small>
-                            Excluir
+                            Estornar
                           </Btn>
                         )}
                       </div>

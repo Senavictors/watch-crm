@@ -19,6 +19,7 @@ export default function ClientesPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search);
+  const [showArchived, setShowArchived] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
@@ -41,6 +42,8 @@ export default function ClientesPage() {
         setLoading(true);
         const params = new URLSearchParams({ page: String(page), perPage: "20" });
         if (debouncedSearch) params.set("search", debouncedSearch);
+        // TASK-025: arquivados só aparecem quando pedidos explicitamente.
+        if (showArchived) params.set("archived", "1");
         const res = await apiFetch(`${apiBaseUrl}/customers?${params.toString()}`);
         if (res.status === 401) { handleUnauthorized(); return; }
         if (!res.ok) throw new Error("Falha ao carregar clientes.");
@@ -58,7 +61,7 @@ export default function ClientesPage() {
 
     load();
     return () => { alive = false; };
-  }, [debouncedSearch, handleUnauthorized, page, pushToast, reloadKey]);
+  }, [debouncedSearch, handleUnauthorized, page, pushToast, reloadKey, showArchived]);
 
   async function handleSave(data: CustomerInput) {
     try {
@@ -159,6 +162,24 @@ export default function ClientesPage() {
     }
   }
 
+  // TASK-025 (ADR-007): cliente com histórico não é excluído — é arquivado,
+  // o que só muda a visibilidade, nunca os números do passado dele.
+  async function handleArchive(customer: Customer, archive: boolean) {
+    const action = archive ? "arquivar" : "desarquivar";
+    if (!confirm(`Deseja ${action} o cliente "${customer.name}"?`)) return;
+    try {
+      await apiUpdate<Customer>(
+        `/customers/${customer.id}/${archive ? "archive" : "unarchive"}`,
+        {},
+        `Falha ao ${action} cliente.`
+      );
+      setReloadKey((value) => value + 1);
+      pushToast(`Cliente ${archive ? "arquivado" : "desarquivado"} com sucesso.`, "success");
+    } catch (err) {
+      pushToast(err instanceof Error ? err.message : "Erro.", "error");
+    }
+  }
+
   if (loading) return <div style={{ color: "var(--crm-text-muted)", padding: 32 }}>Carregando...</div>;
 
   return (
@@ -169,6 +190,10 @@ export default function ClientesPage() {
         onSearchChange={(value) => { setSearch(value); setPage(1); }}
         canCreate={hasPermission("customers.create")}
         canUpdate={hasPermission("customers.update")}
+        canArchive={hasPermission("customers.delete")}
+        showArchived={showArchived}
+        onToggleArchived={(value) => { setShowArchived(value); setPage(1); }}
+        onArchive={handleArchive}
         onNew={() => setShowNew(true)}
         onEdit={setEditing}
         onView={handleView}

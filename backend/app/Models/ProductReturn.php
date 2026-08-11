@@ -31,6 +31,51 @@ class ProductReturn extends Model
         'shipped_back_date',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'voided_at' => 'datetime',
+        ];
+    }
+
+    /**
+     * TASK-025 / ADR-007: devolução estornada permanece no histórico, mas
+     * deixa de valer em faturamento, comissão, meta e dashboard. Consultas
+     * que fazem `join('returns', ...)` precisam do equivalente
+     * `whereNull('returns.voided_at')` — o escopo só alcança quem consulta
+     * pelo model.
+     */
+    public function scopeEffective($query)
+    {
+        return $query->whereNull('voided_at');
+    }
+
+    public function isVoided(): bool
+    {
+        return $this->voided_at !== null;
+    }
+
+    public function voidedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'voided_by_user_id');
+    }
+
+    /**
+     * TASK-025 (RN-04): o que impede apagar a devolução em definitivo.
+     *
+     * @return array<string, int|string>
+     */
+    public function financialFootprint(): array
+    {
+        return array_filter([
+            'reembolso' => $this->refund_amount !== null && (float) $this->refund_amount > 0
+                ? (float) $this->refund_amount
+                : null,
+            'custos lançados' => $this->total_cost > 0 ? $this->total_cost : null,
+            'transições de status' => max($this->statusHistories()->count() - 1, 0) ?: null,
+        ], fn ($value) => $value !== null);
+    }
+
     public function getTotalCostAttribute(): float
     {
         return (float) $this->freight_cost_in

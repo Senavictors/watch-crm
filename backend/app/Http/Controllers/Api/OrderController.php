@@ -387,14 +387,35 @@ class OrderController extends Controller
 
         $this->authorize('delete', $order);
 
+        // TASK-025 (RN-02 / ADR-007): pedido pago nunca é apagado — o
+        // caminho é o status "Cancelado", que preserva itens, `paid_at`
+        // histórico e libera o estoque reservado (ADR-006). Comissão já paga
+        // bloqueia pelo mesmo motivo: é dinheiro que saiu.
+        $blockers = [];
+        if ($order->paid_at !== null) {
+            $blockers[] = 'pagamento confirmado';
+        }
+        if ($order->items()->whereNotNull('commission_paid_at')->exists()) {
+            $blockers[] = 'comissão paga';
+        }
+
+        if ($blockers !== []) {
+            return response()->json([
+                'message' => 'Este pedido não pode ser excluído porque tem '.implode(' e ', $blockers).
+                    '. Use o status "Cancelado" para desfazer a venda sem apagar o histórico.',
+                'code' => 'order_has_financial_history',
+                'blockers' => $blockers,
+            ], 409);
+        }
+
         // TASK-024 (RN-04): devolve ao estoque exatamente o que este pedido
         // segurava antes de apagar as linhas de reserva (cascata do FK).
-        DB::transaction(function () use ($order, $request) {
+        DB::transaction(function () use ($order, $request, $id) {
             $order->load('items');
             StockLedger::releaseOrder($order, $request->user());
             $order->delete();
+            $this->audit('orders.deleted', 'Pedido removido.', null, ['order_id' => $id]);
         }, 3);
-        $this->audit('orders.deleted', 'Pedido removido.', null, ['order_id' => $id]);
 
         return response()->json(['ok' => true]);
     }

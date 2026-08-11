@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Product;
 use App\Models\WatchModel;
 use App\Support\ApiPagination;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -189,8 +191,20 @@ class ModelController extends Controller
             return response()->json(['message' => 'Modelo não encontrado.'], 404);
         }
 
-        $model->delete();
-        $this->audit('models.deleted', 'Modelo removido.', null, ['model_id' => $id]);
+        // TASK-025: FK era CASCADE em `products` — apagar o modelo apagava
+        // as entradas de estoque dele.
+        $conflict = $this->conflictIfInUse([
+            'produtos' => Product::query()->where('model_id', $model->id)->count(),
+        ], 'Este modelo', 'model_in_use');
+
+        if ($conflict) {
+            return $conflict;
+        }
+
+        DB::transaction(function () use ($model, $id) {
+            $model->delete();
+            $this->audit('models.deleted', 'Modelo removido.', null, ['model_id' => $id]);
+        });
 
         return response()->json(['ok' => true]);
     }

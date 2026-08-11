@@ -254,7 +254,8 @@ Regras principais:
 - `payment_expires_at` é opcional;
 - comissão paga impede recriação silenciosa dos itens;
 - vendedor não cria nem edita pedidos e só lista pedidos atribuídos a si;
-- criação e edição reservam estoque e a confirmação de pagamento o baixa (ver 5.9); estoque insuficiente responde 422 com `code = insufficient_stock` e o pedido inteiro é desfeito.
+- criação e edição reservam estoque e a confirmação de pagamento o baixa (ver 5.10); estoque insuficiente responde 422 com `code = insufficient_stock` e o pedido inteiro é desfeito;
+- pedido com pagamento confirmado ou comissão paga não pode ser excluído (409 `order_has_financial_history`); o caminho é o status `Cancelado` (ver 5.9).
 
 Filtros atuais incluem busca, categoria, período, status, canal, vendedor, cliente e pagamento pendente.
 
@@ -267,6 +268,9 @@ Filtros atuais incluem busca, categoria, período, status, canal, vendedor, clie
 - Insights consideram apenas compras pagas e incluem total gasto, quantidade, ticket médio, última compra e possível recompra.
 - Possível recompra é um sinal heurístico de três estados: sim, não ou dados insuficientes.
 - Notas de atrito são imutáveis; não há edição ou exclusão.
+- Cliente com pedido, devolução ou nota de atrito não pode ser excluído: `DELETE /api/customers/{id}` responde 409 com `code = customer_has_history`. Cliente sem nenhum histórico continua excluível.
+- `PATCH /api/customers/{id}/archive` e `/unarchive` arquivam e desarquivam (permissão `customers.delete`). Arquivado sai da listagem e do lookup padrão; `GET /api/customers?archived=1` lista apenas os arquivados.
+- Arquivamento é visibilidade, não exclusão: nenhum cálculo financeiro muda ao arquivar um cliente.
 
 ### 5.6 Metas
 
@@ -296,7 +300,26 @@ Filtros atuais incluem busca, categoria, período, status, canal, vendedor, clie
 - Esses dados são restritos a `owner` e `admin`.
 - A avaliação acompanha automaticamente venda, liberação e reposição, porque agrega `products.qty` no momento da consulta.
 
-### 5.9 Movimentação de estoque
+### 5.9 Preservação de histórico, arquivamento e estorno
+
+Decisão em `ADR-007`. Nenhuma operação autorizada pela API apaga receita, comissão ou evidência de pós-venda.
+
+| Recurso | Exclusão | Alternativa |
+|---|---|---|
+| Cliente | 409 quando tem pedido, devolução ou nota (`customer_has_history`) | Arquivar/desarquivar |
+| Pedido | 409 quando tem `paid_at` ou comissão paga (`order_has_financial_history`) | Status `Cancelado` |
+| Devolução | 409 quando tem reembolso, custo ou transições (`return_has_financial_history`) | `PATCH /api/returns/{id}/void` |
+| Despesa | 409 sempre (`expense_requires_void`) | `PATCH /api/expenses/{id}/void` |
+| Marca, categoria, qualidade, modelo | 409 quando há dependentes (`*_in_use`) | Remover os dependentes antes |
+| Produto | 409 quando há item de pedido ou reserva ativa (`product_in_use`) | — |
+
+- O estorno exige `reason` (3 a 500 caracteres) e grava `voided_at`, `voided_by_user_id` e `void_reason`. Estorno não se repete: a segunda tentativa responde 422.
+- Registro estornado continua listado e marcado, não aceita mais edição e sai de faturamento, comissões, metas, dashboard e total de despesas. Os escopos `Expense::effective()` e `ProductReturn::effective()` são o ponto de entrada — todo cálculo novo sobre `expenses`/`returns` precisa passar por eles (consultas com `join('returns', ...)` usam `whereNull('returns.voided_at')`).
+- As chaves estrangeiras `orders.customer_id`, `returns.customer_id`, `customer_friction_notes.customer_id`, `models.brand_id`, `models.category_id`, `models.quality_id`, `products.brand_id` e `products.model_id` deixaram de ser `CASCADE` e passaram a `RESTRICT`. A troca é aplicada apenas no MySQL (no SQLite exigiria recriar tabelas) e é verificada por `RestrictedDeletesMySqlTest` contra MySQL real.
+- Cascatas mantidas por serem não destrutivas: `order_items.order_id`, `return_items.return_id`, `return_status_history.return_id`, `stock_reservations.*`, `goal_intervals.goal_id` e `waitlist_entries.customer_id`.
+- Estorno e arquivamento reutilizam as permissões de exclusão do próprio recurso (`returns.delete`, `expenses.delete`, `customers.delete`). Nenhuma permissão nova foi criada.
+
+### 5.10 Movimentação de estoque
 
 Semântica definida em `ADR-006` e implementada em `App\Support\StockLedger`, o único ponto de escrita de saldo.
 
@@ -313,7 +336,7 @@ Semântica definida em `ADR-006` e implementada em `App\Support\StockLedger`, o 
 - `stock_movements` é append-only, sem chave estrangeira, e sobrevive à exclusão do pedido ou do produto. Cada linha tem tipo (`reserve`, `release`, `commit`, `uncommit`, `manual_entry`, `manual_adjust`), quantidade, deltas, saldos resultantes, ator e chave de idempotência única.
 - Pedidos anteriores à migration não foram convertidos retroativamente: o saldo atual já refletia os ajustes manuais e o ledger passa a valer das novas movimentações em diante.
 
-### 5.10 Envios
+### 5.11 Envios
 
 - Os dias habilitados são persistidos em `posting_days`.
 - É obrigatório manter ao menos um dia de postagem habilitado.
@@ -324,7 +347,7 @@ Semântica definida em `ADR-006` e implementada em `App\Support\StockLedger`, o 
 - A interface também mostra pós-vendas prontos para reenvio.
 - A integração automática com rastreamento dos Correios ainda não está implementada.
 
-### 5.11 Garantias, trocas e devoluções
+### 5.12 Garantias, trocas e devoluções
 
 - Registro vinculado a cliente e opcionalmente a pedido.
 - Um ou mais itens por ocorrência.
@@ -335,7 +358,7 @@ Semântica definida em `ADR-006` e implementada em `App\Support\StockLedger`, o 
 - Toda transição gera registro em `return_status_history`.
 - O detalhe expõe histórico e indicador da janela de garantia.
 
-### 5.12 Lista de espera
+### 5.13 Lista de espera
 
 - Entrada vinculada a cliente, produto e vendedor.
 - Pedido convertido é opcional.
@@ -350,7 +373,7 @@ Entidades de domínio:
 | Tabela | Campos e relações relevantes |
 |---|---|
 | `users` | Papel, atividade, último login e dados de autenticação. |
-| `customers` | Dados pessoais, endereço e `owner_user_id`. |
+| `customers` | Dados pessoais, endereço, `owner_user_id` e arquivamento (`archived_at`). |
 | `customer_friction_notes` | Cliente, nota, autor e data. |
 | `brands` | Nome único. |
 | `categories` | Nome único e `has_quality`. |
@@ -363,9 +386,9 @@ Entidades de domínio:
 | `order_items` | Produto, snapshots de catálogo, quantidade, valores e comissão. |
 | `goals` | Criador, alvo, escopo, cálculo, filtros, ciclo e período. |
 | `goal_intervals` | Período, alvo e vínculo à meta. |
-| `expenses` | Categoria, descrição, valor, data e autor. |
+| `expenses` | Categoria, descrição, valor, data, autor e estorno (`voided_at`). |
 | `posting_days` | Dia da semana e estado habilitado. |
-| `product_returns` | Tipo, status, cliente, pedido, custos, reembolso e rastreio. |
+| `product_returns` | Tipo, status, cliente, pedido, custos, reembolso, rastreio e estorno (`voided_at`). |
 | `return_items` | Itens do pós-venda. |
 | `return_status_history` | Status anterior/novo, ator, nota e data. |
 | `waitlist_entries` | Cliente, produto, vendedor, pedido convertido e status. |
@@ -448,6 +471,8 @@ Clientes, produtos, modelos e pedidos expõem `/lookup`, retornando `{ data: [..
 - `PUT /api/customers/{id}`
 - `PATCH /api/customers/{id}`
 - `DELETE /api/customers/{id}`
+- `PATCH /api/customers/{id}/archive`
+- `PATCH /api/customers/{id}/unarchive`
 - `POST /api/customers/{id}/friction-notes`
 
 ### 8.5 Produtos
@@ -513,6 +538,7 @@ Clientes, produtos, modelos e pedidos expõem `/lookup`, retornando `{ data: [..
 - `PUT /api/returns/{id}`
 - `PATCH /api/returns/{id}`
 - `DELETE /api/returns/{id}`
+- `PATCH /api/returns/{id}/void`
 
 ### 8.12 Comissões
 
@@ -527,6 +553,7 @@ Clientes, produtos, modelos e pedidos expõem `/lookup`, retornando `{ data: [..
 - `PUT /api/expenses/{id}`
 - `PATCH /api/expenses/{id}`
 - `DELETE /api/expenses/{id}`
+- `PATCH /api/expenses/{id}/void`
 
 ### 8.14 Metas
 
@@ -669,7 +696,11 @@ Não há suíte Jest, Vitest ou Playwright configurada. Mudanças visuais exigem
 
 - Pedido pendente segura estoque até ser pago ou cancelado; não há expiração automática da reserva.
 - A reposição de estoque por devolução é deliberadamente manual (`ADR-006`), não automática.
-- O teste de concorrência real (`StockConcurrencyMySqlTest`) exige um banco MySQL descartável e é pulado quando o usuário da aplicação não pode criá-lo.
+- Os testes que exigem MySQL real (`StockConcurrencyMySqlTest`, `RestrictedDeletesMySqlTest`) usam um banco descartável e são pulados quando o usuário da aplicação não pode criá-lo.
+- Despesa lançada por engano fica registrada para sempre, estornada — não há exclusão de despesa (`ADR-007`).
+- Excluir marca, modelo ou produto em uso deixou de funcionar; a limpeza de catálogo antigo exige remover os dependentes primeiro.
+- A troca de `CASCADE` por `RESTRICT` nas FKs só é aplicada no MySQL; no SQLite da suíte a proteção equivalente é a camada de aplicação.
+- Anonimização de PII de cliente sob demanda (LGPD) não foi implementada; a decisão atual cobre bloqueio e arquivamento.
 - Rastreamento automático dos Correios aguarda definição do contrato/cartão de postagem.
 - O piloto do resumo inteligente depende de credencial OpenAI válida e smoke test real.
 - Não há testes automatizados de interface no frontend.

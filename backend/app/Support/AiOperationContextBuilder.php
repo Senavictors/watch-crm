@@ -177,7 +177,9 @@ class AiOperationContextBuilder
         );
 
         $terminalReturnStatuses = ['Concluído', 'Recusado', 'Cancelado', 'Reembolso Efetuado'];
-        $returnsQuery = ProductReturn::query()->whereNotIn('status', $terminalReturnStatuses);
+        // TASK-025 (ADR-007): devolução estornada não é mais um pós-venda
+        // "em andamento" — o registro ficou, o processo não.
+        $returnsQuery = ProductReturn::query()->effective()->whereNotIn('status', $terminalReturnStatuses);
         if (! $user->canAccessAllRecords()) {
             $returnsQuery->where(function ($query) use ($user) {
                 $query->where('created_by_user_id', $user->id)

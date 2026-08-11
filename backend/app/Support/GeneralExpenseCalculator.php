@@ -17,7 +17,9 @@ class GeneralExpenseCalculator
 {
     public static function total(?string $startDate = null, ?string $endDate = null): float
     {
-        $query = Expense::query();
+        // TASK-025 (ADR-007): despesa estornada continua no histórico, mas
+        // não pesa mais no resultado.
+        $query = Expense::query()->effective();
 
         if ($startDate && $endDate) {
             $query->whereBetween('expense_date', [$startDate, $endDate]);

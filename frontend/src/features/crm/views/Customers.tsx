@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Pencil, Eye } from "lucide-react";
+import { Pencil, Eye, Archive, ArchiveRestore } from "lucide-react";
 import { Customer } from "../types";
 import { Btn } from "../ui/Primitives";
 import styles from "./Customers.module.css";
@@ -11,12 +11,31 @@ type Props = {
   onSearchChange: (value: string) => void;
   canCreate: boolean;
   canUpdate: boolean;
+  // TASK-025: quem podia excluir cliente passa a poder arquivar — cliente
+  // com histórico não é mais apagável (ADR-007).
+  canArchive: boolean;
+  showArchived: boolean;
+  onToggleArchived: (value: boolean) => void;
+  onArchive: (customer: Customer, archive: boolean) => void;
   onNew: () => void;
   onEdit: (customer: Customer) => void;
   onView: (customer: Customer) => void;
 };
 
-const Customers: React.FC<Props> = ({ customers, search, onSearchChange, canCreate, canUpdate, onNew, onEdit, onView }) => {
+const Customers: React.FC<Props> = ({
+  customers,
+  search,
+  onSearchChange,
+  canCreate,
+  canUpdate,
+  canArchive,
+  showArchived,
+  onToggleArchived,
+  onArchive,
+  onNew,
+  onEdit,
+  onView,
+}) => {
   return (
     <div>
       <div className={styles.headerRow}>
@@ -33,6 +52,16 @@ const Customers: React.FC<Props> = ({ customers, search, onSearchChange, canCrea
         placeholder="Buscar cliente..."
         className={styles.search}
       />
+      {canArchive && (
+        <label className={styles.archivedToggle}>
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(e) => onToggleArchived(e.target.checked)}
+          />
+          Mostrar clientes arquivados
+        </label>
+      )}
       <div className={styles.list}>
         <div className={styles.listHeader} aria-hidden="true">
           <span>Cliente</span>
@@ -49,7 +78,10 @@ const Customers: React.FC<Props> = ({ customers, search, onSearchChange, canCrea
                 <div className={styles.avatar} aria-hidden="true">
                   {c.name.trim().charAt(0).toUpperCase()}
                 </div>
-                <div className={styles.customerName}>{c.name}</div>
+                <div className={styles.customerName}>
+                  {c.name}
+                  {c.archivedAt && <span className={styles.archivedBadge}>Arquivado</span>}
+                </div>
               </div>
 
               <div className={styles.field}>
@@ -78,6 +110,19 @@ const Customers: React.FC<Props> = ({ customers, search, onSearchChange, canCrea
                   <Btn onClick={() => onEdit(c)} variant="secondary" small className={styles.rowAction}>
                     <Pencil size={16} aria-hidden="true" />
                     <span className={styles.srOnly}>Editar {c.name}</span>
+                  </Btn>
+                )}
+                {canArchive && (
+                  <Btn
+                    onClick={() => onArchive(c, !c.archivedAt)}
+                    variant="secondary"
+                    small
+                    className={styles.rowAction}
+                  >
+                    {c.archivedAt ? <ArchiveRestore size={16} aria-hidden="true" /> : <Archive size={16} aria-hidden="true" />}
+                    <span className={styles.srOnly}>
+                      {c.archivedAt ? "Desarquivar" : "Arquivar"} {c.name}
+                    </span>
                   </Btn>
                 )}
               </div>

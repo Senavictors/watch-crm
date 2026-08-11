@@ -37,6 +37,29 @@
   box-sizing: border-box;
 }
 
+/* TASK-025: arquivados ficam fora da lista por padrão. */
+.archivedToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -8px 0 16px;
+  color: var(--crm-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.archivedBadge {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--crm-input-bg);
+  border: 1px solid var(--crm-input-border);
+  color: var(--crm-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
 .list {
   overflow: hidden;
   border: 1px solid var(--crm-card-border);

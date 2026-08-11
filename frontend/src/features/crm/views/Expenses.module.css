@@ -114,6 +114,19 @@
   font-size: 12px;
 }
 
+/* TASK-025: despesa estornada — visível, marcada e fora do total. */
+.voided {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--crm-danger, #b91c1c);
+}
+
+.amountVoided {
+  text-decoration: line-through;
+  color: var(--crm-text-muted);
+}
+
 .actionsCell {
   display: flex;
   gap: 6px;

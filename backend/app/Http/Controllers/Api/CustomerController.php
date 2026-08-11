@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Support\ApiPagination;
 use App\Support\CustomerInsightsCalculator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
 {
@@ -18,6 +19,14 @@ class CustomerController extends Controller
         $user = $request->user();
 
         $query = $this->visibleQuery($user);
+
+        // TASK-025: arquivados ficam fora da lista por padrão; `archived=1`
+        // mostra só eles, para consultar o histórico de um cliente antigo.
+        if ($request->boolean('archived')) {
+            $query->whereNotNull('archived_at');
+        } else {
+            $query->notArchived();
+        }
 
         if ($request->filled('search')) {
             $search = trim($request->string('search')->toString());
@@ -36,7 +45,8 @@ class CustomerController extends Controller
 
     public function lookup(Request $request)
     {
-        $query = $this->visibleQuery($request->user());
+        // Cliente arquivado não aparece em novo pedido/devolução (TASK-025).
+        $query = $this->visibleQuery($request->user())->notArchived();
 
         if ($request->filled('search')) {
             $search = trim($request->string('search')->toString());
@@ -131,6 +141,13 @@ class CustomerController extends Controller
         return response()->json($this->toPayload($customer));
     }
 
+    /**
+     * TASK-025 (RN-01 / ADR-007): antes desta task, `customers.customer_id`
+     * era CASCADE em `orders`, `returns` e `customer_friction_notes` —
+     * excluir um cliente apagava toda a receita, as comissões e o pós-venda
+     * dele. Agora só cliente sem nenhum histórico é excluído de verdade
+     * (cadastro errado); o resto é arquivado.
+     */
     public function destroy(int $id)
     {
         $customer = Customer::find($id);
@@ -139,10 +156,71 @@ class CustomerController extends Controller
         }
 
         $this->authorize('delete', $customer);
-        $customer->delete();
-        $this->audit('customers.deleted', 'Cliente removido.', null, ['customer_id' => $id]);
+
+        $history = $customer->historyCounts();
+
+        if ($history !== []) {
+            $detail = collect($history)->map(fn (int $count, string $label) => "{$count} {$label}")->join(', ', ' e ');
+
+            return response()->json([
+                'message' => "Este cliente não pode ser excluído porque tem {$detail}. Arquive o cliente para tirá-lo das listagens sem perder o histórico.",
+                'code' => 'customer_has_history',
+                'history' => $history,
+            ], 409);
+        }
+
+        DB::transaction(function () use ($customer, $id) {
+            $customer->delete();
+            $this->audit('customers.deleted', 'Cliente removido.', null, ['customer_id' => $id]);
+        });
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Arquivar é visibilidade, não exclusão: o cliente sai das listagens e
+     * dos lookups, e nenhum cálculo financeiro muda (ADR-007).
+     */
+    public function archive(Request $request, int $id)
+    {
+        return $this->setArchived($request, $id, true);
+    }
+
+    public function unarchive(Request $request, int $id)
+    {
+        return $this->setArchived($request, $id, false);
+    }
+
+    private function setArchived(Request $request, int $id, bool $archived)
+    {
+        $customer = Customer::find($id);
+        if (! $customer) {
+            return response()->json(['message' => 'Cliente não encontrado.'], 404);
+        }
+
+        // Mesma autorização da exclusão: arquivar é a alternativa dela, não
+        // uma edição corriqueira de cadastro.
+        $this->authorize('delete', $customer);
+
+        if ($customer->isArchived() === $archived) {
+            return response()->json([
+                'message' => $archived ? 'Cliente já está arquivado.' : 'Cliente não está arquivado.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($customer, $request, $archived) {
+            $customer->archived_at = $archived ? now() : null;
+            $customer->archived_by_user_id = $archived ? $request->user()->id : null;
+            $customer->save();
+
+            $this->audit(
+                $archived ? 'customers.archived' : 'customers.unarchived',
+                $archived ? 'Cliente arquivado.' : 'Cliente desarquivado.',
+                $customer,
+            );
+        });
+
+        return response()->json($this->toPayload($customer));
     }
 
     public function addFrictionNote(Request $request, int $id)
@@ -202,6 +280,7 @@ class CustomerController extends Controller
             'city' => $c->city,
             'state' => $c->state,
             'ownerUserId' => $c->owner_user_id,
+            'archivedAt' => $c->archived_at?->toIso8601String(),
         ];
 
         if ($user !== null) {

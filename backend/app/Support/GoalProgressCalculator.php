@@ -57,6 +57,9 @@ class GoalProgressCalculator
             $returnedByOrderItemId = DB::table('return_items')
                 ->join('returns', 'returns.id', '=', 'return_items.return_id')
                 ->where('returns.status', 'Reembolso Efetuado')
+                // TASK-025 (ADR-007): devolucao estornada nao reduz comissao,
+                // meta nem dashboard.
+                ->whereNull('returns.voided_at')
                 ->whereNotNull('return_items.order_item_id')
                 ->selectRaw('return_items.order_item_id as order_item_id, SUM(return_items.quantity) as returned_qty')
                 ->groupBy('return_items.order_item_id')

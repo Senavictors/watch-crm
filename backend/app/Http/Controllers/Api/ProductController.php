@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\StockReservation;
 use App\Support\ApiPagination;
 use App\Support\StockLedger;
 use Illuminate\Http\Request;
@@ -238,8 +240,26 @@ class ProductController extends Controller
             return response()->json(['message' => 'Produto não encontrado.'], 404);
         }
 
-        $product->delete();
-        $this->audit('products.deleted', 'Produto removido.', null, ['product_id' => $id]);
+        // TASK-025: produto vendido não é apagado — as FKs de `order_items`/
+        // `return_items` são SET NULL, então o pedido sobreviveria, mas
+        // perderia o vínculo com o item de catálogo. Reserva ativa bloqueia
+        // porque `stock_reservations` cascateia (ADR-006/ADR-007).
+        $conflict = $this->conflictIfInUse([
+            'itens de pedido' => OrderItem::query()->where('product_id', $product->id)->count(),
+            'reservas de estoque ativas' => StockReservation::query()
+                ->where('product_id', $product->id)
+                ->where('status', '!=', StockReservation::STATUS_RELEASED)
+                ->count(),
+        ], 'Este produto', 'product_in_use');
+
+        if ($conflict) {
+            return $conflict;
+        }
+
+        DB::transaction(function () use ($product, $id) {
+            $product->delete();
+            $this->audit('products.deleted', 'Produto removido.', null, ['product_id' => $id]);
+        });
 
         return response()->json(['ok' => true]);
     }

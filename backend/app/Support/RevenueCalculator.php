@@ -47,6 +47,9 @@ class RevenueCalculator
             ->whereIn('order_id', $orderIds)
             ->whereNotNull('refund_amount')
             ->where('status', 'Reembolso Efetuado')
+            // TASK-025 (ADR-007): reembolso estornado volta a não descontar
+            // do faturamento — o fato continua no banco, o efeito não.
+            ->effective()
             ->sum('refund_amount');
 
         return $gross - $refunds;

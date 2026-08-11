@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../../features/crm/contexts/AuthContext";
 import { useToast } from "../../../features/crm/contexts/ToastContext";
-import { apiCreate, apiDelete, apiFetch, apiUpdate, getApiBaseUrl } from "../../../features/crm/api";
+import { apiCreate, apiFetch, apiUpdate, getApiBaseUrl } from "../../../features/crm/api";
 import { Expense, ExpenseInput, ExpenseListResponse, ExpenseMetadata, PaginationMeta } from "../../../features/crm/types";
 import { appendPagination, EMPTY_PAGINATION } from "../../../features/crm/pagination";
 import PaginationBar from "../../../features/crm/ui/PaginationBar";
@@ -77,9 +77,17 @@ export default function DespesasPage() {
     catch (error) { pushToast(error instanceof Error ? error.message : "Erro.", "error"); }
   }
 
-  async function handleDelete(expense: Expense) {
-    if (!confirm(`Excluir a despesa "${expense.description}"?`)) return;
-    try { await apiDelete(`/expenses/${expense.id}`, "Falha ao excluir despesa."); reload(); pushToast("Despesa excluída com sucesso.", "success"); }
+  // TASK-025 (ADR-007): despesa lançada já entrou no resultado, então não é
+  // mais excluída — é estornada, com motivo obrigatório e autor registrado.
+  async function handleVoid(expense: Expense) {
+    const reason = prompt(`Motivo do estorno da despesa "${expense.description}":`)?.trim();
+    if (!reason) return;
+    if (reason.length < 3) { pushToast("Descreva o motivo do estorno.", "error"); return; }
+    try {
+      await apiUpdate<Expense>(`/expenses/${expense.id}/void`, { reason }, "Falha ao estornar despesa.");
+      reload();
+      pushToast("Despesa estornada com sucesso.", "success");
+    }
     catch (error) { pushToast(error instanceof Error ? error.message : "Erro.", "error"); }
   }
 
@@ -102,7 +110,7 @@ export default function DespesasPage() {
         onEndDateChange={(value) => filter(setEndDate, value)}
         onNew={() => setShowNew(true)}
         onEdit={setEditing}
-        onDelete={handleDelete}
+        onDelete={handleVoid}
       />
       <PaginationBar meta={meta} onPageChange={setPage} disabled={loading} />
       {showNew && <NewExpenseForm metadata={metadata} onSave={handleSave} onClose={() => setShowNew(false)} onToast={pushToast} />}

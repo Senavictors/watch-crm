@@ -16,11 +16,14 @@ const TYPE_LABELS: Record<ReturnType, string> = {
 type Props = {
   productReturn: ProductReturn;
   canUpdate: boolean;
+  // TASK-025: estorno reaproveita quem podia excluir a devolução.
+  canVoid: boolean;
   onClose: () => void;
   onEdit: (r: ProductReturn) => void;
+  onVoid: (r: ProductReturn) => void;
 };
 
-const ReturnDetail: React.FC<Props> = ({ productReturn: r, canUpdate, onClose, onEdit }) => {
+const ReturnDetail: React.FC<Props> = ({ productReturn: r, canUpdate, canVoid, onClose, onEdit, onVoid }) => {
   const typeColor = RETURN_TYPE_COLORS[r.type] ?? "var(--crm-text-soft)";
   const statusColor = RETURN_STATUS_COLORS[r.status] ?? "var(--crm-text-soft)";
 
@@ -45,6 +48,11 @@ const ReturnDetail: React.FC<Props> = ({ productReturn: r, canUpdate, onClose, o
           >
             {r.status}
           </span>
+          {r.voidedAt && (
+            <span className={styles.voidedPill} title={r.voidReason ?? undefined}>
+              Estornada
+            </span>
+          )}
           {r.orderId && (
             <span className={styles.pill}>Pedido #{r.orderId}</span>
           )}
@@ -185,8 +193,13 @@ const ReturnDetail: React.FC<Props> = ({ productReturn: r, canUpdate, onClose, o
 
         <div className={styles.actions}>
           <Btn onClick={onClose} variant="secondary">Fechar</Btn>
-          {canUpdate && (
+          {/* TASK-025 (ADR-007): registro estornado é histórico fechado —
+              não volta a andar na máquina de estados. */}
+          {canUpdate && !r.voidedAt && (
             <Btn onClick={() => onEdit(r)} variant="primary">Editar</Btn>
+          )}
+          {canVoid && !r.voidedAt && (
+            <Btn onClick={() => onVoid(r)} variant="danger">Estornar</Btn>
           )}
         </div>
       </div>

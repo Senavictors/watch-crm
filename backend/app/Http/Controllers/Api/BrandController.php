@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
+use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class BrandController extends Controller
@@ -58,8 +60,21 @@ class BrandController extends Controller
             return response()->json(['message' => 'Marca não encontrada.'], 404);
         }
 
-        $brand->delete();
-        $this->audit('brands.deleted', 'Marca removida.', null, ['brand_id' => $id]);
+        // TASK-025: antes desta task a FK era CASCADE — apagar a marca
+        // levava junto modelos e produtos.
+        $conflict = $this->conflictIfInUse([
+            'modelos' => $brand->models()->count(),
+            'produtos' => Product::query()->where('brand_id', $brand->id)->count(),
+        ], 'Esta marca', 'brand_in_use');
+
+        if ($conflict) {
+            return $conflict;
+        }
+
+        DB::transaction(function () use ($brand, $id) {
+            $brand->delete();
+            $this->audit('brands.deleted', 'Marca removida.', null, ['brand_id' => $id]);
+        });
 
         return response()->json(['ok' => true]);
     }

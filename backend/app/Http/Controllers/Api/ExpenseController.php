@@ -7,6 +7,7 @@ use App\Models\Expense;
 use App\Support\ApiPagination;
 use App\Support\ExpenseMetadata;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /**
@@ -26,7 +27,7 @@ class ExpenseController extends Controller
 
     public function index(Request $request)
     {
-        $query = Expense::query()->with('creator');
+        $query = Expense::query()->with(['creator', 'voidedBy']);
 
         if ($request->filled('category')) {
             $query->where('category', $request->input('category'));
@@ -37,9 +38,12 @@ class ExpenseController extends Controller
             $query->whereBetween('expense_date', [$request->input('startDate'), $request->input('endDate')]);
         }
 
+        // TASK-025: estornadas continuam listadas (marcadas), mas o resumo
+        // só soma o que de fato pesa no resultado.
         $summary = [
-            'totalAmount' => (float) (clone $query)->sum('amount'),
-            'totalCount' => (clone $query)->count(),
+            'totalAmount' => (float) (clone $query)->effective()->sum('amount'),
+            'totalCount' => (clone $query)->effective()->count(),
+            'voidedCount' => (clone $query)->whereNotNull('voided_at')->count(),
         ];
 
         $expenses = $query
@@ -90,6 +94,11 @@ class ExpenseController extends Controller
         return response()->json($this->toPayload($expense));
     }
 
+    /**
+     * TASK-025 (RN-03 / ADR-007): toda despesa lançada já tem efeito no
+     * resultado, então nenhuma é apagada. Corrigir um lançamento errado é
+     * estorná-lo e lançar de novo — o fato e o motivo ficam registrados.
+     */
     public function destroy(int $id)
     {
         $expense = Expense::find($id);
@@ -98,14 +107,44 @@ class ExpenseController extends Controller
             return response()->json(['message' => 'Despesa não encontrada.'], 404);
         }
 
-        $expense->delete();
-        $this->audit('expenses.deleted', 'Despesa removida.', null, [
-            'expense_id' => $id,
-            'category' => $expense->category,
-            'amount' => (float) $expense->amount,
+        return response()->json([
+            'message' => 'Despesas não são excluídas: elas já entraram no resultado financeiro. Use o estorno para anular o lançamento preservando o histórico.',
+            'code' => 'expense_requires_void',
+        ], 409);
+    }
+
+    public function void(Request $request, int $id)
+    {
+        $expense = Expense::find($id);
+
+        if (! $expense) {
+            return response()->json(['message' => 'Despesa não encontrada.'], 404);
+        }
+
+        if ($expense->isVoided()) {
+            return response()->json(['message' => 'Esta despesa já está estornada.'], 422);
+        }
+
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'min:3', 'max:500'],
         ]);
 
-        return response()->json(['ok' => true]);
+        DB::transaction(function () use ($expense, $request, $data) {
+            $expense->voided_at = now();
+            $expense->voided_by_user_id = $request->user()->id;
+            $expense->void_reason = $data['reason'];
+            $expense->save();
+
+            $this->audit('expenses.voided', 'Despesa estornada.', $expense, [
+                'category' => $expense->category,
+                'amount' => (float) $expense->amount,
+                'reason' => $data['reason'],
+            ]);
+        });
+
+        $expense->load(['creator', 'voidedBy']);
+
+        return response()->json($this->toPayload($expense));
     }
 
     private function validatedData(Request $request, bool $partial = false): array
@@ -143,6 +182,10 @@ class ExpenseController extends Controller
             'createdByUserId' => $expense->created_by_user_id,
             'createdByUserName' => $expense->creator?->name,
             'createdAt' => $expense->created_at?->toIso8601String(),
+            'voidedAt' => $expense->voided_at?->toIso8601String(),
+            'voidedByUserId' => $expense->voided_by_user_id,
+            'voidedByUserName' => $expense->voidedBy?->name,
+            'voidReason' => $expense->void_reason,
         ];
     }
 }

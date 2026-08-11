@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\WatchModel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class CategoryController extends Controller
@@ -68,8 +70,20 @@ class CategoryController extends Controller
             return response()->json(['message' => 'Categoria não encontrada.'], 404);
         }
 
-        $category->delete();
-        $this->audit('categories.deleted', 'Categoria removida.', null, ['category_id' => $id]);
+        // TASK-025: FK era CASCADE em `models` — e modelo cascateava em
+        // `products`. Apagar uma categoria varria parte do catálogo.
+        $conflict = $this->conflictIfInUse([
+            'modelos' => WatchModel::query()->where('category_id', $category->id)->count(),
+        ], 'Esta categoria', 'category_in_use');
+
+        if ($conflict) {
+            return $conflict;
+        }
+
+        DB::transaction(function () use ($category, $id) {
+            $category->delete();
+            $this->audit('categories.deleted', 'Categoria removida.', null, ['category_id' => $id]);
+        });
 
         return response()->json(['ok' => true]);
     }
