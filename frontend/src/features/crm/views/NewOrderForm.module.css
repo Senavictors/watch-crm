@@ -79,6 +79,17 @@
   font-size: 12px;
 }
 
+/* TASK-024: aviso de estoque insuficiente antes de tentar salvar. */
+.itemWarning {
+  margin-top: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--crm-danger-soft, rgba(220, 38, 38, 0.08));
+  color: var(--crm-danger, #b91c1c);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .actions {
   display: flex;
   gap: 8px;

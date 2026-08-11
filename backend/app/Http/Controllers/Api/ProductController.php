@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Support\ApiPagination;
+use App\Support\StockLedger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class ProductController extends Controller
@@ -114,7 +116,26 @@ class ProductController extends Controller
             'qty' => ['required', 'integer', 'min:1'],
         ]);
 
-        $product->increment('qty', $data['qty']);
+        // TASK-024 (ADR-006, item 4): é por este caminho que a reposição de
+        // uma peça devolvida entra — devolução não repõe estoque sozinha,
+        // então esta entrada manual precisa ficar no ledger para o histórico
+        // de estoque ser auditável de ponta a ponta (CA-05).
+        DB::transaction(function () use ($product, $data, $request) {
+            $locked = Product::query()->whereKey($product->id)->lockForUpdate()->first();
+            $locked->qty = (int) $locked->qty + (int) $data['qty'];
+            $locked->save();
+
+            StockLedger::recordManualChange(
+                $locked,
+                (int) $data['qty'],
+                StockLedger::TYPE_MANUAL_ENTRY,
+                $request->user(),
+                'Entrada manual de unidades no catálogo.',
+            );
+
+            $product->qty = $locked->qty;
+        }, 3);
+
         $product->load(['brand', 'watchModel.quality', 'watchModel.category']);
         $this->audit('products.qty_added', "Adicionadas {$data['qty']} unidades ao produto.", $product);
 
@@ -176,8 +197,33 @@ class ProductController extends Controller
             unset($data['commissionAmount']);
         }
 
-        $product->fill($data);
-        $product->save();
+        // TASK-024 (RN-02): edição manual não pode derrubar `qty` abaixo do
+        // que já está prometido a pedidos vivos, senão o saldo disponível
+        // ficaria negativo.
+        if (array_key_exists('qty', $data) && (int) $data['qty'] < (int) $product->reserved_qty) {
+            return response()->json([
+                'message' => "Não é possível reduzir para {$data['qty']} unidade(s): {$product->reserved_qty} já estão reservadas por pedidos em aberto.",
+                'code' => 'reserved_stock_conflict',
+            ], 422);
+        }
+
+        $previousQty = (int) $product->qty;
+
+        DB::transaction(function () use ($product, $data, $request, $previousQty) {
+            $product->fill($data);
+            $product->save();
+
+            if (array_key_exists('qty', $data)) {
+                StockLedger::recordManualChange(
+                    $product,
+                    (int) $data['qty'] - $previousQty,
+                    StockLedger::TYPE_MANUAL_ADJUST,
+                    $request->user(),
+                    'Ajuste manual de quantidade na edição do produto.',
+                );
+            }
+        }, 3);
+
         $product->load(['brand', 'watchModel.quality', 'watchModel.category']);
         $this->audit('products.updated', 'Produto atualizado.', $product);
 
@@ -224,6 +270,11 @@ class ProductController extends Controller
             'commissionAmount' => $product->commission_amount !== null ? (float) $product->commission_amount : null,
             'stock' => $product->stock,
             'qty' => $product->qty,
+            // TASK-024 (ADR-006): `qty` continua sendo o saldo físico;
+            // `availableQty` é o que ainda pode ser vendido, descontadas as
+            // unidades prometidas a pedidos em aberto.
+            'reservedQty' => (int) $product->reserved_qty,
+            'availableQty' => $product->availableQty(),
         ];
 
         if ($canViewCost) {

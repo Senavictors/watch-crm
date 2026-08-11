@@ -227,8 +227,13 @@ watch-crm/
 
 ### Estoque
 
-- A quantidade é alterada por edição manual ou pela ação de adicionar unidades.
-- A venda ainda não decrementa estoque automaticamente e a devolução ainda não o recompõe.
+- `qty` é o saldo físico; `reservedQty` é a parte dele prometida a pedidos em aberto; `availableQty` (`qty - reservedQty`) é o que ainda pode ser vendido.
+- Criar ou editar um pedido reserva as unidades; confirmar o pagamento converte a reserva em baixa de `qty`; cancelar, excluir ou reverter o pagamento devolve exatamente o que aquele pedido segurava.
+- Venda acima do disponível é recusada com HTTP 422 e `code = insufficient_stock`, inclusive sob concorrência (lock pessimista por produto).
+- Itens repetidos do mesmo produto no pedido são somados antes da validação.
+- Produtos de origem `SUPPLIER` são encomendados ao fornecedor: não têm saldo local e não consomem estoque.
+- Devolução, troca e garantia **não** repõem estoque automaticamente — a reentrada é manual pelo catálogo, e fica registrada no histórico de movimentos.
+- Toda movimentação (reserva, liberação, baixa, estorno, entrada e ajuste manual) gera uma linha auditável em `stock_movements`, com origem, ator, quantidade e chave de idempotência.
 
 ### Pós-venda
 
@@ -246,7 +251,9 @@ watch-crm/
 | `customers` | Cadastro, endereço e vendedor responsável. |
 | `customer_friction_notes` | Histórico imutável de atritos do cliente. |
 | `brands`, `categories`, `qualities`, `models` | Estrutura cadastrável do catálogo. |
-| `products` | Entrada de estoque, preços, custo e comissão por unidade. |
+| `products` | Entrada de estoque, preços, custo, comissão por unidade e saldo reservado. |
+| `stock_reservations` | Estado de estoque de cada pedido sobre cada produto (reservado, baixado ou liberado). |
+| `stock_movements` | Histórico append-only de toda movimentação de estoque. |
 | `orders`, `order_items` | Pedido, pagamento, envio, itens e snapshots financeiros. |
 | `goals`, `goal_intervals` | Metas e períodos de acompanhamento. |
 | `expenses` | Despesas gerais da operação. |
@@ -388,11 +395,13 @@ Não há Jest, Vitest ou Playwright configurado; mudanças de interface também 
 - [x] Lista de espera e insights de clientes
 - [x] Paginação, filtros e lookups server-side
 - [x] Alertas operacionais e resumo inteligente opcional
+- [x] Reserva e baixa transacional de estoque, com histórico auditável de movimentos
 
 ### Pendente ou bloqueado
 
 - [ ] Integração automática de rastreamento dos Correios — bloqueada até definição do contrato/cartão de postagem
-- [ ] Decremento automático do estoque na venda e reposição na devolução
+- [ ] Expiração automática de pedidos pendentes para liberar a reserva (hoje o cancelamento é manual)
+- [ ] Reposição automática de estoque na devolução — decisão de negócio: a reentrada é deliberadamente manual
 - [ ] Relatórios exportáveis em PDF/CSV
 - [ ] Notificações em tempo real
 - [ ] Aplicativo mobile

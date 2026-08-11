@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\InsufficientStockException;
 use App\Http\Middleware\EnsureUserHasPermission;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -25,6 +26,20 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (AuthenticationException $exception, $request) {
             if ($request->is('api/*')) {
                 return response()->json(['message' => 'Não autenticado.'], 401);
+            }
+        });
+
+        // TASK-024: estoque insuficiente é conflito de negócio, não erro de
+        // validação de campo — o frontend distingue pelo `code`.
+        $exceptions->render(function (InsufficientStockException $exception, $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'message' => $exception->getMessage(),
+                    'code' => 'insufficient_stock',
+                    'productId' => $exception->productId,
+                    'requested' => $exception->requested,
+                    'available' => $exception->available,
+                ], 422);
             }
         });
 

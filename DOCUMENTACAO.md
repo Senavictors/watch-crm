@@ -213,6 +213,9 @@ A configuração pode vir do ambiente ou da tabela `ai_settings`. A chave armaze
 - Produto possui custo, preço padrão, preço PIX, preço cartão e comissão unitária opcional.
 - Usuários somente-leitura não recebem o custo do catálogo.
 - `PATCH /api/products/{id}/add-qty` adiciona unidades sem substituir a quantidade atual.
+- O payload de produto traz `qty` (saldo físico), `reservedQty` (prometido a pedidos em aberto) e `availableQty` (`qty - reservedQty`).
+- Reduzir `qty` manualmente abaixo de `reservedQty` é recusado com HTTP 422 e `code = reserved_stock_conflict`.
+- Entrada e ajuste manual de quantidade geram movimento em `stock_movements`.
 
 ### 5.4 Pedidos e pagamentos
 
@@ -250,7 +253,8 @@ Regras principais:
 - a primeira transição para `Pago` grava `paid_at` e `paid_by_user_id`;
 - `payment_expires_at` é opcional;
 - comissão paga impede recriação silenciosa dos itens;
-- vendedor não cria nem edita pedidos e só lista pedidos atribuídos a si.
+- vendedor não cria nem edita pedidos e só lista pedidos atribuídos a si;
+- criação e edição reservam estoque e a confirmação de pagamento o baixa (ver 5.9); estoque insuficiente responde 422 com `code = insufficient_stock` e o pedido inteiro é desfeito.
 
 Filtros atuais incluem busca, categoria, período, status, canal, vendedor, cliente e pagamento pendente.
 
@@ -290,10 +294,26 @@ Filtros atuais incluem busca, categoria, período, status, canal, vendedor, clie
 - Listagem aceita filtros e devolve um resumo agregado do filtro completo.
 - Avaliação de estoque consolida custo atual e potencial de faturamento.
 - Esses dados são restritos a `owner` e `admin`.
+- A avaliação acompanha automaticamente venda, liberação e reposição, porque agrega `products.qty` no momento da consulta.
 
-Limitação atual: pedido pago/vendido não decrementa automaticamente `products.qty`, e devolução não repõe unidades.
+### 5.9 Movimentação de estoque
 
-### 5.9 Envios
+Semântica definida em `ADR-006` e implementada em `App\Support\StockLedger`, o único ponto de escrita de saldo.
+
+- Disponível para venda = `products.qty - products.reserved_qty`.
+- Criar ou editar pedido **reserva** (`reserved_qty += n`); confirmar pagamento **baixa** (`qty -= n`, `reserved_qty -= n`); cancelar, excluir ou reverter o pagamento **libera/estorna** exatamente o que aquele pedido segurava.
+- O gatilho da baixa é `orders.paid_at`, o mesmo critério de faturamento, lucro e metas.
+- Itens repetidos do mesmo produto são agregados antes de validar.
+- Produtos são bloqueados por `id` crescente com `lockForUpdate()` dentro da transação do pedido; as transações usam três tentativas para reprocessar deadlock.
+- `products.qty` nunca fica negativo e nunca há mais unidades prometidas do que existentes.
+- Estoque insuficiente responde HTTP 422 com `code = insufficient_stock`, `productId`, `requested` e `available`.
+- Produtos `SUPPLIER` não têm saldo local: não são validados nem consomem estoque; uma reserva anterior ainda é liberada normalmente.
+- Garantia, troca e devolução não repõem estoque — a reentrada é manual pelo catálogo, por decisão de negócio.
+- `stock_reservations` guarda uma linha por `(order_id, product_id)` com `quantity` e `status` (`reserved`, `committed`, `released`); a reconciliação é declarativa, então reprocessar a mesma operação não duplica efeito.
+- `stock_movements` é append-only, sem chave estrangeira, e sobrevive à exclusão do pedido ou do produto. Cada linha tem tipo (`reserve`, `release`, `commit`, `uncommit`, `manual_entry`, `manual_adjust`), quantidade, deltas, saldos resultantes, ator e chave de idempotência única.
+- Pedidos anteriores à migration não foram convertidos retroativamente: o saldo atual já refletia os ajustes manuais e o ledger passa a valer das novas movimentações em diante.
+
+### 5.10 Envios
 
 - Os dias habilitados são persistidos em `posting_days`.
 - É obrigatório manter ao menos um dia de postagem habilitado.
@@ -304,7 +324,7 @@ Limitação atual: pedido pago/vendido não decrementa automaticamente `products
 - A interface também mostra pós-vendas prontos para reenvio.
 - A integração automática com rastreamento dos Correios ainda não está implementada.
 
-### 5.10 Garantias, trocas e devoluções
+### 5.11 Garantias, trocas e devoluções
 
 - Registro vinculado a cliente e opcionalmente a pedido.
 - Um ou mais itens por ocorrência.
@@ -315,7 +335,7 @@ Limitação atual: pedido pago/vendido não decrementa automaticamente `products
 - Toda transição gera registro em `return_status_history`.
 - O detalhe expõe histórico e indicador da janela de garantia.
 
-### 5.11 Lista de espera
+### 5.12 Lista de espera
 
 - Entrada vinculada a cliente, produto e vendedor.
 - Pedido convertido é opcional.
@@ -336,7 +356,9 @@ Entidades de domínio:
 | `categories` | Nome único e `has_quality`. |
 | `qualities` | Nome único. |
 | `models` | Marca, categoria, qualidade, chave de qualidade e imagem. |
-| `products` | Marca, modelo, custo, preços, comissão, origem e quantidade. |
+| `products` | Marca, modelo, custo, preços, comissão, origem, quantidade e quantidade reservada. |
+| `stock_reservations` | Estado de estoque por `(pedido, produto)`: quantidade e status. |
+| `stock_movements` | Ledger append-only de movimentação: tipo, deltas, saldos, ator e chave de idempotência. |
 | `orders` | Cliente, criador, vendedor, pagamento, totais, envio e datas. |
 | `order_items` | Produto, snapshots de catálogo, quantidade, valores e comissão. |
 | `goals` | Criador, alvo, escopo, cálculo, filtros, ciclo e período. |
@@ -645,7 +667,9 @@ Não há suíte Jest, Vitest ou Playwright configurada. Mudanças visuais exigem
 
 ## 12. Limitações e Pendências Conhecidas
 
-- Estoque ainda não é decrementado automaticamente na venda nem reposto na devolução.
+- Pedido pendente segura estoque até ser pago ou cancelado; não há expiração automática da reserva.
+- A reposição de estoque por devolução é deliberadamente manual (`ADR-006`), não automática.
+- O teste de concorrência real (`StockConcurrencyMySqlTest`) exige um banco MySQL descartável e é pulado quando o usuário da aplicação não pode criá-lo.
 - Rastreamento automático dos Correios aguarda definição do contrato/cartão de postagem.
 - O piloto do resumo inteligente depende de credencial OpenAI válida e smoke test real.
 - Não há testes automatizados de interface no frontend.

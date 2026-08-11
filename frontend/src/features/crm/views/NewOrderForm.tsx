@@ -156,6 +156,34 @@ const NewOrderForm: React.FC<Props> = ({ metadata, canViewFinancials, onSave, on
   const totalUnits = selectedLines.reduce((sum, line) => sum + Number(line.item.quantity || 0), 0);
   const hasSupplierItems = selectedLines.some((line) => line.product?.stock === "SUPPLIER");
 
+  /**
+   * TASK-024: disponível = saldo físico menos o que já está reservado por
+   * outros pedidos em aberto. `availableQty` vem da API; o fallback cobre
+   * respostas antigas que só trazem `qty`.
+   */
+  function availableFor(product: Product): number | null {
+    if (product.availableQty !== undefined) return product.availableQty;
+    if (product.qty === undefined) return null;
+    return Math.max(product.qty - (product.reservedQty ?? 0), 0);
+  }
+
+  /**
+   * Mesma agregação do backend (CA-02): três linhas de 1 unidade do mesmo
+   * relógio são uma demanda de 3, não três demandas de 1.
+   */
+  function requestedFor(productId: number): number {
+    return selectedLines.reduce(
+      (sum, line) => (Number(line.item.productId) === productId ? sum + Number(line.item.quantity || 0) : sum),
+      0
+    );
+  }
+
+  function exceedsAvailable(product: Product): boolean {
+    if (product.stock === "SUPPLIER") return false;
+    const available = availableFor(product);
+    return available !== null && requestedFor(product.id) > available;
+  }
+
   function handleSubmit() {
     const parsedItems: OrderItemInput[] = form.items
       .filter((item) => item.productId)
@@ -297,7 +325,23 @@ const NewOrderForm: React.FC<Props> = ({ metadata, canViewFinancials, onSave, on
                       <div className={styles.itemMeta}>
                         <span>{selectedProduct.categoryName}</span>
                         <span>{selectedProduct.stock === "IN_STOCK" ? "✅ Estoque" : "⚠️ Fornecedor"}</span>
+                        {/* TASK-024: produto de fornecedor não tem saldo local
+                            (é encomendado), então só faz sentido mostrar
+                            disponibilidade para itens de estoque. */}
+                        {selectedProduct.stock === "IN_STOCK" && availableFor(selectedProduct) !== null && (
+                          <span>{availableFor(selectedProduct)} disponível(is)</span>
+                        )}
                         {canViewFinancials && <span>Custo: {fmtBRL(selectedProduct.cost)}</span>}
+                      </div>
+                    )}
+
+                    {/* Aviso antecipado: o backend recusa a venda de qualquer
+                        forma (422 insufficient_stock), mas descobrir isso só
+                        ao salvar faz o vendedor perder o pedido inteiro. */}
+                    {selectedProduct && exceedsAvailable(selectedProduct) && (
+                      <div className={styles.itemWarning}>
+                        Quantidade acima do disponível: só há {availableFor(selectedProduct)} unidade(s) livre(s)
+                        deste produto.
                       </div>
                     )}
                   </div>

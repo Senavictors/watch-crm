@@ -10,6 +10,9 @@ services:
       MYSQL_PASSWORD: secret
     volumes:
       - mysql_data:/var/lib/mysql
+      # TASK-024: banco descartável do teste de concorrência de estoque.
+      # Só roda em volume novo — ver instrução dentro do próprio arquivo.
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
       interval: 5s

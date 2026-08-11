@@ -93,6 +93,15 @@ const Products: React.FC<Props> = ({ products, search, onSearchChange, canCreate
                     className={`${styles.numericAccent} ${p.qty > 0 ? "" : styles.qtyMuted}`}
                   >
                     {p.qty > 0 ? `${p.qty} un.` : "—"}
+                    {/* TASK-024: unidades já prometidas a pedidos em aberto
+                        continuam no saldo físico, mas não podem ser vendidas
+                        de novo — mostrar só quando houver reserva evita
+                        poluir a coluna no caso comum. */}
+                    {(p.reservedQty ?? 0) > 0 && (
+                      <div className={styles.sub}>
+                        {p.availableQty ?? p.qty - (p.reservedQty ?? 0)} disp. · {p.reservedQty} reservada(s)
+                      </div>
+                    )}
                   </td>
                   {showActions && (
                     <td className={styles.cell}>

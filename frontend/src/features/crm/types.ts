@@ -227,6 +227,12 @@ export type Product = {
   commissionAmount?: number | null;
   stock: StockOrigin;
   qty: number;
+  // TASK-024: `qty` é o saldo físico; `reservedQty` é a parte dele já
+  // prometida a pedidos em aberto e `availableQty` (= qty - reservedQty) é o
+  // que ainda pode ser vendido. Opcionais porque `data/mock.ts` e respostas
+  // antigas em cache podem não trazê-los.
+  reservedQty?: number;
+  availableQty?: number;
 };
 
 export type ProductInput = {

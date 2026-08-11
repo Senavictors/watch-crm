@@ -13,6 +13,7 @@ use App\Support\ApiPagination;
 use App\Support\OrderMetadata;
 use App\Support\OrderPaymentTransition;
 use App\Support\ShippingScheduleCalculator;
+use App\Support\StockLedger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -173,6 +174,11 @@ class OrderController extends Controller
 
         $paymentEvent = null;
 
+        // TASK-024: `attempts = 3` porque `StockLedger` bloqueia produtos com
+        // `lockForUpdate()` — dois pedidos concorrentes sobre os mesmos
+        // produtos podem legitimamente resultar em deadlock do banco, que é
+        // reprocessável (a ordem de lock é determinística, então o retry
+        // converge).
         $order = DB::transaction(function () use ($data, $products, $request, $seller, $totals, &$paymentEvent) {
             $order = Order::create([
                 'customer_id' => $data['customerId'],
@@ -206,8 +212,15 @@ class OrderController extends Controller
 
             $this->syncItems($order, $data['items'], $products);
 
+            // TASK-024 (ADR-006): reserva na criação; se o pedido já nasce
+            // pago, a reserva vira baixa na mesma transação. Estoque
+            // insuficiente lança `InsufficientStockException` e desfaz o
+            // pedido inteiro.
+            $order->load('items');
+            StockLedger::syncOrder($order, $request->user());
+
             return $order;
-        });
+        }, 3);
         $order->load(['customer', 'sellerUser', 'paidByUser', 'items']);
 
         $this->audit('orders.created', 'Pedido criado.', $order, [
@@ -313,7 +326,7 @@ class OrderController extends Controller
 
         $paymentEvent = OrderPaymentTransition::apply($order, $previousStatus, $request->user());
 
-        DB::transaction(function () use (&$order, $data, &$products) {
+        DB::transaction(function () use (&$order, $data, &$products, $request) {
             if (array_key_exists('items', $data)) {
                 $products = $this->productsById($data['items']);
                 $totals = $this->calculateTotals($data['items'], $products);
@@ -329,7 +342,13 @@ class OrderController extends Controller
             if (array_key_exists('items', $data) && $products !== null) {
                 $this->syncItems($order, $data['items'], $products);
             }
-        });
+
+            // TASK-024 (ADR-006): reconcilia estoque com o estado final do
+            // pedido — itens novos, confirmação/reversão de pagamento e
+            // cancelamento passam todos por aqui.
+            $order->load('items');
+            StockLedger::syncOrder($order, $request->user());
+        }, 3);
         $order->load(['customer', 'sellerUser', 'paidByUser', 'items']);
 
         $metadata = [
@@ -358,7 +377,7 @@ class OrderController extends Controller
         return response()->json($this->toPayload($order, $request->user()->canViewFinancialReports()));
     }
 
-    public function destroy(int $id)
+    public function destroy(Request $request, int $id)
     {
         $order = Order::find($id);
 
@@ -368,7 +387,13 @@ class OrderController extends Controller
 
         $this->authorize('delete', $order);
 
-        $order->delete();
+        // TASK-024 (RN-04): devolve ao estoque exatamente o que este pedido
+        // segurava antes de apagar as linhas de reserva (cascata do FK).
+        DB::transaction(function () use ($order, $request) {
+            $order->load('items');
+            StockLedger::releaseOrder($order, $request->user());
+            $order->delete();
+        }, 3);
         $this->audit('orders.deleted', 'Pedido removido.', null, ['order_id' => $id]);
 
         return response()->json(['ok' => true]);
@@ -408,13 +433,7 @@ class OrderController extends Controller
 
     private function productLabel(Product $product): string
     {
-        $brand = $product->brand?->name ?? '—';
-        $model = $product->watchModel?->name ?? '—';
-        $quality = $product->watchModel?->category?->has_quality
-            ? $product->watchModel?->quality?->name
-            : null;
-
-        return trim($brand.' '.$model.($quality ? ' · '.$quality : ''));
+        return $product->displayLabel();
     }
 
     /**
