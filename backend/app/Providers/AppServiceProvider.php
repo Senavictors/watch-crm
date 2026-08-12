@@ -4,9 +4,11 @@ namespace App\Providers;
 
 use App\Models\Customer;
 use App\Models\Order;
+use App\Models\ProductReturn;
 use App\Models\User;
 use App\Policies\CustomerPolicy;
 use App\Policies\OrderPolicy;
+use App\Policies\ProductReturnPolicy;
 use App\Policies\UserPolicy;
 use App\Support\CrmPermissions;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -32,6 +34,11 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(Customer::class, CustomerPolicy::class);
         Gate::policy(Order::class, OrderPolicy::class);
+        // TASK-026 (CA-04): registro explícito em vez de depender da
+        // descoberta automática — o model se chama `ProductReturn` mas a
+        // tabela é `returns`, e registro explícito é o padrão já usado pelas
+        // outras policies deste projeto.
+        Gate::policy(ProductReturn::class, ProductReturnPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
 
         foreach (CrmPermissions::ALL as $permission) {

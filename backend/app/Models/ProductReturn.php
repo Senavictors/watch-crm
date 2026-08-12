@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -36,6 +37,54 @@ class ProductReturn extends Model
         return [
             'voided_at' => 'datetime',
         ];
+    }
+
+    /**
+     * TASK-026 (RN-03) — escopo ÚNICO de visibilidade de pós-venda. Listagem,
+     * detalhe, filtros, contadores e contexto de IA usam este mesmo escopo;
+     * qualquer consulta nova sobre `returns` que exponha dados ao usuário
+     * precisa passar por aqui, senão reabre o IDOR do achado 3.
+     *
+     * Matriz aprovada (documentada em DOCUMENTACAO.md, seção 5.12):
+     * - `owner`/`admin`/`gerente`: todas (já é o critério de
+     *   `canAccessAllRecords()` em todo o sistema).
+     * - `garantia`: todas — é a fila de trabalho do papel. É uma decisão
+     *   explícita, não o efeito colateral de não filtrar nada.
+     * - `vendedor`: devolução de pedido próprio, criada por ele ou atribuída
+     *   a ele. As três condições existem porque uma devolução pode nascer
+     *   sem pedido vinculado (avulsa) e ainda assim ser trabalho dele.
+     */
+    public function scopeVisibleTo($query, User $user)
+    {
+        if ($user->canAccessAllRecords() || $user->getRoleName() === UserRole::Guarantee->value) {
+            return $query;
+        }
+
+        return $query->where(function ($builder) use ($user) {
+            $builder->where('returns.created_by_user_id', $user->id)
+                ->orWhere('returns.assigned_user_id', $user->id)
+                ->orWhereHas('order', fn ($order) => $order->where('seller_user_id', $user->id));
+        });
+    }
+
+    /**
+     * Mesma regra do escopo, aplicada a um registro já carregado. Usada pela
+     * `ProductReturnPolicy` — manter as duas leituras na mesma classe evita
+     * que lista e detalhe divirjam com o tempo.
+     */
+    public function isVisibleTo(User $user): bool
+    {
+        if ($user->canAccessAllRecords() || $user->getRoleName() === UserRole::Guarantee->value) {
+            return true;
+        }
+
+        if ($this->created_by_user_id === $user->id || $this->assigned_user_id === $user->id) {
+            return true;
+        }
+
+        $order = $this->relationLoaded('order') ? $this->order : $this->order()->first();
+
+        return $order !== null && $order->seller_user_id === $user->id;
     }
 
     /**

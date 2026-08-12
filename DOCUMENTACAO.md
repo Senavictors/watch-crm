@@ -145,7 +145,7 @@ Resumo da matriz atual:
 | Manter catálogo | ✓ | ✓ | ✓ | — | — |
 | Ver pedidos | ✓ | ✓ | ✓ | ✓, próprios | — |
 | Criar/editar/excluir pedidos | ✓ | ✓ | ✓ | — | — |
-| Ver pós-venda | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Ver pós-venda | ✓ | ✓ | ✓ | ✓, escopo próprio | ✓, fila completa |
 | Criar/editar pós-venda | ✓ | ✓ | ✓ | — | ✓ |
 | Excluir pós-venda | ✓ | ✓ | ✓ | — | — |
 | Ver metas | ✓ | ✓ | ✓ | ✓, empresa/próprias | — |
@@ -269,7 +269,7 @@ Filtros atuais incluem busca, categoria, período, status, canal, vendedor, clie
 - Possível recompra é um sinal heurístico de três estados: sim, não ou dados insuficientes.
 - Notas de atrito são imutáveis; não há edição ou exclusão.
 - Cliente com pedido, devolução ou nota de atrito não pode ser excluído: `DELETE /api/customers/{id}` responde 409 com `code = customer_has_history`. Cliente sem nenhum histórico continua excluível.
-- `PATCH /api/customers/{id}/archive` e `/unarchive` arquivam e desarquivam (permissão `customers.delete`). Arquivado sai da listagem e do lookup padrão; `GET /api/customers?archived=1` lista apenas os arquivados.
+- `PATCH /api/customers/{id}/archive` e `/unarchive` arquivam e desarquivam (permissão `customers.delete`). Arquivado sai da listagem e do lookup padrão; o parâmetro `archived=1` em `GET /api/customers` lista apenas os arquivados.
 - Arquivamento é visibilidade, não exclusão: nenhum cálculo financeiro muda ao arquivar um cliente.
 
 ### 5.6 Metas
@@ -357,6 +357,18 @@ Semântica definida em `ADR-006` e implementada em `App\Support\StockLedger`, o 
 - Transições de status são validadas por `ReturnStatusTransition`.
 - Toda transição gera registro em `return_status_history`.
 - O detalhe expõe histórico e indicador da janela de garantia.
+
+Ownership (matriz aprovada na `TASK-026`):
+
+| Papel | Escopo de pós-venda |
+|---|---|
+| `owner`, `admin`, `gerente` | Todas as ocorrências. |
+| `garantia` | Todas as ocorrências — é a fila de trabalho do papel, decisão explícita. |
+| `vendedor` | Ocorrências de pedido próprio, criadas por ele ou atribuídas a ele. |
+
+- O escopo é implementado uma única vez em `ProductReturn::visibleTo()` e replicado no registro individual por `ProductReturn::isVisibleTo()`, chamado pela `ProductReturnPolicy`. Listagem, detalhe, atualização, exclusão, estorno e o contexto de IA usam a mesma regra.
+- O escopo é aplicado antes dos filtros: `orderId`, `customer_id`, `assignedUserId`, `status`, `type` e busca só estreitam o resultado, nunca ampliam.
+- Ocorrência fora do escopo responde **404** com a mesma mensagem de um ID inexistente, para não confirmar a existência do registro nem permitir enumerar IDs. É uma diferença deliberada em relação a `orders`, que responde 403 via `OrderPolicy`.
 
 ### 5.13 Lista de espera
 

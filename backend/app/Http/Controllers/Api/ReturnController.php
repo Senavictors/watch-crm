@@ -55,7 +55,13 @@ class ReturnController extends Controller
 
     public function index(Request $request)
     {
-        $query = ProductReturn::query()->with(self::LIST_EAGER_LOADS);
+        // TASK-026 (CA-02): o escopo é aplicado ANTES de qualquer filtro —
+        // filtro só estreita o resultado, nunca amplia. Passar
+        // `?assignedUserId=<outro>` ou `?customer_id=<outro>` continua
+        // limitado ao que o usuário já podia ver.
+        $query = ProductReturn::query()
+            ->visibleTo($request->user())
+            ->with(self::LIST_EAGER_LOADS);
 
         if ($request->filled('orderId')) {
             $query->where('order_id', $request->integer('orderId'));
@@ -97,14 +103,36 @@ class ReturnController extends Controller
         return ApiPagination::response($returns, fn (ProductReturn $r) => $this->toPayload($r, false));
     }
 
-    public function show(int $id)
+    public function show(Request $request, int $id)
     {
-        $productReturn = ProductReturn::query()->with(self::EAGER_LOADS)->find($id);
-        if (! $productReturn) {
-            return response()->json(['message' => 'Garantia/Troca não encontrada.'], 404);
+        $productReturn = $this->findVisible($request, $id);
+        if (! $productReturn instanceof ProductReturn) {
+            return $productReturn;
         }
 
         return response()->json($this->toPayload($productReturn));
+    }
+
+    /**
+     * TASK-026 (RN-04) — devolução fora do escopo responde 404, com a mesma
+     * mensagem de um ID inexistente: 403 confirmaria a existência do
+     * registro e permitiria estimar o volume de pós-venda da empresa
+     * varrendo IDs.
+     *
+     * A checagem passa pela `ProductReturnPolicy` (CA-04) em vez de repetir
+     * a condição aqui — a policy e o escopo `visibleTo()` são a mesma regra.
+     *
+     * @return ProductReturn|\Illuminate\Http\JsonResponse
+     */
+    private function findVisible(Request $request, int $id, string $ability = 'view')
+    {
+        $productReturn = ProductReturn::query()->with(self::EAGER_LOADS)->find($id);
+
+        if (! $productReturn || $request->user()->cannot($ability, $productReturn)) {
+            return response()->json(['message' => 'Garantia/Troca não encontrada.'], 404);
+        }
+
+        return $productReturn;
     }
 
     public function store(Request $request)
@@ -162,10 +190,9 @@ class ReturnController extends Controller
 
     public function update(Request $request, int $id)
     {
-        $productReturn = ProductReturn::query()->with(self::EAGER_LOADS)->find($id);
-
-        if (! $productReturn) {
-            return response()->json(['message' => 'Garantia/Troca não encontrada.'], 404);
+        $productReturn = $this->findVisible($request, $id, 'update');
+        if (! $productReturn instanceof ProductReturn) {
+            return $productReturn;
         }
 
         // TASK-025: registro estornado é histórico fechado — não volta a
@@ -251,12 +278,11 @@ class ReturnController extends Controller
      * histórico de status não é apagada — é estornada (`void`). Só um
      * registro recém-criado e sem impacto pode ser excluído de fato.
      */
-    public function destroy(int $id)
+    public function destroy(Request $request, int $id)
     {
-        $productReturn = ProductReturn::find($id);
-
-        if (! $productReturn) {
-            return response()->json(['message' => 'Garantia/Troca não encontrada.'], 404);
+        $productReturn = $this->findVisible($request, $id, 'delete');
+        if (! $productReturn instanceof ProductReturn) {
+            return $productReturn;
         }
 
         $footprint = $productReturn->financialFootprint();
@@ -285,10 +311,9 @@ class ReturnController extends Controller
      */
     public function void(Request $request, int $id)
     {
-        $productReturn = ProductReturn::query()->with(self::EAGER_LOADS)->find($id);
-
-        if (! $productReturn) {
-            return response()->json(['message' => 'Garantia/Troca não encontrada.'], 404);
+        $productReturn = $this->findVisible($request, $id, 'delete');
+        if (! $productReturn instanceof ProductReturn) {
+            return $productReturn;
         }
 
         if ($productReturn->isVoided()) {

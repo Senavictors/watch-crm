@@ -179,13 +179,14 @@ class AiOperationContextBuilder
         $terminalReturnStatuses = ['Concluído', 'Recusado', 'Cancelado', 'Reembolso Efetuado'];
         // TASK-025 (ADR-007): devolução estornada não é mais um pós-venda
         // "em andamento" — o registro ficou, o processo não.
-        $returnsQuery = ProductReturn::query()->effective()->whereNotIn('status', $terminalReturnStatuses);
-        if (! $user->canAccessAllRecords()) {
-            $returnsQuery->where(function ($query) use ($user) {
-                $query->where('created_by_user_id', $user->id)
-                    ->orWhereHas('order', fn ($orderQuery) => $orderQuery->where('seller_user_id', $user->id));
-            });
-        }
+        // TASK-026 (RN-03): o contexto de IA usa o MESMO escopo da listagem
+        // em vez de repetir a condição — antes daqui faltava
+        // `assigned_user_id`, então a contagem divergia do que o usuário via
+        // na tela.
+        $returnsQuery = ProductReturn::query()
+            ->visibleTo($user)
+            ->effective()
+            ->whereNotIn('status', $terminalReturnStatuses);
         $openReturns = $returnsQuery->get(['status']);
         $topReturnStatuses = $openReturns->countBy('status')->sortDesc()->take(3);
         $statusText = $topReturnStatuses->isEmpty()

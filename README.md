@@ -64,10 +64,10 @@ O Watch CRM centraliza a operação de uma loja de relógios em uma aplicação 
 | `owner` | Acesso completo; também pode ser selecionado como vendedor em pedidos e metas. |
 | `admin` | Acesso completo à operação, financeiro, usuários e integração de IA. |
 | `gerente` | Gestão operacional, catálogo, pedidos, metas, configurações e usuários; sem relatórios financeiros sensíveis, comissões, despesas ou IA. |
-| `vendedor` | Leitura dos próprios dados operacionais, dashboard e própria comissão; cria e atualiza as próprias entradas da lista de espera. Não cria nem edita pedidos. |
-| `garantia` | Leitura de clientes, produtos, modelos e envios; cria e atualiza registros de pós-venda. |
+| `vendedor` | Leitura dos próprios dados operacionais, dashboard e própria comissão; cria e atualiza as próprias entradas da lista de espera. No pós-venda, vê apenas ocorrências de pedido próprio, criadas por ele ou atribuídas a ele. Não cria nem edita pedidos. |
+| `garantia` | Leitura de clientes, produtos, modelos e envios; cria e atualiza registros de pós-venda, com acesso à fila completa de ocorrências. |
 
-As permissões são verificadas pelo middleware `permission:*`. Policies complementam o controle com ownership, como o escopo de clientes, pedidos, metas e lista de espera.
+As permissões são verificadas pelo middleware `permission:*`. Policies complementam o controle com ownership, como o escopo de clientes, pedidos, metas, lista de espera e pós-venda.
 
 ---
 
@@ -246,6 +246,7 @@ watch-crm/
 
 - Garantias, trocas e devoluções possuem transições de status validadas no backend.
 - Toda mudança de status gera histórico com ator e data.
+- O acesso é escopado por papel: `owner`, `admin`, `gerente` e `garantia` veem todas as ocorrências; vendedor vê apenas as de pedido próprio, criadas por ele ou atribuídas a ele. Ocorrência fora do escopo responde 404, sem confirmar que o registro existe.
 - Reembolsos efetivados reduzem os indicadores financeiros e o progresso de metas aplicáveis.
 
 ---
