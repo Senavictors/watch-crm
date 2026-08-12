@@ -9,6 +9,7 @@ use App\Models\ReturnItem;
 use App\Models\ReturnStatusHistory;
 use App\Models\User;
 use App\Support\ApiPagination;
+use App\Support\LockedTransaction;
 use App\Support\ReturnItemResolver;
 use App\Support\ReturnMetadata;
 use App\Support\ReturnStatusTransition;
@@ -192,24 +193,46 @@ class ReturnController extends Controller
                 'created_at' => now(),
             ]);
 
+            // TASK-029 (RN-04): auditoria no mesmo commit da criação.
+            $this->audit('returns.created', 'Garantia/Troca criada.', $productReturn, [
+                'type' => $productReturn->type,
+                'status' => $productReturn->status,
+            ]);
+
             return $productReturn;
-        });
+        }, 3);
 
         $productReturn->load(self::EAGER_LOADS);
-
-        $this->audit('returns.created', 'Garantia/Troca criada.', $productReturn, [
-            'type' => $productReturn->type,
-            'status' => $productReturn->status,
-        ]);
 
         return response()->json($this->toPayload($productReturn), 201);
     }
 
+    /**
+     * TASK-029 — corpo inteiro sob `lockForUpdate()`. A validação de
+     * transição usa o status lido DENTRO do lock: sem isso, duas requisições
+     * concorrentes validavam "Recebido → Em Análise" a partir do mesmo
+     * "Recebido" e gravavam duas transições impossíveis no histórico
+     * (RN-02/CA-02).
+     */
     public function update(Request $request, int $id)
     {
-        $productReturn = $this->findVisible($request, $id, 'update');
-        if (! $productReturn instanceof ProductReturn) {
-            return $productReturn;
+        $data = $this->validateData($request, true);
+
+        $result = LockedTransaction::run(
+            ProductReturn::query()->with(self::EAGER_LOADS),
+            $id,
+            fn (ProductReturn $productReturn) => $this->applyUpdate($request, $productReturn, $data),
+        );
+
+        return $result ?? response()->json(['message' => 'Garantia/Troca não encontrada.'], 404);
+    }
+
+    private function applyUpdate(Request $request, ProductReturn $productReturn, array $data)
+    {
+        // TASK-026: escopo de ownership reavaliado sobre o registro
+        // bloqueado, com o mesmo 404 que esconde a existência do ID.
+        if ($request->user()->cannot('update', $productReturn)) {
+            return response()->json(['message' => 'Garantia/Troca não encontrada.'], 404);
         }
 
         // TASK-025: registro estornado é histórico fechado — não volta a
@@ -221,7 +244,8 @@ class ReturnController extends Controller
             ], 422);
         }
 
-        $data = $this->validateData($request, true);
+        // RN-02: o status anterior vem do registro bloqueado, não de uma
+        // instância lida antes da transação.
         $previousStatus = $productReturn->status;
         $newStatus = $data['status'] ?? $previousStatus;
 
@@ -285,23 +309,21 @@ class ReturnController extends Controller
             }
         }
 
-        DB::transaction(function () use ($productReturn, $data, $previousStatus, $newStatus, $request) {
-            $productReturn->save();
+        $productReturn->save();
 
-            if (array_key_exists('items', $data)) {
-                $this->syncItems($productReturn, $data['items']);
-            }
+        if (array_key_exists('items', $data)) {
+            $this->syncItems($productReturn, $data['items']);
+        }
 
-            if ($newStatus !== $previousStatus) {
-                ReturnStatusHistory::create([
-                    'return_id' => $productReturn->id,
-                    'from_status' => $previousStatus,
-                    'to_status' => $newStatus,
-                    'actor_user_id' => $request->user()->id,
-                    'created_at' => now(),
-                ]);
-            }
-        });
+        if ($newStatus !== $previousStatus) {
+            ReturnStatusHistory::create([
+                'return_id' => $productReturn->id,
+                'from_status' => $previousStatus,
+                'to_status' => $newStatus,
+                'actor_user_id' => $request->user()->id,
+                'created_at' => now(),
+            ]);
+        }
 
         $productReturn->load(self::EAGER_LOADS);
 
@@ -325,29 +347,37 @@ class ReturnController extends Controller
      */
     public function destroy(Request $request, int $id)
     {
-        $productReturn = $this->findVisible($request, $id, 'delete');
-        if (! $productReturn instanceof ProductReturn) {
-            return $productReturn;
-        }
+        $result = LockedTransaction::run(
+            ProductReturn::query(),
+            $id,
+            function (ProductReturn $productReturn) use ($request, $id) {
+                if ($request->user()->cannot('delete', $productReturn)) {
+                    return response()->json(['message' => 'Garantia/Troca não encontrada.'], 404);
+                }
 
-        $footprint = $productReturn->financialFootprint();
+                // TASK-029: o impacto financeiro é reavaliado sob lock — um
+                // custo lançado por outra requisição no meio do caminho
+                // passa a bloquear a exclusão, em vez de escapar.
+                $footprint = $productReturn->financialFootprint();
 
-        if ($footprint !== []) {
-            return response()->json([
-                'message' => 'Esta garantia/troca não pode ser excluída porque já tem '.
-                    collect($footprint)->keys()->join(', ', ' e ').
-                    '. Use o estorno para anular o efeito preservando o histórico.',
-                'code' => 'return_has_financial_history',
-                'footprint' => $footprint,
-            ], 409);
-        }
+                if ($footprint !== []) {
+                    return response()->json([
+                        'message' => 'Esta garantia/troca não pode ser excluída porque já tem '.
+                            collect($footprint)->keys()->join(', ', ' e ').
+                            '. Use o estorno para anular o efeito preservando o histórico.',
+                        'code' => 'return_has_financial_history',
+                        'footprint' => $footprint,
+                    ], 409);
+                }
 
-        DB::transaction(function () use ($productReturn, $id) {
-            $productReturn->delete();
-            $this->audit('returns.deleted', 'Garantia/Troca removida.', null, ['return_id' => $id]);
-        });
+                $productReturn->delete();
+                $this->audit('returns.deleted', 'Garantia/Troca removida.', null, ['return_id' => $id]);
 
-        return response()->json(['ok' => true]);
+                return response()->json(['ok' => true]);
+            },
+        );
+
+        return $result ?? response()->json(['message' => 'Garantia/Troca não encontrada.'], 404);
     }
 
     /**
@@ -356,35 +386,42 @@ class ReturnController extends Controller
      */
     public function void(Request $request, int $id)
     {
-        $productReturn = $this->findVisible($request, $id, 'delete');
-        if (! $productReturn instanceof ProductReturn) {
-            return $productReturn;
-        }
-
-        if ($productReturn->isVoided()) {
-            return response()->json(['message' => 'Esta garantia/troca já está estornada.'], 422);
-        }
-
         $data = $request->validate([
             'reason' => ['required', 'string', 'min:3', 'max:500'],
         ]);
 
-        DB::transaction(function () use ($productReturn, $request, $data) {
-            $productReturn->voided_at = now();
-            $productReturn->voided_by_user_id = $request->user()->id;
-            $productReturn->void_reason = $data['reason'];
-            $productReturn->save();
+        $result = LockedTransaction::run(
+            ProductReturn::query()->with(self::EAGER_LOADS),
+            $id,
+            function (ProductReturn $productReturn) use ($request, $data) {
+                if ($request->user()->cannot('delete', $productReturn)) {
+                    return response()->json(['message' => 'Garantia/Troca não encontrada.'], 404);
+                }
 
-            $this->audit('returns.voided', 'Garantia/Troca estornada.', $productReturn, [
-                'reason' => $data['reason'],
-                'status' => $productReturn->status,
-                'refund_amount' => $productReturn->refund_amount !== null ? (float) $productReturn->refund_amount : null,
-            ]);
-        });
+                // TASK-029: relido sob lock — dois estornos simultâneos não
+                // gravam dois eventos para o mesmo registro.
+                if ($productReturn->isVoided()) {
+                    return response()->json(['message' => 'Esta garantia/troca já está estornada.'], 422);
+                }
 
-        $productReturn->load(self::EAGER_LOADS);
+                $productReturn->voided_at = now();
+                $productReturn->voided_by_user_id = $request->user()->id;
+                $productReturn->void_reason = $data['reason'];
+                $productReturn->save();
 
-        return response()->json($this->toPayload($productReturn));
+                $this->audit('returns.voided', 'Garantia/Troca estornada.', $productReturn, [
+                    'reason' => $data['reason'],
+                    'status' => $productReturn->status,
+                    'refund_amount' => $productReturn->refund_amount !== null ? (float) $productReturn->refund_amount : null,
+                ]);
+
+                $productReturn->load(self::EAGER_LOADS);
+
+                return response()->json($this->toPayload($productReturn));
+            },
+        );
+
+        return $result ?? response()->json(['message' => 'Garantia/Troca não encontrada.'], 404);
     }
 
     /**
@@ -446,9 +483,26 @@ class ReturnController extends Controller
      */
     public function refund(Request $request, int $id)
     {
-        $productReturn = $this->findVisible($request, $id, 'update');
-        if (! $productReturn instanceof ProductReturn) {
-            return $productReturn;
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0'],
+            'reason' => ['required', 'string', 'min:3', 'max:500'],
+        ]);
+
+        // TASK-029: aprovar reembolso duas vezes em paralelo geraria duas
+        // transições "→ Reembolso Efetuado" e dois eventos de auditoria.
+        $result = LockedTransaction::run(
+            ProductReturn::query()->with(self::EAGER_LOADS),
+            $id,
+            fn (ProductReturn $productReturn) => $this->applyRefund($request, $productReturn, $data),
+        );
+
+        return $result ?? response()->json(['message' => 'Garantia/Troca não encontrada.'], 404);
+    }
+
+    private function applyRefund(Request $request, ProductReturn $productReturn, array $data)
+    {
+        if ($request->user()->cannot('update', $productReturn)) {
+            return response()->json(['message' => 'Garantia/Troca não encontrada.'], 404);
         }
 
         if ($productReturn->isVoided()) {
@@ -457,11 +511,6 @@ class ReturnController extends Controller
                 'code' => 'return_voided',
             ], 422);
         }
-
-        $data = $request->validate([
-            'amount' => ['required', 'numeric', 'min:0'],
-            'reason' => ['required', 'string', 'min:3', 'max:500'],
-        ]);
 
         $previousStatus = $productReturn->status;
 
@@ -477,29 +526,27 @@ class ReturnController extends Controller
 
         $previousAmount = $productReturn->refund_amount !== null ? (float) $productReturn->refund_amount : null;
 
-        DB::transaction(function () use ($productReturn, $request, $data, $previousStatus, $previousAmount) {
-            $productReturn->refund_amount = $data['amount'];
-            $productReturn->status = 'Reembolso Efetuado';
-            $productReturn->refund_approved_at = now();
-            $productReturn->refund_approved_by_user_id = $request->user()->id;
-            $productReturn->refund_reason = $data['reason'];
-            $productReturn->save();
+        $productReturn->refund_amount = $data['amount'];
+        $productReturn->status = 'Reembolso Efetuado';
+        $productReturn->refund_approved_at = now();
+        $productReturn->refund_approved_by_user_id = $request->user()->id;
+        $productReturn->refund_reason = $data['reason'];
+        $productReturn->save();
 
-            ReturnStatusHistory::create([
-                'return_id' => $productReturn->id,
-                'from_status' => $previousStatus,
-                'to_status' => 'Reembolso Efetuado',
-                'actor_user_id' => $request->user()->id,
-                'created_at' => now(),
-            ]);
+        ReturnStatusHistory::create([
+            'return_id' => $productReturn->id,
+            'from_status' => $previousStatus,
+            'to_status' => 'Reembolso Efetuado',
+            'actor_user_id' => $request->user()->id,
+            'created_at' => now(),
+        ]);
 
-            $this->audit('returns.refund_approved', 'Reembolso aprovado.', $productReturn, [
-                'previous_status' => $previousStatus,
-                'previous_amount' => $previousAmount,
-                'amount' => (float) $data['amount'],
-                'reason' => $data['reason'],
-            ]);
-        });
+        $this->audit('returns.refund_approved', 'Reembolso aprovado.', $productReturn, [
+            'previous_status' => $previousStatus,
+            'previous_amount' => $previousAmount,
+            'amount' => (float) $data['amount'],
+            'reason' => $data['reason'],
+        ]);
 
         $productReturn->load(self::EAGER_LOADS);
 

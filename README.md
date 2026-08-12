@@ -246,7 +246,7 @@ watch-crm/
 ### Pós-venda
 
 - Garantias, trocas e devoluções possuem transições de status validadas no backend.
-- Toda mudança de status gera histórico com ator e data.
+- Toda mudança de status gera histórico com ator e data, gravado na mesma transação da alteração: duas pessoas mexendo no mesmo registro ao mesmo tempo são serializadas, e a segunda decide sobre o estado real, não sobre a tela que carregou antes.
 - O acesso é escopado por papel: `owner`, `admin`, `gerente` e `garantia` veem todas as ocorrências; vendedor vê apenas as de pedido próprio, criadas por ele ou atribuídas a ele. Ocorrência fora do escopo responde 404, sem confirmar que o registro existe.
 - Reembolsos efetivados reduzem os indicadores financeiros e o progresso de metas aplicáveis.
 - Os itens de uma devolução vinculada a pedido são linhas daquele pedido, escolhidas por ID; sem pedido vinculado, o produto vem do catálogo. Nome, categoria e preço são derivados da venda ou do catálogo, nunca do que o navegador envia, e não é possível devolver mais unidades do que foram vendidas.
@@ -410,6 +410,7 @@ Não há Jest, Vitest ou Playwright configurado; mudanças de interface também 
 - [x] Preservação de histórico financeiro: arquivamento de cliente, estorno de despesa/devolução e fim das exclusões em cascata
 - [x] Segregação das ações financeiras: confirmação de pagamento e aprovação de reembolso com permissão própria e motivo registrado
 - [x] Integridade dos vínculos de devolução: pedido, cliente e item validados juntos, snapshots derivados e saldo devolvível respeitado
+- [x] Transições concorrentes serializadas e auditoria no mesmo commit da alteração
 
 ### Pendente ou bloqueado
 

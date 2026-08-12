@@ -10,6 +10,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\ApiPagination;
+use App\Support\LockedTransaction;
 use App\Support\OrderMetadata;
 use App\Support\OrderPaymentTransition;
 use App\Support\ShippingScheduleCalculator;
@@ -233,36 +234,55 @@ class OrderController extends Controller
             $order->load('items');
             StockLedger::syncOrder($order, $request->user());
 
+            // TASK-029 (RN-04): auditoria dentro do mesmo commit da criação.
+            $this->audit('orders.created', 'Pedido criado.', $order, [
+                'seller_user_id' => $order->seller_user_id,
+                'status' => $order->status,
+            ]);
+
+            if ($paymentEvent) {
+                $this->audit($paymentEvent, 'Pagamento confirmado na criação do pedido.', $order, [
+                    'paid_at' => $order->paid_at?->toIso8601String(),
+                    'paid_by_user_id' => $order->paid_by_user_id,
+                ]);
+            }
+
             return $order;
         }, 3);
         $order->load(['customer', 'sellerUser', 'paidByUser', 'items']);
 
-        $this->audit('orders.created', 'Pedido criado.', $order, [
-            'seller_user_id' => $order->seller_user_id,
-            'status' => $order->status,
-        ]);
-
-        if ($paymentEvent) {
-            $this->audit($paymentEvent, 'Pagamento confirmado na criação do pedido.', $order, [
-                'paid_at' => $order->paid_at?->toIso8601String(),
-                'paid_by_user_id' => $order->paid_by_user_id,
-            ]);
-        }
-
         return response()->json($this->toPayload($order, $request->user()->canViewFinancialReports()), 201);
     }
 
+    /**
+     * TASK-029 — todo o corpo roda dentro de `LockedTransaction`: o pedido é
+     * relido com `lockForUpdate()`, e autorização, guardas de transição,
+     * mutação, estoque e auditoria acontecem no mesmo commit, sobre o estado
+     * bloqueado. Antes desta task, duas edições concorrentes partiam da
+     * mesma instância obsoleta e a segunda sobrescrevia a primeira (RN-01,
+     * RN-02, RN-04).
+     */
     public function update(Request $request, int $id)
     {
-        $order = Order::query()->with(['customer', 'sellerUser', 'paidByUser', 'items'])->find($id);
-
-        if (! $order) {
-            return response()->json(['message' => 'Pedido não encontrado.'], 404);
-        }
-
-        $this->authorize('update', $order);
-
+        // Validação de formato não depende do estado do pedido e pode ficar
+        // fora do lock — segurar a linha do banco durante ela só aumentaria
+        // a janela de contenção sem ganho nenhum.
         $data = $this->validateData($request, true);
+
+        $result = LockedTransaction::run(
+            Order::query()->with(['customer', 'sellerUser', 'paidByUser', 'items']),
+            $id,
+            fn (Order $order) => $this->applyUpdate($request, $order, $data),
+        );
+
+        return $result ?? response()->json(['message' => 'Pedido não encontrado.'], 404);
+    }
+
+    private function applyUpdate(Request $request, Order $order, array $data)
+    {
+        // RN-02: autorização reavaliada sobre o estado bloqueado — o
+        // vendedor do pedido pode ter mudado entre a leitura e o commit.
+        $this->authorize('update', $order);
 
         $effectiveStatus = $data['status'] ?? $order->status;
         $effectiveShippingMethod = $data['shippingMethod'] ?? $order->shipping_method;
@@ -358,29 +378,28 @@ class OrderController extends Controller
 
         $paymentEvent = OrderPaymentTransition::apply($order, $previousStatus, $request->user());
 
-        DB::transaction(function () use (&$order, $data, &$products, $request) {
-            if (array_key_exists('items', $data)) {
-                $products = $this->productsById($data['items']);
-                $totals = $this->calculateTotals($data['items'], $products);
-                $order->product_id = $totals['first_product_id'];
-                $order->product_name = $totals['product_name'];
-                $order->sale_price = $totals['sale_price'];
-                $order->cost = $totals['cost'];
-                $order->discount = $totals['discount'];
-            }
+        if (array_key_exists('items', $data)) {
+            $products = $this->productsById($data['items']);
+            $totals = $this->calculateTotals($data['items'], $products);
+            $order->product_id = $totals['first_product_id'];
+            $order->product_name = $totals['product_name'];
+            $order->sale_price = $totals['sale_price'];
+            $order->cost = $totals['cost'];
+            $order->discount = $totals['discount'];
+        }
 
-            $order->save();
+        $order->save();
 
-            if (array_key_exists('items', $data) && $products !== null) {
-                $this->syncItems($order, $data['items'], $products);
-            }
+        if (array_key_exists('items', $data) && $products !== null) {
+            $this->syncItems($order, $data['items'], $products);
+        }
 
-            // TASK-024 (ADR-006): reconcilia estoque com o estado final do
-            // pedido — itens novos, confirmação/reversão de pagamento e
-            // cancelamento passam todos por aqui.
-            $order->load('items');
-            StockLedger::syncOrder($order, $request->user());
-        }, 3);
+        // TASK-024 (ADR-006): reconcilia estoque com o estado final do
+        // pedido — itens novos, confirmação/reversão de pagamento e
+        // cancelamento passam todos por aqui.
+        $order->load('items');
+        StockLedger::syncOrder($order, $request->user());
+
         $order->load(['customer', 'sellerUser', 'paidByUser', 'items']);
 
         $metadata = [
@@ -391,6 +410,8 @@ class OrderController extends Controller
             $metadata['previous_status'] = $previousStatus;
         }
 
+        // RN-04: auditoria no mesmo commit — se ela falhar, a edição inteira
+        // volta atrás em vez de deixar mutação sem rastro.
         $this->audit('orders.updated', 'Pedido atualizado.', $order, $metadata);
 
         if ($paymentEvent === OrderPaymentTransition::EVENT_CONFIRMED) {
@@ -419,14 +440,6 @@ class OrderController extends Controller
      */
     public function payment(Request $request, int $id)
     {
-        $order = Order::query()->with(['customer', 'sellerUser', 'paidByUser', 'items'])->find($id);
-
-        if (! $order) {
-            return response()->json(['message' => 'Pedido não encontrado.'], 404);
-        }
-
-        $this->authorize('update', $order);
-
         $data = $request->validate([
             'confirmed' => ['required', 'boolean'],
             // Reverter um pagamento já confirmado desfaz faturamento e
@@ -434,6 +447,22 @@ class OrderController extends Controller
             // explica o buraco no relatório.
             'reason' => [$request->boolean('confirmed') ? 'nullable' : 'required', 'string', 'min:3', 'max:500'],
         ]);
+
+        // TASK-029 (CA-01): sem o lock, duas confirmações simultâneas
+        // passavam as duas pela checagem de `paid_at` e gravavam dois
+        // eventos de pagamento para a mesma venda.
+        $result = LockedTransaction::run(
+            Order::query()->with(['customer', 'sellerUser', 'paidByUser', 'items']),
+            $id,
+            fn (Order $order) => $this->applyPayment($request, $order, $data),
+        );
+
+        return $result ?? response()->json(['message' => 'Pedido não encontrado.'], 404);
+    }
+
+    private function applyPayment(Request $request, Order $order, array $data)
+    {
+        $this->authorize('update', $order);
 
         $confirm = (bool) $data['confirmed'];
 
@@ -457,14 +486,12 @@ class OrderController extends Controller
 
         $paymentEvent = OrderPaymentTransition::apply($order, $previousStatus, $request->user());
 
-        DB::transaction(function () use ($order, $request) {
-            $order->save();
+        $order->save();
 
-            // ADR-006: confirmar converte a reserva em baixa; reverter
-            // devolve a baixa para reserva. Mesma transação do pagamento.
-            $order->load('items');
-            StockLedger::syncOrder($order, $request->user());
-        }, 3);
+        // ADR-006: confirmar converte a reserva em baixa; reverter devolve a
+        // baixa para reserva. Mesma transação do pagamento.
+        $order->load('items');
+        StockLedger::syncOrder($order, $request->user());
 
         $order->load(['customer', 'sellerUser', 'paidByUser', 'items']);
 

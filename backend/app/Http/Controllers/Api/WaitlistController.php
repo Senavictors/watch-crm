@@ -8,8 +8,10 @@ use App\Models\Product;
 use App\Models\User;
 use App\Models\WaitlistEntry;
 use App\Support\ApiPagination;
+use App\Support\LockedTransaction;
 use App\Support\WaitlistMetadata;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /**
@@ -103,18 +105,37 @@ class WaitlistController extends Controller
         // se já existir uma entrada do mesmo cliente+produto ainda ativa
         // (Pendente/Avisado). Entradas já Convertidas/Encerradas ficam como
         // histórico e não impedem uma nova espera futura.
-        $duplicate = WaitlistEntry::query()
-            ->where('customer_id', $data['customerId'])
-            ->where('product_id', $data['productId'] ?? null)
-            ->whereIn('status', ['Pendente', 'Avisado'])
-            ->exists();
+        //
+        // TASK-029: checagem e gravação passaram para dentro da mesma
+        // transação, junto da auditoria. Isso não elimina a corrida entre
+        // duas criações simultâneas — não há linha a bloquear antes de ela
+        // existir; fechar isso exige índice único no banco, avaliado na
+        // TASK-037.
+        $entry = DB::transaction(function () use ($data, $request, $status) {
+            $duplicate = WaitlistEntry::query()
+                ->where('customer_id', $data['customerId'])
+                ->where('product_id', $data['productId'] ?? null)
+                ->whereIn('status', ['Pendente', 'Avisado'])
+                ->exists();
 
-        if ($duplicate) {
-            return response()->json([
-                'message' => 'Este cliente já está na lista de espera para este produto.',
-            ], 422);
+            if ($duplicate) {
+                return response()->json([
+                    'message' => 'Este cliente já está na lista de espera para este produto.',
+                ], 422);
+            }
+
+            return $this->createEntry($request, $data, $status);
+        }, 3);
+
+        if ($entry instanceof \Illuminate\Http\JsonResponse) {
+            return $entry;
         }
 
+        return response()->json($this->toPayload($entry), 201);
+    }
+
+    private function createEntry(Request $request, array $data, string $status): WaitlistEntry
+    {
         $entry = WaitlistEntry::create([
             'customer_id' => $data['customerId'],
             'product_id' => $data['productId'] ?? null,
@@ -143,23 +164,37 @@ class WaitlistController extends Controller
             'status' => $entry->status,
         ]);
 
-        return response()->json($this->toPayload($entry), 201);
+        return $entry;
     }
 
+    /**
+     * TASK-029 — antes desta task este método não tinha transação nenhuma:
+     * lia a entrada, checava ownership e a regra de status terminal, e
+     * salvava, com a auditoria em seguida. Duas requisições concorrentes
+     * podiam reabrir uma entrada terminal (as duas viam o status antigo) e
+     * uma falha de auditoria deixava a mutação sem rastro.
+     */
     public function update(Request $request, int $id)
     {
+        $data = $this->validateData($request, true);
+
+        $result = LockedTransaction::run(
+            WaitlistEntry::query(),
+            $id,
+            fn (WaitlistEntry $entry) => $this->applyUpdate($request, $entry, $data),
+        );
+
+        return $result ?? response()->json(['message' => 'Entrada de lista de espera não encontrada.'], 404);
+    }
+
+    private function applyUpdate(Request $request, WaitlistEntry $entry, array $data)
+    {
         $user = $request->user();
-        $entry = WaitlistEntry::find($id);
 
-        if (! $entry) {
-            return response()->json(['message' => 'Entrada de lista de espera não encontrada.'], 404);
-        }
-
+        // RN-02: ownership reavaliado sobre o registro bloqueado.
         if (! $user->canAccessAllRecords() && $entry->seller_user_id !== $user->id) {
             return response()->json(['message' => 'Você não tem permissão para editar esta entrada.'], 403);
         }
-
-        $data = $this->validateData($request, true);
 
         $previousStatus = $entry->status;
         $newStatus = $data['status'] ?? $previousStatus;
@@ -213,6 +248,7 @@ class WaitlistController extends Controller
             $metadata['previous_status'] = $previousStatus;
         }
 
+        // RN-04: auditoria no mesmo commit da mutação.
         $this->audit('waitlist.updated', 'Entrada de lista de espera atualizada.', $entry, $metadata);
 
         return response()->json($this->toPayload($entry));
@@ -220,21 +256,24 @@ class WaitlistController extends Controller
 
     public function destroy(Request $request, int $id)
     {
-        $user = $request->user();
-        $entry = WaitlistEntry::find($id);
+        $result = LockedTransaction::run(
+            WaitlistEntry::query(),
+            $id,
+            function (WaitlistEntry $entry) use ($request, $id) {
+                $user = $request->user();
 
-        if (! $entry) {
-            return response()->json(['message' => 'Entrada de lista de espera não encontrada.'], 404);
-        }
+                if (! $user->canAccessAllRecords() && $entry->seller_user_id !== $user->id) {
+                    return response()->json(['message' => 'Você não tem permissão para remover esta entrada.'], 403);
+                }
 
-        if (! $user->canAccessAllRecords() && $entry->seller_user_id !== $user->id) {
-            return response()->json(['message' => 'Você não tem permissão para remover esta entrada.'], 403);
-        }
+                $entry->delete();
+                $this->audit('waitlist.deleted', 'Entrada de lista de espera removida.', null, ['waitlist_entry_id' => $id]);
 
-        $entry->delete();
-        $this->audit('waitlist.deleted', 'Entrada de lista de espera removida.', null, ['waitlist_entry_id' => $id]);
+                return response()->json(['ok' => true]);
+            },
+        );
 
-        return response()->json(['ok' => true]);
+        return $result ?? response()->json(['message' => 'Entrada de lista de espera não encontrada.'], 404);
     }
 
     private function validateData(Request $request, bool $partial = false): array

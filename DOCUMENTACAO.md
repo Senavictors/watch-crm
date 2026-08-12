@@ -82,6 +82,14 @@ frontend/src/
 - Classes em `app/Support/` concentram cálculos financeiros, transições, paginação, alertas, IA e metadados.
 - Operações compostas, como criação de pedido e atualização de pós-venda, utilizam transação de banco.
 
+**Transições concorrentes e auditoria atômica** (`TASK-029`):
+
+- Edição e transição de pedido, pagamento, devolução (incluindo estorno e aprovação de reembolso) e lista de espera passam por `Support\LockedTransaction`: o registro é relido com `lockForUpdate()` **dentro** da transação, e autorização, validação de transição, mutação e auditoria acontecem no mesmo commit sobre o estado bloqueado.
+- Consequência prática: duas requisições simultâneas sobre o mesmo registro são serializadas — a segunda enxerga o estado já atualizado em vez de decidir a partir de uma cópia obsoleta. Isso elimina o lost update silencioso e o histórico de status que "parte" de um estado que já não existia.
+- A auditoria participa do mesmo commit: se a gravação em `audit_logs` falhar, a operação inteira volta atrás. Não existe mais mutação confirmada sem rastro, nem rastro sem mutação.
+- As transações usam três tentativas; o retry só ocorre em erro de concorrência do banco e, como a auditoria está dentro, uma tentativa descartada não deixa linha duplicada.
+- A validação de formato do payload continua fora do lock — não depende do estado do registro e só aumentaria a janela de contenção.
+
 Principais grupos de backend:
 
 ```text
@@ -751,7 +759,8 @@ Não há suíte Jest, Vitest ou Playwright configurada. Mudanças visuais exigem
 
 - Pedido pendente segura estoque até ser pago ou cancelado; não há expiração automática da reserva.
 - A reposição de estoque por devolução é deliberadamente manual (`ADR-006`), não automática.
-- Os testes que exigem MySQL real (`StockConcurrencyMySqlTest`, `RestrictedDeletesMySqlTest`, `ReturnBalanceConcurrencyMySqlTest`) usam um banco descartável e são pulados quando o usuário da aplicação não pode criá-lo.
+- Os testes que exigem MySQL real (`StockConcurrencyMySqlTest`, `RestrictedDeletesMySqlTest`, `ReturnBalanceConcurrencyMySqlTest`, `AtomicTransitionConcurrencyMySqlTest`) usam um banco descartável e são pulados quando o usuário da aplicação não pode criá-lo.
+- Duas criações simultâneas de entrada de lista de espera para o mesmo cliente e produto ainda podem furar a checagem de duplicidade: não há linha a bloquear antes de ela existir. Fechar isso exige índice único no banco, avaliado na `TASK-037`.
 - Devolução de peça que nunca passou pelo sistema exige cadastrar o produto no catálogo antes (`TASK-028`): não há mais item de texto livre.
 - Uma devolução antiga registrada com pedido vinculado mas sem `order_item_id` continua válida; só novas gravações exigem o vínculo.
 - Despesa lançada por engano fica registrada para sempre, estornada — não há exclusão de despesa (`ADR-007`).

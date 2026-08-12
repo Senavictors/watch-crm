@@ -116,7 +116,13 @@ export default function GarantiasPage() {
       await apiUpdate<ProductReturn>(`/returns/${editReturn.id}`, data, "Falha ao atualizar.");
       setEditReturn(null); setViewReturn(null); reload();
       pushToast("Atualizado com sucesso.", "success");
-    } catch (error) { pushToast(error instanceof Error ? error.message : "Erro.", "error"); }
+    } catch (error) {
+      // TASK-029: transição recusada normalmente significa que o status
+      // mudou no banco desde que a tela carregou — recarrega para o
+      // operador decidir sobre o estado real.
+      pushToast(error instanceof Error ? error.message : "Erro.", "error");
+      reload();
+    }
   }
 
   // TASK-025 (ADR-007): devolução com impacto financeiro não é apagada — é
@@ -152,7 +158,10 @@ export default function GarantiasPage() {
       await apiUpdate<ProductReturn>(`/returns/${item.id}/refund`, { amount, reason }, "Falha ao aprovar reembolso.");
       setViewReturn(null); reload();
       pushToast("Reembolso aprovado.", "success");
-    } catch (error) { pushToast(error instanceof Error ? error.message : "Erro.", "error"); }
+    } catch (error) {
+      pushToast(error instanceof Error ? error.message : "Erro.", "error");
+      reload();
+    }
   }
 
   return (

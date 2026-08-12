@@ -181,7 +181,12 @@ function PedidosPageContent() {
       setViewOrder((current) => current?.id === id ? updated : current);
       pushToast("Status atualizado com sucesso.", "success");
     } catch (error) {
+      // TASK-029: uma recusa aqui quase sempre significa que o pedido mudou
+      // no banco depois que esta tela carregou (outra pessoa confirmou o
+      // pagamento, cancelou, editou). Recarregar evita que o operador siga
+      // decidindo em cima de um estado que já não existe.
       pushToast(error instanceof Error ? error.message : "Erro.", "error");
+      setReloadKey((key) => key + 1);
     }
   }
 
@@ -197,6 +202,7 @@ function PedidosPageContent() {
       pushToast(confirmed ? "Pagamento confirmado." : "Pagamento revertido.", "success");
     } catch (error) {
       pushToast(error instanceof Error ? error.message : "Erro.", "error");
+      setReloadKey((key) => key + 1);
     }
   }
 
