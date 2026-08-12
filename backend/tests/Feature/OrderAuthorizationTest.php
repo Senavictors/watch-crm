@@ -96,10 +96,13 @@ class OrderAuthorizationTest extends TestCase
             'price' => 310,
         ]);
 
+        // TASK-027 (ADR-008): o update genérico não confirma mais pagamento
+        // — a mudança de status para "Pago" passa pelo endpoint dedicado.
+        // Gerente mantém `orders.payment.confirm`, então continua fazendo as
+        // duas coisas, agora por caminhos separados.
         $this->withSession(['_token' => 'csrf-token'])
             ->actingAs($manager)
             ->patchJson('/api/orders/'.$order->id, [
-                'status' => 'Pago',
                 'items' => [
                     [
                         'productId' => $newProduct->id,
@@ -108,6 +111,13 @@ class OrderAuthorizationTest extends TestCase
                         'unitDiscount' => 15,
                     ],
                 ],
+            ], ['X-CSRF-TOKEN' => 'csrf-token'])
+            ->assertOk();
+
+        $this->withSession(['_token' => 'csrf-token'])
+            ->actingAs($manager)
+            ->patchJson('/api/orders/'.$order->id.'/payment', [
+                'confirmed' => true,
             ], ['X-CSRF-TOKEN' => 'csrf-token'])
             ->assertOk()
             ->assertJsonPath('status', 'Pago')

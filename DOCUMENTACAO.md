@@ -144,6 +144,9 @@ Resumo da matriz atual:
 | Ver clientes/produtos/modelos | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Manter catálogo | ✓ | ✓ | ✓ | — | — |
 | Ver pedidos | ✓ | ✓ | ✓ | ✓, próprios | — |
+| Confirmar/reverter pagamento | ✓ | ✓ | ✓ | — | — |
+| Aprovar reembolso | ✓ | ✓ | — | — | — |
+| Definir valor de reembolso | ✓ | ✓ | — | — | — |
 | Criar/editar/excluir pedidos | ✓ | ✓ | ✓ | — | — |
 | Ver pós-venda | ✓ | ✓ | ✓ | ✓, escopo próprio | ✓, fila completa |
 | Criar/editar pós-venda | ✓ | ✓ | ✓ | — | ✓ |
@@ -250,12 +253,12 @@ Regras principais:
 - preço e desconto unitários não negativos;
 - `sellerUserId` precisa apontar para papel vendável (`owner` ou `vendedor`);
 - totais, custos e snapshots de comissão são calculados no backend;
-- a primeira transição para `Pago` grava `paid_at` e `paid_by_user_id`;
+- a confirmação de pagamento grava `paid_at` e `paid_by_user_id`, mas **não acontece mais pelo update genérico**: `PATCH /api/orders/{id}` responde 403 (`payment_transition_requires_dedicated_action`) para qualquer status que cruze a fronteira de pagamento, e a ação correta é `PATCH /api/orders/{id}/payment` (`orders.payment.confirm`), com `confirmed` e `reason` obrigatório na reversão — ver 5.9;
 - `payment_expires_at` é opcional;
 - comissão paga impede recriação silenciosa dos itens;
 - vendedor não cria nem edita pedidos e só lista pedidos atribuídos a si;
-- criação e edição reservam estoque e a confirmação de pagamento o baixa (ver 5.10); estoque insuficiente responde 422 com `code = insufficient_stock` e o pedido inteiro é desfeito;
-- pedido com pagamento confirmado ou comissão paga não pode ser excluído (409 `order_has_financial_history`); o caminho é o status `Cancelado` (ver 5.9).
+- criação e edição reservam estoque e a confirmação de pagamento o baixa (ver 5.11); estoque insuficiente responde 422 com `code = insufficient_stock` e o pedido inteiro é desfeito;
+- pedido com pagamento confirmado ou comissão paga não pode ser excluído (409 `order_has_financial_history`); o caminho é o status `Cancelado` (ver 5.10).
 
 Filtros atuais incluem busca, categoria, período, status, canal, vendedor, cliente e pagamento pendente.
 
@@ -300,7 +303,26 @@ Filtros atuais incluem busca, categoria, período, status, canal, vendedor, clie
 - Esses dados são restritos a `owner` e `admin`.
 - A avaliação acompanha automaticamente venda, liberação e reposição, porque agrega `products.qty` no momento da consulta.
 
-### 5.9 Preservação de histórico, arquivamento e estorno
+### 5.9 Segregação das ações financeiras
+
+Decisão em `ADR-008`, que estende o `ADR-003` da leitura para a **escrita** financeira. Antes disso, `orders.update` gravava `paid_at` e `returns.update` levava uma devolução a `Reembolso Efetuado` — efeitos financeiros materiais saindo de permissões operacionais genéricas.
+
+| Permissão | Autoriza | owner | admin | gerente | vendedor | garantia |
+|---|---|:--:|:--:|:--:|:--:|:--:|
+| `orders.payment.confirm` | Confirmar e reverter pagamento | ✓ | ✓ | ✓ | — | — |
+| `returns.refund.approve` | Levar devolução a `Reembolso Efetuado` | ✓ | ✓ | — | — | — |
+| `returns.financials.update` | Definir/alterar o valor do reembolso | ✓ | ✓ | — | — | — |
+
+- **`PATCH /api/orders/{id}/payment`** — corpo `{ "confirmed": bool, "reason": string }`. Confirmar leva a `Pago`; reverter leva a `Aguardando Pagamento` e exige `reason` (3 a 500 caracteres). Aplica a transição de pagamento e sincroniza o estoque (5.11) na mesma transação.
+- **`PATCH /api/returns/{id}/refund`** — corpo `{ "amount": number, "reason": string }`. Define o valor, aprova, grava `refund_approved_at`, `refund_approved_by_user_id` e `refund_reason`, e registra a transição em `return_status_history`.
+- O `PATCH /api/orders/{id}` genérico recusa (403) mudança de status que confirme ou reverta pagamento. Consequência prática: um pedido não pago não vai direto para `Enviado` — é preciso confirmar o pagamento antes. Mover entre status já pagos e cancelar continuam livres.
+- O `PATCH /api/returns/{id}` genérico recusa (403) a transição para `Reembolso Efetuado` (`refund_approval_not_allowed`) e a alteração de `refundAmount` (`refund_amount_not_allowed`). Reenviar o mesmo valor já gravado não é considerado alteração.
+- Criar pedido já em status pago exige `orders.payment.confirm`; criar devolução com `refundAmount` exige `returns.financials.update`.
+- Custos operacionais da devolução (`freightCostIn`, `watchmakerCost`, `freightCostOut`, `otherCosts`) continuam sob `returns.update`: quem opera o pós-venda é quem tem o dado do frete e da bancada.
+- `returns.financials.update` gateia um **campo**, não uma rota — mesmo padrão de `dashboard.financial.view`.
+- Gerente mantém a confirmação de pagamento por decisão explícita: ele toca a operação diária e o que continua sem ver é lucro, custo e margem.
+
+### 5.10 Preservação de histórico, arquivamento e estorno
 
 Decisão em `ADR-007`. Nenhuma operação autorizada pela API apaga receita, comissão ou evidência de pós-venda.
 
@@ -319,7 +341,7 @@ Decisão em `ADR-007`. Nenhuma operação autorizada pela API apaga receita, com
 - Cascatas mantidas por serem não destrutivas: `order_items.order_id`, `return_items.return_id`, `return_status_history.return_id`, `stock_reservations.*`, `goal_intervals.goal_id` e `waitlist_entries.customer_id`.
 - Estorno e arquivamento reutilizam as permissões de exclusão do próprio recurso (`returns.delete`, `expenses.delete`, `customers.delete`). Nenhuma permissão nova foi criada.
 
-### 5.10 Movimentação de estoque
+### 5.11 Movimentação de estoque
 
 Semântica definida em `ADR-006` e implementada em `App\Support\StockLedger`, o único ponto de escrita de saldo.
 
@@ -336,7 +358,7 @@ Semântica definida em `ADR-006` e implementada em `App\Support\StockLedger`, o 
 - `stock_movements` é append-only, sem chave estrangeira, e sobrevive à exclusão do pedido ou do produto. Cada linha tem tipo (`reserve`, `release`, `commit`, `uncommit`, `manual_entry`, `manual_adjust`), quantidade, deltas, saldos resultantes, ator e chave de idempotência única.
 - Pedidos anteriores à migration não foram convertidos retroativamente: o saldo atual já refletia os ajustes manuais e o ledger passa a valer das novas movimentações em diante.
 
-### 5.11 Envios
+### 5.12 Envios
 
 - Os dias habilitados são persistidos em `posting_days`.
 - É obrigatório manter ao menos um dia de postagem habilitado.
@@ -347,7 +369,7 @@ Semântica definida em `ADR-006` e implementada em `App\Support\StockLedger`, o 
 - A interface também mostra pós-vendas prontos para reenvio.
 - A integração automática com rastreamento dos Correios ainda não está implementada.
 
-### 5.12 Garantias, trocas e devoluções
+### 5.13 Garantias, trocas e devoluções
 
 - Registro vinculado a cliente e opcionalmente a pedido.
 - Um ou mais itens por ocorrência.
@@ -370,7 +392,7 @@ Ownership (matriz aprovada na `TASK-026`):
 - O escopo é aplicado antes dos filtros: `orderId`, `customer_id`, `assignedUserId`, `status`, `type` e busca só estreitam o resultado, nunca ampliam.
 - Ocorrência fora do escopo responde **404** com a mesma mensagem de um ID inexistente, para não confirmar a existência do registro nem permitir enumerar IDs. É uma diferença deliberada em relação a `orders`, que responde 403 via `OrderPolicy`.
 
-### 5.13 Lista de espera
+### 5.14 Lista de espera
 
 - Entrada vinculada a cliente, produto e vendedor.
 - Pedido convertido é opcional.
@@ -539,6 +561,7 @@ Clientes, produtos, modelos e pedidos expõem `/lookup`, retornando `{ data: [..
 - `POST /api/orders`
 - `PUT /api/orders/{id}`
 - `PATCH /api/orders/{id}`
+- `PATCH /api/orders/{id}/payment`
 - `DELETE /api/orders/{id}`
 
 ### 8.11 Pós-venda
@@ -550,6 +573,7 @@ Clientes, produtos, modelos e pedidos expõem `/lookup`, retornando `{ data: [..
 - `PUT /api/returns/{id}`
 - `PATCH /api/returns/{id}`
 - `DELETE /api/returns/{id}`
+- `PATCH /api/returns/{id}/refund`
 - `PATCH /api/returns/{id}/void`
 
 ### 8.12 Comissões

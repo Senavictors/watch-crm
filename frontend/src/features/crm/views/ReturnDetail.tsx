@@ -18,12 +18,24 @@ type Props = {
   canUpdate: boolean;
   // TASK-025: estorno reaproveita quem podia excluir a devolução.
   canVoid: boolean;
+  // TASK-027 (ADR-008): aprovar reembolso é ação financeira própria.
+  canApproveRefund: boolean;
   onClose: () => void;
   onEdit: (r: ProductReturn) => void;
   onVoid: (r: ProductReturn) => void;
+  onApproveRefund: (r: ProductReturn) => void;
 };
 
-const ReturnDetail: React.FC<Props> = ({ productReturn: r, canUpdate, canVoid, onClose, onEdit, onVoid }) => {
+const ReturnDetail: React.FC<Props> = ({
+  productReturn: r,
+  canUpdate,
+  canVoid,
+  canApproveRefund,
+  onClose,
+  onEdit,
+  onVoid,
+  onApproveRefund,
+}) => {
   const typeColor = RETURN_TYPE_COLORS[r.type] ?? "var(--crm-text-soft)";
   const statusColor = RETURN_STATUS_COLORS[r.status] ?? "var(--crm-text-soft)";
 
@@ -197,6 +209,11 @@ const ReturnDetail: React.FC<Props> = ({ productReturn: r, canUpdate, canVoid, o
               não volta a andar na máquina de estados. */}
           {canUpdate && !r.voidedAt && (
             <Btn onClick={() => onEdit(r)} variant="primary">Editar</Btn>
+          )}
+          {/* TASK-027: só aparece para quem realmente pode aprovar, e só
+              enquanto o reembolso não foi efetuado. */}
+          {canApproveRefund && !r.voidedAt && r.status !== "Reembolso Efetuado" && r.type === "devolucao" && (
+            <Btn onClick={() => onApproveRefund(r)} variant="primary">Aprovar reembolso</Btn>
           )}
           {canVoid && !r.voidedAt && (
             <Btn onClick={() => onVoid(r)} variant="danger">Estornar</Btn>

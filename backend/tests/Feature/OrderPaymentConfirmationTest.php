@@ -74,7 +74,7 @@ class OrderPaymentConfirmationTest extends TestCase
         $order = Order::factory()->create(['status' => 'Aguardando Pagamento']);
 
         $response = $this->actingAsWithCsrf($admin)
-            ->patchJson('/api/orders/'.$order->id, ['status' => 'Pago'], self::CSRF_HEADER);
+            ->patchJson('/api/orders/'.$order->id.'/payment', ['confirmed' => true], self::CSRF_HEADER);
 
         $response->assertOk()
             ->assertJsonPath('paidByUserId', $admin->id);
@@ -96,11 +96,11 @@ class OrderPaymentConfirmationTest extends TestCase
         $order = Order::factory()->create(['status' => 'Aguardando Pagamento']);
 
         $this->actingAsWithCsrf($confirmedBy)
-            ->patchJson('/api/orders/'.$order->id, ['status' => 'Pago'], self::CSRF_HEADER)
+            ->patchJson('/api/orders/'.$order->id.'/payment', ['confirmed' => true], self::CSRF_HEADER)
             ->assertOk();
 
         $response = $this->actingAsWithCsrf($revertedBy)
-            ->patchJson('/api/orders/'.$order->id, ['status' => 'Aguardando Pagamento'], self::CSRF_HEADER);
+            ->patchJson('/api/orders/'.$order->id.'/payment', ['confirmed' => false, 'reason' => 'Pagamento nao compensou.'], self::CSRF_HEADER);
 
         $response->assertOk()
             ->assertJsonPath('paidAt', null)
@@ -131,18 +131,18 @@ class OrderPaymentConfirmationTest extends TestCase
         $order = Order::factory()->create(['status' => 'Aguardando Pagamento']);
 
         $this->actingAsWithCsrf($admin)
-            ->patchJson('/api/orders/'.$order->id, ['status' => 'Pago'], self::CSRF_HEADER)
+            ->patchJson('/api/orders/'.$order->id.'/payment', ['confirmed' => true], self::CSRF_HEADER)
             ->assertOk();
         $firstPaidAt = $order->fresh()->paid_at;
 
         $this->actingAsWithCsrf($admin)
-            ->patchJson('/api/orders/'.$order->id, ['status' => 'Aguardando Pagamento'], self::CSRF_HEADER)
+            ->patchJson('/api/orders/'.$order->id.'/payment', ['confirmed' => false, 'reason' => 'Pagamento nao compensou.'], self::CSRF_HEADER)
             ->assertOk();
         $this->assertNull($order->fresh()->paid_at);
 
         $this->travel(1)->hours();
         $this->actingAsWithCsrf($admin)
-            ->patchJson('/api/orders/'.$order->id, ['status' => 'Pago'], self::CSRF_HEADER)
+            ->patchJson('/api/orders/'.$order->id.'/payment', ['confirmed' => true], self::CSRF_HEADER)
             ->assertOk();
 
         $secondPaidAt = $order->fresh()->paid_at;
@@ -174,7 +174,7 @@ class OrderPaymentConfirmationTest extends TestCase
         ]);
 
         $this->actingAsWithCsrf($seller)
-            ->patchJson('/api/orders/'.$order->id, ['status' => 'Pago'], self::CSRF_HEADER)
+            ->patchJson('/api/orders/'.$order->id.'/payment', ['confirmed' => true], self::CSRF_HEADER)
             ->assertStatus(403);
 
         $this->assertNull($order->fresh()->paid_at);

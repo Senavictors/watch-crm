@@ -36,6 +36,7 @@ class ProductReturn extends Model
     {
         return [
             'voided_at' => 'datetime',
+            'refund_approved_at' => 'datetime',
         ];
     }
 
@@ -45,7 +46,7 @@ class ProductReturn extends Model
      * qualquer consulta nova sobre `returns` que exponha dados ao usuário
      * precisa passar por aqui, senão reabre o IDOR do achado 3.
      *
-     * Matriz aprovada (documentada em DOCUMENTACAO.md, seção 5.12):
+     * Matriz aprovada (documentada em DOCUMENTACAO.md, seção 5.13):
      * - `owner`/`admin`/`gerente`: todas (já é o critério de
      *   `canAccessAllRecords()` em todo o sistema).
      * - `garantia`: todas — é a fila de trabalho do papel. É uma decisão

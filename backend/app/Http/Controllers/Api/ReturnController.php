@@ -139,6 +139,13 @@ class ReturnController extends Controller
     {
         $data = $this->validateData($request);
 
+        // TASK-027: nasce sempre em "Aguardando Recebimento" (RN-03 da
+        // TASK-017), então não há aprovação de reembolso aqui — mas o VALOR
+        // do reembolso já poderia ser definido na criação.
+        if ($financialDenial = $this->denyFinancialChanges($request, null, $data)) {
+            return $financialDenial;
+        }
+
         $productReturn = DB::transaction(function () use ($data, $request) {
             $productReturn = ProductReturn::create([
                 'order_id' => $data['orderId'] ?? null,
@@ -207,6 +214,14 @@ class ReturnController extends Controller
         $data = $this->validateData($request, true);
         $previousStatus = $productReturn->status;
         $newStatus = $data['status'] ?? $previousStatus;
+
+        // TASK-027 (RN-02/RN-03 / ADR-008): o update genérico deixa de
+        // produzir efeito financeiro. `garantia` e `gerente` mantêm
+        // `returns.update` e tocam o fluxo até "Reembolso Pendente", mas
+        // aprovar o reembolso e definir o valor exigem permissão dedicada.
+        if ($financialDenial = $this->denyFinancialChanges($request, $productReturn, $data, $newStatus, $previousStatus)) {
+            return $financialDenial;
+        }
 
         if ($newStatus !== $previousStatus && ! ReturnStatusTransition::isValid($previousStatus, $newStatus)) {
             return response()->json([
@@ -342,6 +357,125 @@ class ReturnController extends Controller
         return response()->json($this->toPayload($productReturn));
     }
 
+    /**
+     * TASK-027 — separa o que é operacional do que é financeiro numa mesma
+     * requisição de update/criação.
+     *
+     * Custos (`freightCostIn`, `watchmakerCost`, `freightCostOut`,
+     * `otherCosts`) continuam livres para quem tem `returns.update`: quem
+     * opera o pós-venda é quem tem a nota do frete e da bancada.
+     *
+     * @return \Illuminate\Http\JsonResponse|null
+     */
+    private function denyFinancialChanges(
+        Request $request,
+        ?ProductReturn $productReturn,
+        array $data,
+        ?string $newStatus = null,
+        ?string $previousStatus = null,
+    ) {
+        $user = $request->user();
+
+        if (
+            $newStatus === 'Reembolso Efetuado'
+            && $newStatus !== $previousStatus
+            && ! $user->hasPermission('returns.refund.approve')
+        ) {
+            return response()->json([
+                'message' => 'Aprovar reembolso exige permissão financeira. Deixe a devolução em "Reembolso Pendente" para que a aprovação seja feita por quem tem essa permissão.',
+                'code' => 'refund_approval_not_allowed',
+            ], 403);
+        }
+
+        if (! array_key_exists('refundAmount', $data)) {
+            return null;
+        }
+
+        $current = $productReturn?->refund_amount;
+        $incoming = $data['refundAmount'];
+        $unchanged = $current === null
+            ? $incoming === null
+            : ($incoming !== null && abs((float) $current - (float) $incoming) < 0.001);
+
+        if (! $unchanged && ! $user->hasPermission('returns.financials.update')) {
+            return response()->json([
+                'message' => 'Definir o valor do reembolso exige permissão financeira. Os custos operacionais da devolução continuam liberados.',
+                'code' => 'refund_amount_not_allowed',
+            ], 403);
+        }
+
+        return null;
+    }
+
+    /**
+     * TASK-027 (ADR-008) — aprovação de reembolso.
+     *
+     * Rota própria protegida por `returns.refund.approve`, com valor,
+     * motivo, aprovador e data registrados (RN-04). Reutiliza o escopo de
+     * ownership da TASK-026 (404 fora do escopo).
+     */
+    public function refund(Request $request, int $id)
+    {
+        $productReturn = $this->findVisible($request, $id, 'update');
+        if (! $productReturn instanceof ProductReturn) {
+            return $productReturn;
+        }
+
+        if ($productReturn->isVoided()) {
+            return response()->json([
+                'message' => 'Esta garantia/troca está estornada e não pode mais ser alterada.',
+                'code' => 'return_voided',
+            ], 422);
+        }
+
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0'],
+            'reason' => ['required', 'string', 'min:3', 'max:500'],
+        ]);
+
+        $previousStatus = $productReturn->status;
+
+        if ($previousStatus === 'Reembolso Efetuado') {
+            return response()->json(['message' => 'Este reembolso já foi aprovado.'], 422);
+        }
+
+        if (! ReturnStatusTransition::isValid($previousStatus, 'Reembolso Efetuado')) {
+            return response()->json([
+                'message' => "Transição de '{$previousStatus}' para 'Reembolso Efetuado' não é permitida.",
+            ], 422);
+        }
+
+        $previousAmount = $productReturn->refund_amount !== null ? (float) $productReturn->refund_amount : null;
+
+        DB::transaction(function () use ($productReturn, $request, $data, $previousStatus, $previousAmount) {
+            $productReturn->refund_amount = $data['amount'];
+            $productReturn->status = 'Reembolso Efetuado';
+            $productReturn->refund_approved_at = now();
+            $productReturn->refund_approved_by_user_id = $request->user()->id;
+            $productReturn->refund_reason = $data['reason'];
+            $productReturn->save();
+
+            ReturnStatusHistory::create([
+                'return_id' => $productReturn->id,
+                'from_status' => $previousStatus,
+                'to_status' => 'Reembolso Efetuado',
+                'actor_user_id' => $request->user()->id,
+                'created_at' => now(),
+            ]);
+
+            $this->audit('returns.refund_approved', 'Reembolso aprovado.', $productReturn, [
+                'previous_status' => $previousStatus,
+                'previous_amount' => $previousAmount,
+                'amount' => (float) $data['amount'],
+                'reason' => $data['reason'],
+            ]);
+        });
+
+        $productReturn->load(self::EAGER_LOADS);
+
+        return response()->json($this->toPayload($productReturn));
+    }
+
     private function validateData(Request $request, bool $partial = false): array
     {
         $required = $partial ? 'sometimes' : 'required';
@@ -436,6 +570,10 @@ class ReturnController extends Controller
             'withinWarrantyWindow' => $this->withinWarrantyWindow($r),
             // TASK-025: registro estornado continua visível e auditável, mas
             // fora de todo agregado financeiro.
+            // TASK-027 (RN-04): quem aprovou o reembolso, quando e por quê.
+            'refundApprovedAt' => $r->refund_approved_at?->toIso8601String(),
+            'refundApprovedByUserId' => $r->refund_approved_by_user_id,
+            'refundReason' => $r->refund_reason,
             'voidedAt' => $r->voided_at?->toIso8601String(),
             'voidedByUserId' => $r->voided_by_user_id,
             'voidReason' => $r->void_reason,

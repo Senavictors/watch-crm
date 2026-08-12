@@ -13,6 +13,7 @@ import {
   ReturnType,
 } from "../types";
 import { fmtBRL } from "../helpers";
+import { useAuth } from "../contexts/AuthContext";
 import ModalBackdrop from "../components/Modal/ModalBackdrop";
 import modalStyles from "../components/Modal/Modal.module.css";
 import styles from "./NewReturnForm.module.css";
@@ -74,6 +75,10 @@ const NewReturnForm: React.FC<Props> = ({
   onClose,
   onToast,
 }) => {
+  // TASK-027 (ADR-008): as duas permissões financeiras do pós-venda.
+  const { hasPermission } = useAuth();
+  const canApproveRefund = hasPermission("returns.refund.approve");
+  const canUpdateFinancials = hasPermission("returns.financials.update");
   const initialCustomer: Customer | null = returnToEdit
     ? { id: returnToEdit.customerId, name: returnToEdit.customerName, phone: returnToEdit.customerPhone }
     : prefilledOrder
@@ -117,12 +122,17 @@ const NewReturnForm: React.FC<Props> = ({
   // permanecer nele) + os destinos válidos a partir dele
   // (`metadata.transitions[statusAtual]`); o backend rejeita (422) qualquer
   // outra transição.
+  // TASK-027 (CA-04 / ADR-008) — "Reembolso Efetuado" sai da lista para quem
+  // não pode aprovar reembolso: o backend recusa com 403, e mostrar a opção
+  // seria oferecer uma ação que vai falhar. A aprovação tem ação própria no
+  // detalhe da devolução.
   const allowedStatusOptions = useMemo(() => {
     if (!returnToEdit) return [];
     const currentStatus = returnToEdit.status;
     const nextStatuses = metadata.transitions?.[currentStatus] ?? [];
-    return [currentStatus, ...nextStatuses.filter((s) => s !== currentStatus)];
-  }, [returnToEdit, metadata.transitions]);
+    return [currentStatus, ...nextStatuses.filter((s) => s !== currentStatus)]
+      .filter((s) => s !== "Reembolso Efetuado" || canApproveRefund || currentStatus === "Reembolso Efetuado");
+  }, [returnToEdit, metadata.transitions, canApproveRefund]);
 
   function handleOrderItemToggle(orderItemId: number) {
     setForm((current) => {
@@ -358,15 +368,27 @@ const NewReturnForm: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Reembolso (só para devolução) */}
+          {/* Reembolso (só para devolução) — TASK-027: o valor é dinheiro
+              voltando ao cliente, diferente dos custos acima, que são
+              operacionais. Sem permissão financeira o campo é somente
+              leitura; o backend recusa a alteração de qualquer forma. */}
           {form.type === "devolucao" && (
-            <Input
-              label="Valor do Reembolso (R$)"
-              type="number"
-              min={0}
-              value={form.refundAmount}
-              onChange={(e) => set("refundAmount", e.target.value)}
-            />
+            canUpdateFinancials ? (
+              <Input
+                label="Valor do Reembolso (R$)"
+                type="number"
+                min={0}
+                value={form.refundAmount}
+                onChange={(e) => set("refundAmount", e.target.value)}
+              />
+            ) : (
+              <div>
+                <span className={styles.label}>Valor do Reembolso (R$)</span>
+                <div className={styles.statusInfo}>
+                  {form.refundAmount ? fmtBRL(Number(form.refundAmount)) : "Definido na aprovação do reembolso"}
+                </div>
+              </div>
+            )
           )}
 
           {/* Tracking de reenvio */}

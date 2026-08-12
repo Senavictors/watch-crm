@@ -63,9 +63,9 @@ O Watch CRM centraliza a operação de uma loja de relógios em uma aplicação 
 |---|---|
 | `owner` | Acesso completo; também pode ser selecionado como vendedor em pedidos e metas. |
 | `admin` | Acesso completo à operação, financeiro, usuários e integração de IA. |
-| `gerente` | Gestão operacional, catálogo, pedidos, metas, configurações e usuários; sem relatórios financeiros sensíveis, comissões, despesas ou IA. |
+| `gerente` | Gestão operacional, catálogo, pedidos, metas, configurações e usuários; confirma pagamento de pedido. Sem relatórios financeiros sensíveis, comissões, despesas, IA nem aprovação de reembolso. |
 | `vendedor` | Leitura dos próprios dados operacionais, dashboard e própria comissão; cria e atualiza as próprias entradas da lista de espera. No pós-venda, vê apenas ocorrências de pedido próprio, criadas por ele ou atribuídas a ele. Não cria nem edita pedidos. |
-| `garantia` | Leitura de clientes, produtos, modelos e envios; cria e atualiza registros de pós-venda, com acesso à fila completa de ocorrências. |
+| `garantia` | Leitura de clientes, produtos, modelos e envios; cria e atualiza registros de pós-venda, com acesso à fila completa de ocorrências. Lança custos operacionais da devolução, mas não define valor de reembolso nem aprova reembolso. |
 
 As permissões são verificadas pelo middleware `permission:*`. Policies complementam o controle com ownership, como o escopo de clientes, pedidos, metas, lista de espera e pós-venda.
 
@@ -214,6 +214,7 @@ watch-crm/
 - `POST /api/orders` recebe a coleção `items`; cada item exige produto, quantidade, preço e desconto unitários.
 - Totais de venda, custo, desconto e comissão são calculados no backend.
 - Apenas usuários com `orders.create` ou `orders.update` podem manter pedidos; vendedor possui somente leitura dos pedidos atribuídos.
+- Confirmar ou reverter o pagamento é ação separada da edição (`owner`/`admin`/`gerente`): editar o pedido não marca mais a venda como paga. Um pedido não pago precisa ter o pagamento confirmado antes de ir para "Enviado", e reverter um pagamento exige motivo.
 - A primeira transição para `Pago` registra `paid_at` e o usuário que confirmou o pagamento.
 - `payment_expires_at` é opcional e suporta os alertas de pagamento pendente.
 - Uma comissão já conciliada não é reaberta silenciosamente por edição dos itens.
@@ -248,6 +249,7 @@ watch-crm/
 - Toda mudança de status gera histórico com ator e data.
 - O acesso é escopado por papel: `owner`, `admin`, `gerente` e `garantia` veem todas as ocorrências; vendedor vê apenas as de pedido próprio, criadas por ele ou atribuídas a ele. Ocorrência fora do escopo responde 404, sem confirmar que o registro existe.
 - Reembolsos efetivados reduzem os indicadores financeiros e o progresso de metas aplicáveis.
+- Aprovar reembolso é ação financeira dedicada (`owner`/`admin`), com valor e motivo registrados; `gerente` e `garantia` tocam o fluxo até "Reembolso Pendente" e não conseguem devolver dinheiro. Custos operacionais de frete e relojoeiro continuam com quem opera o pós-venda.
 
 ---
 
@@ -405,6 +407,7 @@ Não há Jest, Vitest ou Playwright configurado; mudanças de interface também 
 - [x] Alertas operacionais e resumo inteligente opcional
 - [x] Reserva e baixa transacional de estoque, com histórico auditável de movimentos
 - [x] Preservação de histórico financeiro: arquivamento de cliente, estorno de despesa/devolução e fim das exclusões em cascata
+- [x] Segregação das ações financeiras: confirmação de pagamento e aprovação de reembolso com permissão própria e motivo registrado
 
 ### Pendente ou bloqueado
 

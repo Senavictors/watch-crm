@@ -133,6 +133,28 @@ export default function GarantiasPage() {
     } catch (error) { pushToast(error instanceof Error ? error.message : "Erro.", "error"); }
   }
 
+  // TASK-027 (ADR-008): aprovar reembolso é ação financeira dedicada, com
+  // valor e motivo registrados — não é mais uma troca de status qualquer.
+  async function handleApproveRefund(item: ProductReturn) {
+    const rawAmount = prompt(
+      `Valor do reembolso da devolução #${item.id} (R$):`,
+      item.refundAmount != null ? String(item.refundAmount) : ""
+    )?.trim();
+    if (!rawAmount) return;
+    const amount = Number(rawAmount.replace(",", "."));
+    if (!Number.isFinite(amount) || amount < 0) { pushToast("Informe um valor válido.", "error"); return; }
+
+    const reason = prompt("Motivo da aprovação do reembolso:")?.trim();
+    if (!reason) return;
+    if (reason.length < 3) { pushToast("Descreva o motivo da aprovação.", "error"); return; }
+
+    try {
+      await apiUpdate<ProductReturn>(`/returns/${item.id}/refund`, { amount, reason }, "Falha ao aprovar reembolso.");
+      setViewReturn(null); reload();
+      pushToast("Reembolso aprovado.", "success");
+    } catch (error) { pushToast(error instanceof Error ? error.message : "Erro.", "error"); }
+  }
+
   return (
     <>
       <ReturnList
@@ -153,7 +175,7 @@ export default function GarantiasPage() {
         onUpdateStatus={handleUpdateStatus}
       />
       <PaginationBar meta={meta} onPageChange={setPage} disabled={loading} />
-      {viewReturn && !editReturn && <ReturnDetail productReturn={viewReturn} canUpdate={hasPermission("returns.update")} canVoid={hasPermission("returns.delete")} onClose={() => setViewReturn(null)} onEdit={(item) => { setEditReturn(item); setViewReturn(null); }} onVoid={handleVoidReturn} />}
+      {viewReturn && !editReturn && <ReturnDetail productReturn={viewReturn} canUpdate={hasPermission("returns.update")} canVoid={hasPermission("returns.delete")} canApproveRefund={hasPermission("returns.refund.approve")} onClose={() => setViewReturn(null)} onEdit={(item) => { setEditReturn(item); setViewReturn(null); }} onVoid={handleVoidReturn} onApproveRefund={handleApproveRefund} />}
       {showNew && <NewReturnForm metadata={metadata} onSave={handleSaveReturn} onClose={() => setShowNew(false)} onToast={pushToast} />}
       {editReturn && <NewReturnForm metadata={metadata} returnToEdit={editReturn} onSave={handleUpdateReturn} onClose={() => setEditReturn(null)} onToast={pushToast} />}
     </>

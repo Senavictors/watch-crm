@@ -192,7 +192,11 @@ class ReturnControllerTest extends TestCase
         $this->assertEqualsWithDelta(400.0, RevenueCalculator::calculate($admin), 0.001);
         $this->assertEqualsWithDelta(60.0, CommissionCalculator::accrued($admin), 0.001); // 30 * 2
 
-        $response = $this->actingAs($guarantee)
+        // TASK-027 (ADR-008): este teste codificava o achado 4 — `garantia`
+        // levava a devolução a "Reembolso Efetuado" com `returns.update`.
+        // Agora a aprovação exige `returns.refund.approve`, que garantia não
+        // tem; o efeito financeiro em si continua idêntico.
+        $this->actingAs($guarantee)
             ->withSession(['_token' => 'csrf-token'])
             ->patchJson('/api/returns/'.$productReturn->id, [
                 'status' => 'Reembolso Efetuado',
@@ -200,14 +204,24 @@ class ReturnControllerTest extends TestCase
                 'items' => [
                     ['orderItemId' => $item->id, 'productName' => 'Relógio X', 'productType' => 'Relógios', 'quantity' => 1, 'unitPrice' => 200],
                 ],
+            ], self::CSRF_HEADERS)
+            ->assertStatus(403)
+            ->assertJsonPath('code', 'refund_approval_not_allowed');
+
+        $response = $this->actingAs($admin)
+            ->withSession(['_token' => 'csrf-token'])
+            ->patchJson('/api/returns/'.$productReturn->id.'/refund', [
+                'amount' => 200,
+                'reason' => 'Peça devolvida sem conserto possível.',
             ], self::CSRF_HEADERS);
 
         $response->assertOk()
             ->assertJsonPath('status', 'Reembolso Efetuado')
-            ->assertJsonPath('refundAmount', 200);
+            ->assertJsonPath('refundAmount', 200)
+            ->assertJsonPath('refundApprovedByUserId', $admin->id);
 
         $this->assertDatabaseHas('audit_logs', [
-            'action' => 'returns.updated',
+            'action' => 'returns.refund_approved',
             'auditable_id' => $productReturn->id,
         ]);
 
@@ -283,7 +297,11 @@ class ReturnControllerTest extends TestCase
 
     public function test_invalid_status_transition_is_rejected_with_422(): void
     {
-        $guarantee = User::factory()->create(['role' => UserRole::Guarantee->value]);
+        // TASK-027: usa admin porque a transição alvo ("Reembolso Efetuado")
+        // passou a exigir `returns.refund.approve` — com garantia a resposta
+        // seria 403 pela permissão, mascarando a validação de transição que
+        // este teste quer cobrir.
+        $guarantee = User::factory()->create(['role' => UserRole::Admin->value]);
         $customer = Customer::factory()->create();
 
         $productReturn = ProductReturn::create([

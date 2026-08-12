@@ -149,12 +149,52 @@ function PedidosPageContent() {
     }
   }
 
+  // TASK-027 (ADR-008): status que cruza a fronteira de pagamento não passa
+  // mais pelo update genérico — o backend responde 403 e aponta a ação
+  // dedicada. Aqui traduzimos a intenção do operador ("marcar como Pago")
+  // para a chamada certa, pedindo motivo quando a mudança reverte o
+  // pagamento.
+  const PAID_STATUSES = ["Pago", "Separação/Fornecedor", "Pronto para Envio", "Enviado", "Entregue"];
+  const PENDING_STATUSES = ["Novo", "Aguardando Pagamento"];
+
   async function handleUpdateStatus(id: number, nextStatus: OrderStatus) {
+    const current = orders.find((order) => order.id === id) ?? (viewOrder?.id === id ? viewOrder : null);
+    const wasPaid = current ? PAID_STATUSES.includes(current.status) : false;
+    const willBePaid = PAID_STATUSES.includes(nextStatus);
+
+    if (current && willBePaid && !wasPaid) {
+      await confirmPayment(id, true);
+      return;
+    }
+
+    if (current && wasPaid && PENDING_STATUSES.includes(nextStatus)) {
+      const reason = prompt("Motivo da reversão do pagamento:")?.trim();
+      if (!reason) return;
+      if (reason.length < 3) { pushToast("Descreva o motivo da reversão.", "error"); return; }
+      await confirmPayment(id, false, reason);
+      return;
+    }
+
     try {
       const updated = await apiUpdate<Order>(`/orders/${id}`, { status: nextStatus }, "Falha ao atualizar status.");
       setOrders((current) => current.map((order) => order.id === id ? { ...order, status: updated.status } : order));
       setViewOrder((current) => current?.id === id ? updated : current);
       pushToast("Status atualizado com sucesso.", "success");
+    } catch (error) {
+      pushToast(error instanceof Error ? error.message : "Erro.", "error");
+    }
+  }
+
+  async function confirmPayment(id: number, confirmed: boolean, reason?: string) {
+    try {
+      const updated = await apiUpdate<Order>(
+        `/orders/${id}/payment`,
+        confirmed ? { confirmed: true } : { confirmed: false, reason },
+        confirmed ? "Falha ao confirmar pagamento." : "Falha ao reverter pagamento."
+      );
+      setOrders((current) => current.map((order) => order.id === id ? { ...order, status: updated.status } : order));
+      setViewOrder((current) => current?.id === id ? updated : current);
+      pushToast(confirmed ? "Pagamento confirmado." : "Pagamento revertido.", "success");
     } catch (error) {
       pushToast(error instanceof Error ? error.message : "Erro.", "error");
     }

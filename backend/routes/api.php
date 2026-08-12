@@ -95,6 +95,9 @@ Route::middleware('web')->group(function () {
         Route::post('/orders', [OrderController::class, 'store'])->middleware('permission:orders.create');
         Route::put('/orders/{id}', [OrderController::class, 'update'])->middleware('permission:orders.update');
         Route::patch('/orders/{id}', [OrderController::class, 'update'])->middleware('permission:orders.update');
+        // TASK-027 (ADR-008): confirmar/reverter pagamento é ação financeira
+        // dedicada — `orders.update` sozinho não produz mais `paid_at`.
+        Route::patch('/orders/{id}/payment', [OrderController::class, 'payment'])->middleware('permission:orders.payment.confirm');
         Route::delete('/orders/{id}', [OrderController::class, 'destroy'])->middleware('permission:orders.delete');
 
         Route::get('/returns/metadata', [ReturnController::class, 'metadata'])->middleware('permission:returns.view');
@@ -106,6 +109,9 @@ Route::middleware('web')->group(function () {
         Route::delete('/returns/{id}', [ReturnController::class, 'destroy'])->middleware('permission:returns.delete');
         // TASK-025: devolução com impacto financeiro é estornada (ADR-007).
         Route::patch('/returns/{id}/void', [ReturnController::class, 'void'])->middleware('permission:returns.delete');
+        // TASK-027 (ADR-008): aprovar reembolso é dinheiro saindo — fora do
+        // alcance de `returns.update`, que garantia e gerente possuem.
+        Route::patch('/returns/{id}/refund', [ReturnController::class, 'refund'])->middleware('permission:returns.refund.approve');
 
         Route::get('/commissions', [CommissionController::class, 'index'])->middleware('permission:commissions.view');
         Route::post('/commissions/pay', [CommissionController::class, 'pay'])->middleware('permission:commissions.pay');

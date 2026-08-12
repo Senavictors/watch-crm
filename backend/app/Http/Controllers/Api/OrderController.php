@@ -168,6 +168,20 @@ class OrderController extends Controller
     public function store(Request $request)
     {
         $data = $this->validateData($request);
+
+        // TASK-027 (RN-01): criar o pedido já em status pago confirma o
+        // pagamento na criação (`OrderPaymentTransition::applyOnCreate`) —
+        // mesmo efeito financeiro, mesma permissão exigida.
+        if (
+            in_array($data['status'] ?? 'Novo', OrderMetadata::PAID_STATUSES, true)
+            && ! $request->user()->hasPermission('orders.payment.confirm')
+        ) {
+            return response()->json([
+                'message' => 'Criar um pedido já pago confirma o pagamento e exige permissão financeira. Crie o pedido como "Novo" ou "Aguardando Pagamento".',
+                'code' => 'payment_confirmation_not_allowed',
+            ], 403);
+        }
+
         $seller = User::query()->findOrFail($data['sellerUserId']);
         $products = $this->productsById($data['items']);
         $totals = $this->calculateTotals($data['items'], $products);
@@ -287,6 +301,24 @@ class OrderController extends Controller
 
         $previousStatus = $order->status;
 
+        // TASK-027 (RN-01 / ADR-008): o update genérico deixa de produzir
+        // efeito financeiro. Uma mudança de status que confirme ou reverta
+        // pagamento precisa passar pelo endpoint dedicado, que exige
+        // `orders.payment.confirm` e registra motivo.
+        if (isset($data['status']) && $data['status'] !== $previousStatus) {
+            $crossing = $this->paymentBoundaryCrossing($previousStatus, $data['status']);
+
+            if ($crossing !== null) {
+                return response()->json([
+                    'message' => $crossing === 'confirm'
+                        ? 'Este status marca o pedido como pago. Confirme o pagamento primeiro, pela ação de confirmação de pagamento.'
+                        : 'Este status reverte a confirmação de pagamento. Use a ação de reversão de pagamento, que exige motivo.',
+                    'code' => 'payment_transition_requires_dedicated_action',
+                    'action' => 'PATCH /api/orders/'.$order->id.'/payment',
+                ], 403);
+            }
+        }
+
         if (array_key_exists('customerId', $data)) {
             $order->customer_id = $data['customerId'];
         }
@@ -375,6 +407,101 @@ class OrderController extends Controller
         }
 
         return response()->json($this->toPayload($order, $request->user()->canViewFinancialReports()));
+    }
+
+    /**
+     * TASK-027 (ADR-008) — confirmação e reversão de pagamento.
+     *
+     * Existe separada de `update()` porque o efeito é financeiro: a partir
+     * de `paid_at` a venda entra em faturamento, lucro, meta e comissão, e o
+     * estoque reservado vira baixa (ADR-006). A rota exige
+     * `orders.payment.confirm`; reverter exige motivo (RN-04).
+     */
+    public function payment(Request $request, int $id)
+    {
+        $order = Order::query()->with(['customer', 'sellerUser', 'paidByUser', 'items'])->find($id);
+
+        if (! $order) {
+            return response()->json(['message' => 'Pedido não encontrado.'], 404);
+        }
+
+        $this->authorize('update', $order);
+
+        $data = $request->validate([
+            'confirmed' => ['required', 'boolean'],
+            // Reverter um pagamento já confirmado desfaz faturamento e
+            // comissão projetada — sem motivo registrado, o histórico não
+            // explica o buraco no relatório.
+            'reason' => [$request->boolean('confirmed') ? 'nullable' : 'required', 'string', 'min:3', 'max:500'],
+        ]);
+
+        $confirm = (bool) $data['confirmed'];
+
+        if ($order->status === 'Cancelado') {
+            return response()->json([
+                'message' => 'Pedido cancelado não tem pagamento a confirmar ou reverter.',
+                'code' => 'order_cancelled',
+            ], 422);
+        }
+
+        if ($confirm === ($order->paid_at !== null)) {
+            return response()->json([
+                'message' => $confirm
+                    ? 'O pagamento deste pedido já está confirmado.'
+                    : 'Este pedido não tem pagamento confirmado para reverter.',
+            ], 422);
+        }
+
+        $previousStatus = $order->status;
+        $order->status = $confirm ? 'Pago' : 'Aguardando Pagamento';
+
+        $paymentEvent = OrderPaymentTransition::apply($order, $previousStatus, $request->user());
+
+        DB::transaction(function () use ($order, $request) {
+            $order->save();
+
+            // ADR-006: confirmar converte a reserva em baixa; reverter
+            // devolve a baixa para reserva. Mesma transação do pagamento.
+            $order->load('items');
+            StockLedger::syncOrder($order, $request->user());
+        }, 3);
+
+        $order->load(['customer', 'sellerUser', 'paidByUser', 'items']);
+
+        $this->audit($paymentEvent ?? 'orders.updated', $confirm ? 'Pagamento confirmado.' : 'Confirmação de pagamento revertida.', $order, [
+            'previous_status' => $previousStatus,
+            'status' => $order->status,
+            'paid_at' => $order->paid_at?->toIso8601String(),
+            'paid_by_user_id' => $order->paid_by_user_id,
+            'reason' => $data['reason'] ?? null,
+        ]);
+
+        return response()->json($this->toPayload($order, $request->user()->canViewFinancialReports()));
+    }
+
+    /**
+     * `confirm` quando a mudança de status passa de não pago para pago,
+     * `revert` no caminho inverso, `null` quando o status muda sem tocar na
+     * fronteira (ex.: "Pronto para Envio" → "Enviado", ambos pagos).
+     *
+     * Cancelamento é tratado como movimento operacional: não confirma
+     * pagamento e a reversão de `paid_at` não acontece (Cancelado não está
+     * em `PENDING_PAYMENT_STATUSES`), então segue livre por `update()`.
+     */
+    private function paymentBoundaryCrossing(string $previousStatus, string $newStatus): ?string
+    {
+        $wasPaid = in_array($previousStatus, OrderMetadata::PAID_STATUSES, true);
+        $isPaid = in_array($newStatus, OrderMetadata::PAID_STATUSES, true);
+
+        if ($isPaid && ! $wasPaid) {
+            return 'confirm';
+        }
+
+        if ($wasPaid && in_array($newStatus, OrderMetadata::PENDING_PAYMENT_STATUSES, true)) {
+            return 'revert';
+        }
+
+        return null;
     }
 
     public function destroy(Request $request, int $id)

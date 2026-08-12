@@ -48,10 +48,16 @@ export type Permission =
   | "orders.create"
   | "orders.update"
   | "orders.delete"
+  // TASK-027 (ADR-008): escrita financeira separada da operacional.
+  // Confirmar/reverter pagamento (owner, admin, gerente).
+  | "orders.payment.confirm"
   | "returns.view"
   | "returns.create"
   | "returns.update"
   | "returns.delete"
+  // Aprovar reembolso e definir o valor do reembolso (owner, admin).
+  | "returns.refund.approve"
+  | "returns.financials.update"
   | "goals.view"
   | "goals.create"
   | "goals.update"
@@ -471,6 +477,10 @@ export type ProductReturn = {
   // TASK-017 — `null` quando não calculável (sem pedido vinculado, ou pedido
   // sem data de venda); não é um terceiro estado a exibir, é "não há dado".
   withinWarrantyWindow: boolean | null;
+  // TASK-027 (RN-04): rastro da aprovação de reembolso.
+  refundApprovedAt?: string | null;
+  refundApprovedByUserId?: number | null;
+  refundReason?: string | null;
   // TASK-025: estornada — o registro permanece no histórico, mas sai de
   // faturamento, comissões, metas e dashboard, e não aceita mais edição.
   voidedAt?: string | null;

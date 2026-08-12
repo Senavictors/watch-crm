@@ -66,6 +66,21 @@ class StockLedgerTest extends TestCase
             ->patchJson("/api/orders/{$orderId}", $payload, ['X-CSRF-TOKEN' => 'csrf-token']);
     }
 
+    /**
+     * TASK-027 (ADR-008): confirmar/reverter pagamento saiu do update
+     * genérico e passou a ter rota própria com permissão financeira.
+     */
+    private function setPayment(int $orderId, bool $confirmed, ?User $actor = null)
+    {
+        return $this->withSession(['_token' => 'csrf-token'])
+            ->actingAs($actor ?? $this->admin)
+            ->patchJson(
+                "/api/orders/{$orderId}/payment",
+                $confirmed ? ['confirmed' => true] : ['confirmed' => false, 'reason' => 'Pagamento não compensou.'],
+                ['X-CSRF-TOKEN' => 'csrf-token']
+            );
+    }
+
     private function item(Product $product, int $quantity = 1): array
     {
         return [
@@ -99,7 +114,7 @@ class StockLedgerTest extends TestCase
         $product = Product::factory()->create(['qty' => 5]);
         $orderId = $this->createOrder([$this->item($product, 2)])->json('id');
 
-        $this->patchOrder($orderId, ['status' => 'Pago'])->assertOk();
+        $this->setPayment($orderId, true)->assertOk();
 
         $product->refresh();
         $this->assertSame(3, $product->qty);
@@ -124,7 +139,7 @@ class StockLedgerTest extends TestCase
 
         $this->assertSame(3, $product->fresh()->qty);
 
-        $this->patchOrder($orderId, ['status' => 'Aguardando Pagamento'])->assertOk();
+        $this->setPayment($orderId, false)->assertOk();
 
         $product->refresh();
         $this->assertSame(5, $product->qty);
@@ -365,7 +380,7 @@ class StockLedgerTest extends TestCase
     {
         $product = Product::factory()->create(['qty' => 5]);
         $orderId = $this->createOrder([$this->item($product, 2)])->json('id');
-        $this->patchOrder($orderId, ['status' => 'Pago'])->assertOk();
+        $this->setPayment($orderId, true)->assertOk();
 
         $movements = StockMovement::where('order_id', $orderId)->orderBy('id')->get();
 

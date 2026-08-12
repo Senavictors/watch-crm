@@ -41,10 +41,24 @@ class CrmPermissions
         'orders.create',
         'orders.update',
         'orders.delete',
+        // TASK-027 (ADR-008) — escrita financeira deixa de ser efeito
+        // colateral de permissão operacional. `orders.update` edita o
+        // pedido; confirmar/reverter pagamento (que grava `paid_at` e
+        // dispara faturamento, meta, comissão e baixa de estoque) exige
+        // esta permissão dedicada.
+        'orders.payment.confirm',
         'returns.view',
         'returns.create',
         'returns.update',
         'returns.delete',
+        // Aprovar reembolso é dinheiro saindo: `garantia` e `gerente`
+        // tocam o fluxo até "Reembolso Pendente" e param ali.
+        'returns.refund.approve',
+        // Gateia um CAMPO (`refund_amount`), não uma rota — mesmo padrão
+        // documentado de `dashboard.financial.view` (TASK-013). Custos
+        // operacionais da devolução (frete, relojoeiro) seguem em
+        // `returns.update`, com quem tem o dado.
+        'returns.financials.update',
         'goals.view',
         'goals.create',
         'goals.update',
@@ -109,10 +123,20 @@ class CrmPermissions
      * ADR-003 ("lucro, despesas e estoque financeiro são restritos") — sem
      * ambiguidade aqui, diferente de comissão.
      */
+    /**
+     * TASK-027 (ADR-008): gerente MANTÉM `orders.payment.confirm` — toca a
+     * operação do dia a dia e precisa marcar pedido como pago; o que ele
+     * continua sem ver é lucro/custo/margem. Já a aprovação de reembolso
+     * (`returns.refund.approve`) e o valor do reembolso
+     * (`returns.financials.update`) saem: são dinheiro voltando ao cliente,
+     * no mesmo tier de comissões e despesas que ele já não acessa.
+     */
     public static function manager(): array
     {
         return array_values(array_diff(self::ALL, [
             'dashboard.financial.view',
+            'returns.refund.approve',
+            'returns.financials.update',
             'ai.summary.generate',
             'ai.settings.view',
             'ai.settings.update',
