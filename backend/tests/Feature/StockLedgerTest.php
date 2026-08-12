@@ -296,12 +296,11 @@ class StockLedgerTest extends TestCase
                 'orderId' => $orderId,
                 'customerId' => $this->customer->id,
                 'type' => 'devolucao',
+                // TASK-028: item de devolução vinculada a pedido é uma linha
+                // daquele pedido, escolhida por ID.
                 'items' => [[
-                    'productId' => $product->id,
-                    'productName' => 'Relógio',
-                    'productType' => 'Relógios',
+                    'orderItemId' => Order::find($orderId)->items()->first()->id,
                     'quantity' => 1,
-                    'unitPrice' => 200,
                 ]],
             ], ['X-CSRF-TOKEN' => 'csrf-token']);
 

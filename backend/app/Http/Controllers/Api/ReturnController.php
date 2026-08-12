@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Order;
 use App\Models\ProductReturn;
 use App\Models\ReturnItem;
 use App\Models\ReturnStatusHistory;
 use App\Models\User;
 use App\Support\ApiPagination;
+use App\Support\ReturnItemResolver;
 use App\Support\ReturnMetadata;
 use App\Support\ReturnStatusTransition;
 use App\Support\ReturnWarrantyWindow;
@@ -146,6 +148,12 @@ class ReturnController extends Controller
             return $financialDenial;
         }
 
+        // TASK-028 (RN-01/CA-01): pedido e cliente precisam ser coerentes —
+        // IDs válidos mas incompatíveis são exatamente o achado 5.
+        if ($linkDenial = $this->denyInconsistentLink($data['orderId'] ?? null, (int) $data['customerId'])) {
+            return $linkDenial;
+        }
+
         $productReturn = DB::transaction(function () use ($data, $request) {
             $productReturn = ProductReturn::create([
                 'order_id' => $data['orderId'] ?? null,
@@ -172,6 +180,8 @@ class ReturnController extends Controller
                 'shipped_back_date' => $data['shippedBackDate'] ?? null,
             ]);
 
+            // RN-05: validação relacional, cálculo de saldo e gravação sob
+            // lock, na mesma transação.
             $this->syncItems($productReturn, $data['items']);
 
             ReturnStatusHistory::create([
@@ -221,6 +231,26 @@ class ReturnController extends Controller
         // aprovar o reembolso e definir o valor exigem permissão dedicada.
         if ($financialDenial = $this->denyFinancialChanges($request, $productReturn, $data, $newStatus, $previousStatus)) {
             return $financialDenial;
+        }
+
+        // TASK-028 (RN-01): a coerência vale para o estado final, não só
+        // para o que veio no corpo — trocar só o cliente ou só o pedido
+        // também pode cruzar os dois.
+        $effectiveOrderId = array_key_exists('orderId', $data) ? $data['orderId'] : $productReturn->order_id;
+        $effectiveCustomerId = array_key_exists('customerId', $data) ? $data['customerId'] : $productReturn->customer_id;
+
+        if ($linkDenial = $this->denyInconsistentLink($effectiveOrderId, (int) $effectiveCustomerId)) {
+            return $linkDenial;
+        }
+
+        // Trocar o pedido invalida os itens já gravados (eles são linhas do
+        // pedido anterior). Exigir o reenvio é mais honesto do que apagar os
+        // itens em silêncio ou deixá-los apontando para a venda errada.
+        if ((int) $effectiveOrderId !== (int) $productReturn->order_id && ! array_key_exists('items', $data)) {
+            return response()->json([
+                'message' => 'Ao trocar o pedido vinculado, os itens da devolução precisam ser selecionados de novo.',
+                'code' => 'return_items_require_reselection',
+            ], 422);
         }
 
         if ($newStatus !== $previousStatus && ! ReturnStatusTransition::isValid($previousStatus, $newStatus)) {
@@ -499,41 +529,70 @@ class ReturnController extends Controller
             'refundAmount' => [$nullable, 'numeric', 'min:0'],
             'returnTrackingCode' => [$nullable, 'string', 'max:255'],
             'shippedBackDate' => [$nullable, 'date'],
+            // TASK-028 (RN-03): o request diz QUAL item e QUANTAS unidades.
+            // Nome, categoria, marca, modelo, qualidade e preço são
+            // derivados de `OrderItem`/`Product` por `ReturnItemResolver` —
+            // se vierem no corpo, são ignorados de propósito, porque
+            // alimentam faturamento, comissão e meta.
             'items' => [$required, 'array', 'min:1'],
             'items.*.orderItemId' => ['nullable', 'integer', Rule::exists('order_items', 'id')],
             'items.*.productId' => ['nullable', 'integer', Rule::exists('products', 'id')],
-            'items.*.productName' => ['required', 'string'],
-            'items.*.productType' => ['required', 'string'],
-            'items.*.brandName' => ['nullable', 'string'],
-            'items.*.modelName' => ['nullable', 'string'],
-            'items.*.qualityName' => ['nullable', 'string'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
-            'items.*.unitPrice' => ['required', 'numeric', 'min:0'],
         ]);
     }
 
+    /**
+     * TASK-028 — os snapshots gravados aqui vêm de `ReturnItemResolver`
+     * (derivados de `OrderItem`/`Product`), não do request. Chamado sempre
+     * dentro da transação de escrita, para que os locks do cálculo de saldo
+     * valham até o commit.
+     */
     private function syncItems(ProductReturn $productReturn, array $items): void
     {
+        $order = $productReturn->order_id !== null
+            ? Order::query()->find($productReturn->order_id)
+            : null;
+
+        $rows = ReturnItemResolver::resolve($order, $items, $productReturn->id);
+
         $productReturn->items()->delete();
 
-        $payload = collect($items)
-            ->map(fn (array $item) => [
-                'return_id' => $productReturn->id,
-                'order_item_id' => $item['orderItemId'] ?? null,
-                'product_id' => $item['productId'] ?? null,
-                'product_name' => $item['productName'],
-                'product_type' => $item['productType'],
-                'brand_name' => $item['brandName'] ?? null,
-                'model_name' => $item['modelName'] ?? null,
-                'quality_name' => $item['qualityName'] ?? null,
-                'quantity' => (int) $item['quantity'],
-                'unit_price' => (float) $item['unitPrice'],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ])
-            ->all();
+        $productReturn->items()->insert(array_map(fn (array $row) => [
+            ...$row,
+            'return_id' => $productReturn->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], $rows));
+    }
 
-        $productReturn->items()->insert($payload);
+    /**
+     * RN-01 — quando há pedido vinculado, o cliente da devolução tem de ser
+     * o cliente daquele pedido. Responde 422 em vez de corrigir em silêncio:
+     * um cliente trocado costuma indicar pedido errado, não campo errado.
+     *
+     * @return \Illuminate\Http\JsonResponse|null
+     */
+    private function denyInconsistentLink(?int $orderId, ?int $customerId)
+    {
+        if ($orderId === null || $customerId === null) {
+            return null;
+        }
+
+        $order = Order::query()->find($orderId);
+
+        if ($order === null) {
+            return null; // `Rule::exists` já cobre; aqui só evita null pointer.
+        }
+
+        if ((int) $order->customer_id !== $customerId) {
+            return response()->json([
+                'message' => "O pedido #{$orderId} pertence a outro cliente. Selecione o cliente do próprio pedido.",
+                'code' => 'return_customer_mismatch',
+                'errors' => ['customerId' => ['O cliente informado não é o cliente do pedido vinculado.']],
+            ], 422);
+        }
+
+        return null;
     }
 
     private function toPayload(ProductReturn $r, bool $includeHistory = true): array

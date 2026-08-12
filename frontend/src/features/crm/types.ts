@@ -541,16 +541,17 @@ export type ReturnInput = {
   items: ReturnItemInput[];
 };
 
+/**
+ * TASK-028 — o request diz QUAL item e QUANTAS unidades; nome, categoria,
+ * marca, modelo, qualidade e preço são derivados no backend a partir do
+ * `OrderItem` (devolução vinculada a pedido) ou do `Product` (devolução
+ * avulsa). Enviar snapshots aqui não teria efeito: eles alimentam
+ * faturamento, comissão e meta, e por isso não podem vir do cliente HTTP.
+ */
 export type ReturnItemInput = {
-  orderItemId: number | null;
-  productId: number | null;
-  productName: string;
-  productType: string;
-  brandName: string | null;
-  modelName: string | null;
-  qualityName: string | null;
+  orderItemId?: number | null;
+  productId?: number | null;
   quantity: number;
-  unitPrice: number;
 };
 
 /**

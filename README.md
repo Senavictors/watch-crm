@@ -249,6 +249,7 @@ watch-crm/
 - Toda mudança de status gera histórico com ator e data.
 - O acesso é escopado por papel: `owner`, `admin`, `gerente` e `garantia` veem todas as ocorrências; vendedor vê apenas as de pedido próprio, criadas por ele ou atribuídas a ele. Ocorrência fora do escopo responde 404, sem confirmar que o registro existe.
 - Reembolsos efetivados reduzem os indicadores financeiros e o progresso de metas aplicáveis.
+- Os itens de uma devolução vinculada a pedido são linhas daquele pedido, escolhidas por ID; sem pedido vinculado, o produto vem do catálogo. Nome, categoria e preço são derivados da venda ou do catálogo, nunca do que o navegador envia, e não é possível devolver mais unidades do que foram vendidas.
 - Aprovar reembolso é ação financeira dedicada (`owner`/`admin`), com valor e motivo registrados; `gerente` e `garantia` tocam o fluxo até "Reembolso Pendente" e não conseguem devolver dinheiro. Custos operacionais de frete e relojoeiro continuam com quem opera o pós-venda.
 
 ---
@@ -408,6 +409,7 @@ Não há Jest, Vitest ou Playwright configurado; mudanças de interface também 
 - [x] Reserva e baixa transacional de estoque, com histórico auditável de movimentos
 - [x] Preservação de histórico financeiro: arquivamento de cliente, estorno de despesa/devolução e fim das exclusões em cascata
 - [x] Segregação das ações financeiras: confirmação de pagamento e aprovação de reembolso com permissão própria e motivo registrado
+- [x] Integridade dos vínculos de devolução: pedido, cliente e item validados juntos, snapshots derivados e saldo devolvível respeitado
 
 ### Pendente ou bloqueado
 

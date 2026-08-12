@@ -51,6 +51,17 @@ class FinancialActionSegregationTest extends TestCase
         ], $overrides));
     }
 
+    /**
+     * TASK-028: devolução sem pedido vinculado passa a exigir um produto do
+     * catálogo — nome, categoria e preço são derivados dele.
+     */
+    private function catalogProduct(): \App\Models\Product
+    {
+        return $this->product ??= \App\Models\Product::factory()->create();
+    }
+
+    private ?\App\Models\Product $product = null;
+
     private function pendingRefund(): ProductReturn
     {
         return ProductReturn::create([
@@ -231,7 +242,7 @@ class FinancialActionSegregationTest extends TestCase
     {
         $guarantee = User::factory()->create(['role' => UserRole::Guarantee->value]);
         $productReturn = $this->pendingRefund();
-        $items = [['productName' => 'Relógio', 'productType' => 'Relógios', 'quantity' => 1, 'unitPrice' => 300]];
+        $items = [['productId' => $this->catalogProduct()->id, 'quantity' => 1]];
 
         // Custo operacional: liberado, é quem tem a nota do frete.
         $this->acting($guarantee)->patchJson("/api/returns/{$productReturn->id}", [
@@ -259,7 +270,7 @@ class FinancialActionSegregationTest extends TestCase
             'customerId' => $this->customer->id,
             'type' => 'devolucao',
             'refundAmount' => 500,
-            'items' => [['productName' => 'Relógio', 'productType' => 'Relógios', 'quantity' => 1, 'unitPrice' => 500]],
+            'items' => [['productId' => $this->catalogProduct()->id, 'quantity' => 1]],
         ], self::CSRF)
             ->assertStatus(403)
             ->assertJsonPath('code', 'refund_amount_not_allowed');
@@ -281,7 +292,7 @@ class FinancialActionSegregationTest extends TestCase
         $this->acting($guarantee)->patchJson("/api/returns/{$productReturn->id}", [
             'refundAmount' => 300,
             'otherCosts' => 10,
-            'items' => [['productName' => 'Relógio', 'productType' => 'Relógios', 'quantity' => 1, 'unitPrice' => 300]],
+            'items' => [['productId' => $this->catalogProduct()->id, 'quantity' => 1]],
         ], self::CSRF)->assertOk();
 
         $this->assertEqualsWithDelta(300.0, (float) $productReturn->fresh()->refund_amount, 0.001);
@@ -295,7 +306,7 @@ class FinancialActionSegregationTest extends TestCase
 
         $this->acting($manager)->patchJson("/api/returns/{$productReturn->id}", [
             'status' => 'Reembolso Efetuado',
-            'items' => [['productName' => 'Relógio', 'productType' => 'Relógios', 'quantity' => 1, 'unitPrice' => 300]],
+            'items' => [['productId' => $this->catalogProduct()->id, 'quantity' => 1]],
         ], self::CSRF)
             ->assertStatus(403)
             ->assertJsonPath('code', 'refund_approval_not_allowed');

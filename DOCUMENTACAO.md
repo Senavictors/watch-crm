@@ -380,6 +380,25 @@ Semântica definida em `ADR-006` e implementada em `App\Support\StockLedger`, o 
 - Toda transição gera registro em `return_status_history`.
 - O detalhe expõe histórico e indicador da janela de garantia.
 
+Integridade dos vínculos (`TASK-028`) — o request diz **qual item** e **quantas unidades**; o servidor deriva o resto:
+
+```json
+{
+  "orderId": 10,
+  "customerId": 3,
+  "type": "devolucao",
+  "items": [{ "orderItemId": 42, "quantity": 1 }]
+}
+```
+
+- `customerId` precisa ser o cliente do pedido vinculado; combinação cruzada responde 422 com `code = return_customer_mismatch`.
+- Com pedido vinculado, cada item exige `orderItemId` de uma linha **daquele** pedido. Item de outro pedido responde 422.
+- Sem pedido vinculado, cada item exige `productId` do catálogo; `orderItemId` é recusado nesse caso. A devolução avulsa não consome saldo nem tem efeito financeiro automático, por não haver venda correspondente.
+- `productName`, `productType`, `brandName`, `modelName`, `qualityName` e `unitPrice` são **derivados** de `OrderItem` (vinculada) ou `Product` (avulsa). Se vierem no corpo, são ignorados: alimentam faturamento, comissão e meta e não podem vir do cliente HTTP.
+- A soma das devoluções efetivas de uma linha de pedido não pode exceder a quantidade vendida. Linhas repetidas do mesmo item no payload são somadas antes de validar; devolução estornada (`voided_at`) devolve o saldo.
+- Validação, cálculo de saldo e gravação acontecem sob `lockForUpdate()` na mesma transação — duas devoluções concorrentes não ultrapassam o saldo (verificado em MySQL real por `ReturnBalanceConcurrencyMySqlTest`).
+- Trocar o pedido vinculado exige reenviar os itens (422 com `code = return_items_require_reselection`), porque os itens antigos são linhas do pedido anterior.
+
 Ownership (matriz aprovada na `TASK-026`):
 
 | Papel | Escopo de pós-venda |
@@ -732,7 +751,9 @@ Não há suíte Jest, Vitest ou Playwright configurada. Mudanças visuais exigem
 
 - Pedido pendente segura estoque até ser pago ou cancelado; não há expiração automática da reserva.
 - A reposição de estoque por devolução é deliberadamente manual (`ADR-006`), não automática.
-- Os testes que exigem MySQL real (`StockConcurrencyMySqlTest`, `RestrictedDeletesMySqlTest`) usam um banco descartável e são pulados quando o usuário da aplicação não pode criá-lo.
+- Os testes que exigem MySQL real (`StockConcurrencyMySqlTest`, `RestrictedDeletesMySqlTest`, `ReturnBalanceConcurrencyMySqlTest`) usam um banco descartável e são pulados quando o usuário da aplicação não pode criá-lo.
+- Devolução de peça que nunca passou pelo sistema exige cadastrar o produto no catálogo antes (`TASK-028`): não há mais item de texto livre.
+- Uma devolução antiga registrada com pedido vinculado mas sem `order_item_id` continua válida; só novas gravações exigem o vínculo.
 - Despesa lançada por engano fica registrada para sempre, estornada — não há exclusão de despesa (`ADR-007`).
 - Excluir marca, modelo ou produto em uso deixou de funcionar; a limpeza de catálogo antigo exige remover os dependentes primeiro.
 - A troca de `CASCADE` por `RESTRICT` nas FKs só é aplicada no MySQL; no SQLite da suíte a proteção equivalente é a camada de aplicação.

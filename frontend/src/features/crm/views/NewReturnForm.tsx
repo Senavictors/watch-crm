@@ -6,13 +6,14 @@ import {
   Customer,
   Order,
   OrderItem,
+  Product,
   ProductReturn,
   ReturnInput,
   ReturnItemInput,
   ReturnMetadata,
   ReturnType,
 } from "../types";
-import { fmtBRL } from "../helpers";
+import { fmtBRL, productLabel } from "../helpers";
 import { useAuth } from "../contexts/AuthContext";
 import ModalBackdrop from "../components/Modal/ModalBackdrop";
 import modalStyles from "../components/Modal/Modal.module.css";
@@ -34,22 +35,18 @@ type Props = {
   onToast: (message: string, variant?: "success" | "error") => void;
 };
 
+// TASK-028: só ID e quantidade — o backend deriva o resto da venda real.
 const itemFromOrderItem = (oi: OrderItem): ReturnItemInput => ({
   orderItemId: oi.id ?? null,
-  productId: oi.productId,
-  productName: oi.productName,
-  productType: oi.productType,
-  brandName: oi.brandName ?? null,
-  modelName: oi.modelName ?? null,
-  qualityName: oi.qualityName ?? null,
   quantity: oi.quantity,
-  unitPrice: oi.unitPrice,
 });
 
 const emptyForm = (metadata: ReturnMetadata, prefilledOrder?: Order) => ({
   customerId: prefilledOrder ? String(prefilledOrder.customerId) : "",
   orderId: prefilledOrder ? String(prefilledOrder.id) : "",
   selectedOrderItemIds: [] as number[],
+  // TASK-028: quantidade da devolução avulsa (sem pedido vinculado).
+  manualQuantity: "1",
   assignedUserId: "",
   type: "garantia" as ReturnType,
   status: INITIAL_RETURN_STATUS,
@@ -79,6 +76,8 @@ const NewReturnForm: React.FC<Props> = ({
   const { hasPermission } = useAuth();
   const canApproveRefund = hasPermission("returns.refund.approve");
   const canUpdateFinancials = hasPermission("returns.financials.update");
+  // TASK-028: produto do catálogo para a devolução avulsa (sem pedido).
+  const [manualProduct, setManualProduct] = useState<Product | null>(null);
   const initialCustomer: Customer | null = returnToEdit
     ? { id: returnToEdit.customerId, name: returnToEdit.customerName, phone: returnToEdit.customerPhone }
     : prefilledOrder
@@ -94,6 +93,7 @@ const NewReturnForm: React.FC<Props> = ({
         selectedOrderItemIds: returnToEdit.items
           .map((i) => i.orderItemId)
           .filter((id): id is number => id !== null),
+        manualQuantity: String(returnToEdit.items[0]?.quantity ?? 1),
         assignedUserId: returnToEdit.assignedUserId ? String(returnToEdit.assignedUserId) : "",
         type: returnToEdit.type,
         status: returnToEdit.status,
@@ -161,19 +161,19 @@ const NewReturnForm: React.FC<Props> = ({
         .map(itemFromOrderItem);
     }
     if (returnToEdit) {
-      return returnToEdit.items.map((item) => ({
-        orderItemId: item.orderItemId,
-        productId: item.productId,
-        productName: item.productName,
-        productType: item.productType,
-        brandName: item.brandName,
-        modelName: item.modelName,
-        qualityName: item.qualityName,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-      }));
+      // Reenvia os mesmos vínculos já gravados; o backend revalida e deriva
+      // os snapshots de novo (TASK-028).
+      return returnToEdit.items.map((item) => (
+        item.orderItemId != null
+          ? { orderItemId: item.orderItemId, quantity: item.quantity }
+          : { productId: item.productId, quantity: item.quantity }
+      ));
     }
-    // No order linked — at least one item required, but form allows saving without items
+    // TASK-028 (RN-06): sem pedido vinculado, o item é um produto do
+    // catálogo — nome, categoria e preço saem dele.
+    if (manualProduct) {
+      return [{ productId: manualProduct.id, quantity: Math.max(1, Number(form.manualQuantity || 1)) }];
+    }
     return [];
   }
 
@@ -188,7 +188,12 @@ const NewReturnForm: React.FC<Props> = ({
     }
     const items = buildItems();
     if (items.length === 0) {
-      onToast("Selecione pelo menos um item do pedido.", "error");
+      onToast(
+        form.orderId
+          ? "Selecione pelo menos um item do pedido."
+          : "Selecione o produto do catálogo para a devolução sem pedido vinculado.",
+        "error"
+      );
       return;
     }
 
@@ -287,6 +292,31 @@ const NewReturnForm: React.FC<Props> = ({
                 })}
               </div>
             </div>
+          )}
+
+          {/* TASK-028 (RN-06): devolução sem pedido vinculado — o produto vem
+              do catálogo, para não gravar snapshot digitado à mão. */}
+          {!selectedOrder && !returnToEdit && (
+            <>
+              <div className={styles.fullSpan}>
+                <AsyncLookupSelect<Product>
+                  label="Produto (sem pedido vinculado)"
+                  endpoint="/products/lookup"
+                  value={manualProduct ? String(manualProduct.id) : ""}
+                  getValue={(product) => String(product.id)}
+                  getLabel={(product) => productLabel(product)}
+                  onSelect={setManualProduct}
+                  initialOption={manualProduct ?? undefined}
+                />
+              </div>
+              <Input
+                label="Quantidade"
+                type="number"
+                min={1}
+                value={form.manualQuantity}
+                onChange={(e) => set("manualQuantity", e.target.value)}
+              />
+            </>
           )}
 
           {/* Tipo e status */}

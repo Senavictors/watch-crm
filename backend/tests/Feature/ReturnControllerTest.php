@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Product;
 use App\Models\ProductReturn;
 use App\Models\ReturnItem;
 use App\Models\User;
@@ -51,6 +52,9 @@ class ReturnControllerTest extends TestCase
     {
         $user = User::factory()->create(['role' => $role]);
         $customer = Customer::factory()->create();
+        // TASK-028: devolução sem pedido vinculado identifica o produto pelo
+        // catálogo; nome, categoria e preço são derivados dele.
+        $product = Product::factory()->create();
 
         $response = $this->actingAs($user)
             ->withSession(['_token' => 'csrf-token'])
@@ -58,7 +62,7 @@ class ReturnControllerTest extends TestCase
                 'customerId' => $customer->id,
                 'type' => 'garantia',
                 'items' => [
-                    ['productName' => 'Relógio Teste', 'productType' => 'Relógios', 'quantity' => 1, 'unitPrice' => 250],
+                    ['productId' => $product->id, 'quantity' => 1],
                 ],
             ], self::CSRF_HEADERS);
 
@@ -73,7 +77,19 @@ class ReturnControllerTest extends TestCase
     {
         $guarantee = User::factory()->create(['role' => UserRole::Guarantee->value]);
         $customer = Customer::factory()->create();
-        $order = Order::factory()->create();
+        // TASK-028 (RN-01/RN-02): pedido, cliente e item precisam ser
+        // coerentes — o pedido é do próprio cliente e o item é uma linha
+        // dele.
+        $order = Order::factory()->create(['customer_id' => $customer->id]);
+        $orderItem = OrderItem::create([
+            'order_id' => $order->id,
+            'product_name' => 'Relógio Y',
+            'product_type' => 'Relógios',
+            'quantity' => 1,
+            'unit_price' => 250,
+            'unit_cost' => 100,
+            'unit_discount' => 0,
+        ]);
 
         $response = $this->actingAs($guarantee)
             ->withSession(['_token' => 'csrf-token'])
@@ -84,7 +100,7 @@ class ReturnControllerTest extends TestCase
                 'status' => 'Aguardando Recebimento',
                 'reason' => 'Coroa travada',
                 'items' => [
-                    ['productName' => 'Relógio Y', 'productType' => 'Relógios', 'quantity' => 1, 'unitPrice' => 250],
+                    ['orderItemId' => $orderItem->id, 'quantity' => 1],
                 ],
             ], self::CSRF_HEADERS);
 
@@ -278,7 +294,7 @@ class ReturnControllerTest extends TestCase
                 // Recebimento".
                 'status' => 'Concluído',
                 'items' => [
-                    ['productName' => 'Relógio Z', 'productType' => 'Relógios', 'quantity' => 1, 'unitPrice' => 250],
+                    ['productId' => Product::factory()->create()->id, 'quantity' => 1],
                 ],
             ], self::CSRF_HEADERS);
 
@@ -393,7 +409,7 @@ class ReturnControllerTest extends TestCase
                 'customerId' => $customer->id,
                 'type' => 'garantia',
                 'items' => [
-                    ['productName' => 'Relógio W', 'productType' => 'Relógios', 'quantity' => 1, 'unitPrice' => 250],
+                    ['productId' => Product::factory()->create()->id, 'quantity' => 1],
                 ],
             ], self::CSRF_HEADERS)
             ->assertCreated();
